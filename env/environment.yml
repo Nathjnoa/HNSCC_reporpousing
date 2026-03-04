@@ -1,0 +1,75 @@
+# Template para proyectos de análisis ómico en R
+# Basado en el ambiente omics-R
+# Uso: conda env create -f env/environment.yml
+#      conda activate omics-R
+
+name: omics-R
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  # Base R
+  - r-base>=4.4
+  - r-tidyverse
+  - r-data.table
+  - r-devtools
+
+  # Bioconductor - Expresión diferencial
+  - bioconductor-deseq2
+  - bioconductor-edger
+  - bioconductor-limma
+
+  # Bioconductor - Enriquecimiento funcional
+  - bioconductor-clusterprofiler
+  - bioconductor-fgsea
+  - bioconductor-gsva
+  - bioconductor-dose
+  - bioconductor-enrichplot
+  - bioconductor-gosemsim
+  - bioconductor-go.db
+
+  # Bioconductor - Utilidades
+  - bioconductor-biobase
+  - bioconductor-annotationdbi
+  - bioconductor-geoquery
+
+  # Visualización
+  - r-ggplot2
+  - r-cowplot
+  - r-ggrepel
+  - r-pheatmap
+  - r-rcolorbrewer
+  - r-viridis
+  - r-scales
+  - r-patchwork
+
+  # Heatmaps avanzados (instalar via BiocManager si no disponible)
+  # - bioconductor-complexheatmap
+  # - r-circlize
+
+  # Supervivencia
+  - r-survival
+  - r-survminer
+
+  # Meta-análisis
+  - r-metafor
+
+  # Utilidades
+  - r-openxlsx
+  - r-readxl
+  - r-writexl
+  - r-jsonlite
+  - r-yaml
+  - r-optparse
+  - r-futile.logger
+
+  # Desarrollo
+  - r-testthat
+  - r-roxygen2
+
+# Paquetes que requieren instalación manual via R:
+# install.packages("BiocManager")
+# BiocManager::install(c("ComplexHeatmap", "circlize", "msigdbr"))
+# install.packages("rbioapi")  # Para miEAA

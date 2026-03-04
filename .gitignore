@@ -1,0 +1,28 @@
+# Data and results (reproducible from scripts)
+data/
+results/
+logs/
+
+# R / RStudio
+.Rhistory
+.RData
+.Rproj.user/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Jupyter
+notebooks/.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+*.swp
+*Zone.Identifier
+
+# Large files
+*.bam
+*.fastq
+*.fastq.gz
+*.fq.gz
