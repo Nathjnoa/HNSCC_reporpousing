@@ -1,0 +1,495 @@
+#!/usr/bin/env Rscript
+# =============================================================================
+# Script 10: Priorización multi-criterio → Top 20 candidatos
+# HNSCC Drug Repurposing — Fase 3
+# =============================================================================
+# Objetivo: Calcular un score compuesto para cada farmaco candidato usando
+#           6 dimensiones independientes. Seleccionar top 20 para validacion.
+#
+# Dimensiones de scoring (pesos en config/analysis_params.yaml):
+#   1. score_logfc         (0.20): magnitud expresion de genes diana
+#   2. score_significance  (0.15): significancia estadistica genes diana
+#   3. score_clinical      (0.20): fase clinica maxima del farmaco
+#   4. score_cmap          (0.15): connectivity score CMap2 (reversal)
+#   5. score_pathway       (0.15): proporcion genes diana en vias enriquecidas
+#   6. score_network       (0.15): centralidad de genes diana en red PPI
+#
+# Input:  results/tables/drug_targets/08_drug_summary_per_drug.tsv
+#         results/tables/drug_targets/08_multi_source_candidates.tsv
+#         results/tables/de_limma/02_TVsS_significant_with_ids.tsv
+#         results/tables/network/09_network_node_metrics.tsv
+#         results/tables/pathway_enrichment/03_GO_BP_ORA_simplified.tsv
+#         results/tables/pathway_enrichment/03_KEGG_ORA.tsv
+#         results/tables/pathway_enrichment/03_Reactome_ORA.tsv
+#         config/analysis_params.yaml
+#
+# Output: results/tables/10_top20_candidates.tsv
+#         results/tables/10_all_candidates_scored.tsv
+#         results/figures/10_scoring_heatmap.pdf
+#         results/figures/10_top20_barplot.pdf
+#         results/figures/10_score_components_radar.pdf
+# =============================================================================
+
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tidyr)
+  library(stringr)
+  library(ggplot2)
+  library(yaml)
+})
+
+# --- Working directory -------------------------------------------------------
+args <- commandArgs(trailingOnly = FALSE)
+script_flag <- args[grep("^--file=", args)]
+if (length(script_flag) > 0) {
+  script_path <- normalizePath(sub("^--file=", "", script_flag))
+  proj_dir    <- dirname(dirname(script_path))
+  if (file.exists(file.path(proj_dir, "config/analysis_params.yaml")))
+    setwd(proj_dir)
+}
+cat("Working dir:", getwd(), "\n")
+
+# --- Log setup ---------------------------------------------------------------
+dir.create("logs",   showWarnings = FALSE)
+dir.create("results/tables",  showWarnings = FALSE, recursive = TRUE)
+dir.create("results/figures", showWarnings = FALSE, recursive = TRUE)
+
+log_file <- paste0("logs/10_prioritization_scoring_",
+                   format(Sys.time(), "%Y%m%d_%H%M%S"), ".log")
+con_log <- file(log_file, open = "wt")
+sink(con_log, type = "output")
+sink(con_log, type = "message", append = TRUE)
+
+cat("=== 10_prioritization_scoring.R ===\n")
+cat("Inicio:", format(Sys.time()), "\n\n")
+
+# --- Parametros --------------------------------------------------------------
+params <- yaml::read_yaml("config/analysis_params.yaml")
+
+w_logfc   <- params$scoring$weight_log2fc
+w_sig     <- params$scoring$weight_significance
+w_clin    <- params$scoring$weight_clinical_phase
+w_cmap    <- params$scoring$weight_cmap_connectivity
+w_path    <- params$scoring$weight_pathway_relevance
+w_net     <- params$scoring$weight_network_centrality
+top_n     <- params$candidates$top_n
+
+phase_scores <- setNames(
+  as.numeric(unlist(params$clinical_phase_scores)),
+  names(params$clinical_phase_scores)
+)
+
+cat(sprintf("Pesos: logFC=%.2f | sig=%.2f | clinical=%.2f | cmap=%.2f | pathway=%.2f | network=%.2f\n",
+            w_logfc, w_sig, w_clin, w_cmap, w_path, w_net))
+cat(sprintf("Sum pesos: %.2f\n", w_logfc+w_sig+w_clin+w_cmap+w_path+w_net))
+cat(sprintf("Top N candidatos: %d\n\n", top_n))
+
+# =============================================================================
+# CARGAR DATOS
+# =============================================================================
+cat("--- Cargando datos ---\n")
+
+# Candidatos multi-fuente (script 08)
+candidates_raw <- read.delim("results/tables/drug_targets/08_multi_source_candidates.tsv",
+                              stringsAsFactors = FALSE)
+cat(sprintf("Candidatos multi-fuente (raw): %d\n", nrow(candidates_raw)))
+
+# Deduplicar por ChEMBL ID canonico: si varios nombres apuntan al mismo ChEMBL,
+# quedarse con el nombre mas corto (nombre base, sin sal/formulacion)
+candidates <- candidates_raw %>%
+  group_by(chembl_id) %>%
+  slice_min(nchar(drug_name_norm), n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  bind_rows(candidates_raw %>%
+              filter(is.na(chembl_id) | chembl_id == "") %>%
+              distinct(drug_name_norm, .keep_all = TRUE)) %>%
+  distinct(drug_name_norm, .keep_all = TRUE)
+
+cat(sprintf("Candidatos tras dedup por ChEMBL ID: %d\n", nrow(candidates)))
+
+# Summary per drug (script 08) — tiene max_phase, is_approved, cmap_score
+drug_summary <- read.delim("results/tables/drug_targets/08_drug_summary_per_drug.tsv",
+                            stringsAsFactors = FALSE)
+
+# Tabla DE (script 02) — logFC y p-valor por gen
+sig <- read.delim("results/tables/de_limma/02_TVsS_significant_with_ids.tsv",
+                  stringsAsFactors = FALSE)
+gene_de <- sig %>%
+  select(symbol_org, logFC_TVsS, adj.P.Val_TVsS) %>%
+  distinct(symbol_org, .keep_all = TRUE)
+
+# Metricas de red (script 09) — degree y betweenness
+net_metrics <- read.delim("results/tables/network/09_network_node_metrics.tsv",
+                          stringsAsFactors = FALSE) %>%
+  select(gene_symbol, degree, betweenness_norm, eigenvector)
+
+# Genes en vias enriquecidas (script 03)
+# Extraer todos los gene symbols de los resultados ORA
+load_pathway_genes <- function(file) {
+  # clusterProfiler con readable=TRUE escribe gene SYMBOLS separados por "/"
+  if (!file.exists(file)) return(character(0))
+  df <- read.delim(file, stringsAsFactors = FALSE)
+  if (!"geneID" %in% colnames(df)) return(character(0))
+  genes <- unlist(strsplit(df$geneID, "/"))
+  unique(trimws(genes))
+}
+
+pathway_syms_go    <- load_pathway_genes("results/tables/pathway_enrichment/03_GO_BP_ORA_simplified.tsv")
+pathway_syms_kegg  <- load_pathway_genes("results/tables/pathway_enrichment/03_KEGG_ORA.tsv")
+pathway_syms_react <- load_pathway_genes("results/tables/pathway_enrichment/03_Reactome_ORA.tsv")
+pathway_syms_all   <- unique(c(pathway_syms_go, pathway_syms_kegg, pathway_syms_react))
+
+cat(sprintf("Genes en vias enriquecidas (ORA): %d\n", length(pathway_syms_all)))
+
+# =============================================================================
+# HELPER: genes diana de un farmaco
+# =============================================================================
+get_target_genes <- function(gene_str) {
+  if (is.na(gene_str) || gene_str == "") return(character(0))
+  unique(str_split(gene_str, "\\|")[[1]])
+}
+
+# =============================================================================
+# DIMENSION 1: score_logfc — media |logFC| de genes diana, normalizado 0-1
+# =============================================================================
+cat("\n--- Calculando scores ---\n")
+
+# Referencia: max posible = max |logFC| en el dataset
+max_logfc <- max(abs(gene_de$logFC_TVsS), na.rm = TRUE)
+
+score_logfc_fn <- function(gene_str) {
+  genes <- get_target_genes(gene_str)
+  lfc   <- abs(gene_de$logFC_TVsS[gene_de$symbol_org %in% genes])
+  if (length(lfc) == 0) return(0)
+  mean(lfc, na.rm = TRUE) / max_logfc
+}
+
+# =============================================================================
+# DIMENSION 2: score_significance — media -log10(adj.P.Val), normalizado 0-1
+# =============================================================================
+max_neglog_p <- max(-log10(gene_de$adj.P.Val_TVsS + 1e-300), na.rm = TRUE)
+
+score_sig_fn <- function(gene_str) {
+  genes  <- get_target_genes(gene_str)
+  pvals  <- gene_de$adj.P.Val_TVsS[gene_de$symbol_org %in% genes]
+  if (length(pvals) == 0) return(0)
+  mean(-log10(pvals + 1e-300), na.rm = TRUE) / max_neglog_p
+}
+
+# =============================================================================
+# DIMENSION 3: score_clinical — fase clinica maxima → score 0-1
+# =============================================================================
+score_clinical_fn <- function(phase) {
+  if (is.na(phase)) return(0)
+  key <- as.character(round(phase))
+  val <- phase_scores[key]
+  if (is.na(val)) 0 else as.numeric(val)
+}
+
+# =============================================================================
+# DIMENSION 4: score_cmap — connectivity score (mas negativo = mejor)
+#              min score en dataset -> 1, 0 -> 0, positivo -> 0
+# =============================================================================
+min_cmap <- min(candidates$cmap_score, na.rm = TRUE)  # el mas negativo
+
+score_cmap_fn <- function(cs) {
+  if (is.na(cs) || cs >= 0) return(0)
+  # Escala: cs va de min_cmap a 0, queremos que min_cmap = 1
+  (cs - 0) / (min_cmap - 0)   # = cs/min_cmap (ambos negativos -> positivo)
+}
+
+# =============================================================================
+# DIMENSION 5: score_pathway — proporcion genes diana en vias ORA enriquecidas
+# =============================================================================
+score_pathway_fn <- function(gene_str) {
+  genes <- get_target_genes(gene_str)
+  if (length(genes) == 0) return(0)
+  sum(genes %in% pathway_syms_all) / length(genes)
+}
+
+# =============================================================================
+# DIMENSION 6: score_network — centralidad media de genes diana en red PPI
+#              usa combinacion degree + betweenness normalizada
+# =============================================================================
+max_degree <- max(net_metrics$degree, na.rm = TRUE)
+max_betw   <- max(net_metrics$betweenness_norm, na.rm = TRUE)
+
+score_network_fn <- function(gene_str) {
+  genes <- get_target_genes(gene_str)
+  nm    <- net_metrics %>% filter(gene_symbol %in% genes)
+  if (nrow(nm) == 0) return(0)
+  deg_norm  <- mean(nm$degree / max_degree, na.rm = TRUE)
+  betw_norm <- mean(nm$betweenness_norm / max_betw, na.rm = TRUE)
+  # Combinacion: 60% degree, 40% betweenness (degree refleja conectividad global)
+  0.6 * deg_norm + 0.4 * betw_norm
+}
+
+# =============================================================================
+# APLICAR SCORING A TODOS LOS CANDIDATOS
+# =============================================================================
+cat("Calculando scores para todos los candidatos...\n")
+
+scored <- candidates %>%
+  rowwise() %>%
+  mutate(
+    s_logfc    = score_logfc_fn(de_genes),
+    s_sig      = score_sig_fn(de_genes),
+    s_clinical = score_clinical_fn(max_phase),
+    s_cmap     = score_cmap_fn(cmap_score),
+    s_pathway  = score_pathway_fn(de_genes),
+    s_network  = score_network_fn(de_genes)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    composite_score = w_logfc  * s_logfc +
+                      w_sig    * s_sig   +
+                      w_clin   * s_clinical +
+                      w_cmap   * s_cmap  +
+                      w_path   * s_pathway +
+                      w_net    * s_network,
+    # Bonus: clase A (HNSCC direct) o candidatos con CMap + gene-target
+    bonus = case_when(
+      drug_class == "A"              ~ 0.05,
+      !is.na(cmap_score) & n_sources >= 3 ~ 0.03,
+      drug_class == "C" & n_sources >= 2  ~ 0.01,
+      TRUE                           ~ 0
+    ),
+    final_score = pmin(composite_score + bonus, 1.0)
+  ) %>%
+  arrange(desc(final_score))
+
+cat(sprintf("Score range: %.4f - %.4f\n",
+            min(scored$final_score), max(scored$final_score)))
+
+# =============================================================================
+# APLICAR EXCLUSIONES (config -> exclusions$drugs)
+# =============================================================================
+# Exclusion por nombre de fármaco
+excluded_drugs <- toupper(unlist(params$exclusions$drugs))
+n_excl_name <- 0
+if (length(excluded_drugs) > 0) {
+  n_excl_name <- sum(scored$drug_name_norm %in% excluded_drugs)
+  scored <- scored %>% filter(!drug_name_norm %in% excluded_drugs)
+  cat(sprintf("Exclusiones por nombre: %d fármacos removidos\n", n_excl_name))
+}
+
+# Exclusion por gen diana unico (si el farmaco solo tiene 1 target y es excluido)
+excl_targets <- toupper(unlist(params$exclusions$exclude_single_target_genes))
+n_excl_target <- 0
+if (length(excl_targets) > 0) {
+  is_single_excl <- scored$de_genes %in% excl_targets
+  n_excl_target  <- sum(is_single_excl)
+  scored <- scored %>% filter(!is_single_excl)
+  cat(sprintf("Exclusiones por target unico: %d fármacos removidos\n", n_excl_target))
+}
+
+cat(sprintf("Total excluidos: %d | Candidatos restantes: %d\n",
+            n_excl_name + n_excl_target, nrow(scored)))
+
+# =============================================================================
+# TOP 20
+# =============================================================================
+# Seleccion con diversidad: max 3 drugs por gen diana primario
+# Gen diana primario = el primer gen listado en de_genes
+scored <- scored %>%
+  mutate(primary_target = sapply(de_genes, function(g) {
+    if (is.na(g) || g == "") return("unknown")
+    str_split(g, "\\|")[[1]][1]
+  }))
+
+top20_diverse <- scored %>%
+  group_by(primary_target) %>%
+  slice_head(n = 3) %>%          # top 3 por gen diana primario
+  ungroup() %>%
+  arrange(desc(final_score)) %>%
+  slice_head(n = top_n)
+
+# Si no alcanza top_n con diversidad, rellenar con los mejores restantes
+if (nrow(top20_diverse) < top_n) {
+  remaining <- scored %>%
+    filter(!drug_name_norm %in% top20_diverse$drug_name_norm) %>%
+    slice_head(n = top_n - nrow(top20_diverse))
+  top20_diverse <- bind_rows(top20_diverse, remaining) %>%
+    arrange(desc(final_score))
+}
+
+top20 <- top20_diverse
+cat(sprintf("Targets primarios representados en top %d: %d\n",
+            top_n, n_distinct(top20$primary_target)))
+
+cat(sprintf("\n=== TOP %d CANDIDATOS ===\n", top_n))
+cat(sprintf("  %-35s %6s %5s %5s %4s  %s\n",
+            "Drug", "Score", "Clin", "CMap", "Src", "Class"))
+cat(paste(rep("-", 80), collapse=""), "\n")
+
+for (i in seq_len(nrow(top20))) {
+  r <- top20[i, ]
+  cat(sprintf("  %2d. %-31s %6.4f %5s %5s %4d  %s\n",
+              i,
+              substr(r$drug_name_norm, 1, 31),
+              r$final_score,
+              ifelse(is.na(r$max_phase), "?", sprintf("%.0f", r$max_phase)),
+              ifelse(is.na(r$cmap_score), "  -", sprintf("%.2f", r$cmap_score)),
+              r$n_sources,
+              r$drug_class))
+}
+
+# Score components breakdown para top 20
+cat(sprintf("\n--- Desglose de scores (top %d) ---\n", top_n))
+cat(sprintf("  %-30s  %5s  %5s  %5s  %5s  %5s  %5s  %5s\n",
+            "Drug", "logFC", "Sig", "Clin", "CMap", "Path", "Net", "FINAL"))
+for (i in seq_len(nrow(top20))) {
+  r <- top20[i, ]
+  cat(sprintf("  %-30s  %5.3f  %5.3f  %5.3f  %5.3f  %5.3f  %5.3f  %5.3f\n",
+              substr(r$drug_name_norm, 1, 30),
+              r$s_logfc, r$s_sig, r$s_clinical,
+              r$s_cmap, r$s_pathway, r$s_network,
+              r$final_score))
+}
+
+# =============================================================================
+# FIGURAS
+# =============================================================================
+cat("\n--- Generando figuras ---\n")
+
+safe_pdf <- function(file, expr, w = 10, h = 7) {
+  tryCatch({
+    pdf(file, width = w, height = h)
+    force(expr)
+    dev.off()
+    cat(sprintf("  %s\n", file))
+  }, error = function(e) {
+    if (dev.cur() > 1) dev.off()
+    cat(sprintf("  WARN %s: %s\n", file, e$message))
+  })
+}
+
+# 1. Barplot top 20 con color por clase
+safe_pdf("results/figures/10_top20_barplot.pdf", w = 11, h = 8, {
+  p_data <- top20 %>%
+    mutate(rank = seq_len(n()),
+           label = paste0(rank, ". ", str_to_title(str_to_lower(drug_name_norm))),
+           label = factor(label, levels = rev(label)))
+
+  p <- ggplot(p_data, aes(x = label, y = final_score, fill = drug_class_label)) +
+    geom_col(width = 0.75, alpha = 0.9) +
+    geom_text(aes(label = sprintf("%.3f", final_score)),
+              hjust = -0.1, size = 3.2) +
+    scale_fill_manual(values = c(
+      "A: HNSCC approved/evidence" = "#d62728",
+      "B: Phase III+"              = "#ff7f0e",
+      "C: Approved repurposing"    = "#2ca02c",
+      "D: Experimental/CMap"       = "#7f7f7f"
+    )) +
+    coord_flip() +
+    expand_limits(y = 1.1) +
+    labs(title = sprintf("Top %d drug repurposing candidates — HNSCC", top_n),
+         subtitle = "Multi-criteria composite score (logFC + significance + clinical phase + CMap + pathways + network)",
+         x = NULL, y = "Composite score (0-1)",
+         fill = "Classification") +
+    theme_bw(base_size = 12) +
+    theme(panel.grid.major.y = element_blank(),
+          legend.position = "bottom")
+  print(p)
+})
+
+# 2. Heatmap de componentes de score (top 20)
+safe_pdf("results/figures/10_scoring_heatmap.pdf", w = 12, h = 8, {
+  score_cols <- c("s_logfc", "s_sig", "s_clinical", "s_cmap", "s_pathway", "s_network")
+  col_labels <- c("logFC", "Significance", "Clinical\nPhase", "CMap\nReversal",
+                  "Pathway\nRelevance", "Network\nCentrality")
+
+  mat_data <- top20 %>%
+    mutate(drug_label = sprintf("%d. %s", seq_len(n()),
+                                str_sub(str_to_title(str_to_lower(drug_name_norm)), 1, 28))) %>%
+    select(drug_label, all_of(score_cols)) %>%
+    pivot_longer(-drug_label, names_to = "component", values_to = "score") %>%
+    mutate(component = factor(component, levels = score_cols, labels = col_labels),
+           drug_label = factor(drug_label, levels = rev(unique(drug_label))))
+
+  p <- ggplot(mat_data, aes(x = component, y = drug_label, fill = score)) +
+    geom_tile(color = "white", linewidth = 0.5) +
+    geom_text(aes(label = sprintf("%.2f", score)), size = 3) +
+    scale_fill_gradient2(low = "#f7f7f7", mid = "#74c476", high = "#00441b",
+                         midpoint = 0.5, limits = c(0, 1),
+                         name = "Score\n(0-1)") +
+    labs(title = sprintf("Score components — Top %d HNSCC drug candidates", top_n),
+         x = "Scoring dimension", y = NULL) +
+    theme_bw(base_size = 11) +
+    theme(axis.text.x = element_text(angle = 0, vjust = 0.5),
+          panel.grid = element_blank())
+  print(p)
+})
+
+# 3. Scatter: score vs n_de_genes, coloreado por clase
+safe_pdf("results/figures/10_score_vs_targets.pdf", w = 10, h = 7, {
+  p_data <- scored %>%
+    mutate(label = ifelse(seq_len(n()) <= top_n,
+                          str_to_title(str_to_lower(drug_name_norm)), NA))
+  p <- ggplot(p_data, aes(x = n_de_genes, y = final_score,
+                           color = drug_class_label)) +
+    geom_point(aes(size = n_sources), alpha = 0.7) +
+    ggrepel::geom_text_repel(aes(label = label), size = 2.8,
+                             max.overlaps = 20, na.rm = TRUE) +
+    geom_hline(yintercept = min(top20$final_score),
+               linetype = "dashed", color = "gray40", linewidth = 0.7) +
+    annotate("text", x = max(scored$n_de_genes, na.rm=TRUE),
+             y = min(top20$final_score) + 0.01,
+             label = sprintf("Top %d cutoff", top_n),
+             hjust = 1, color = "gray40", size = 3) +
+    scale_color_manual(values = c(
+      "A: HNSCC approved/evidence" = "#d62728",
+      "B: Phase III+"              = "#ff7f0e",
+      "C: Approved repurposing"    = "#2ca02c",
+      "D: Experimental/CMap"       = "#7f7f7f"
+    )) +
+    scale_size_continuous(range = c(2, 6), name = "N databases") +
+    labs(title = "Drug candidates: composite score vs. DE target genes",
+         subtitle = "Labeled = top 20 | dashed line = top 20 cutoff",
+         x = "Number of DE target genes", y = "Composite score",
+         color = "Classification") +
+    theme_bw(base_size = 12)
+  print(p)
+})
+
+# =============================================================================
+# EXPORTAR
+# =============================================================================
+cat("\n--- Exportando ---\n")
+
+# Seleccionar columnas relevantes para output
+out_cols <- c("drug_name_norm", "chembl_id", "drug_class", "drug_class_label",
+              "n_sources", "sources", "max_phase", "is_approved", "hnscc_indication",
+              "cmap_score", "n_de_genes", "n_up_genes", "n_down_genes", "de_genes",
+              "s_logfc", "s_sig", "s_clinical", "s_cmap", "s_pathway", "s_network",
+              "composite_score", "bonus", "final_score")
+out_cols_avail <- intersect(out_cols, colnames(scored))
+
+write.table(scored %>% select(all_of(out_cols_avail)),
+            "results/tables/10_all_candidates_scored.tsv",
+            sep = "\t", quote = FALSE, row.names = FALSE)
+
+write.table(top20 %>% select(all_of(out_cols_avail)),
+            "results/tables/10_top20_candidates.tsv",
+            sep = "\t", quote = FALSE, row.names = FALSE)
+
+cat(sprintf("Exportado: 10_all_candidates_scored.tsv (%d candidatos)\n", nrow(scored)))
+cat(sprintf("Exportado: 10_top20_candidates.tsv (top %d)\n", top_n))
+
+# =============================================================================
+# RESUMEN FINAL
+# =============================================================================
+cat("\n=== RESUMEN ===\n")
+cat(sprintf("  Candidatos evaluados: %d\n", nrow(scored)))
+cat(sprintf("  Top %d seleccionados:\n", top_n))
+class_dist <- top20 %>% count(drug_class_label)
+for (i in seq_len(nrow(class_dist))) {
+  cat(sprintf("    %s: %d\n", class_dist$drug_class_label[i], class_dist$n[i]))
+}
+cat(sprintf("  Score minimo top %d: %.4f\n", top_n, min(top20$final_score)))
+cat(sprintf("  Score maximo:        %.4f\n", max(top20$final_score)))
+cat(sprintf("\nSiguiente: scripts/11_clinicaltrials_pubmed.py\n"))
+cat("Fin:", format(Sys.time()), "\n")
+
+sink(type = "message"); sink(); close(con_log)
+cat("Script completado. Log en:", log_file, "\n")

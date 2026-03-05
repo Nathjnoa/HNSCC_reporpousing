@@ -1,0 +1,86 @@
+# ============================================================
+# HNSCC Drug Repurposing — Parámetros de Análisis
+# Modificar aquí para análisis de sensibilidad
+# ============================================================
+
+# --- Proteómica DE (scripts 01-02) ---
+de:
+  log2fc_threshold: 1.0          # |log2FC| mínimo para proteínas significativas
+  adj_pval_threshold: 0.05       # FDR (Benjamini-Hochberg)
+  missing_filter_pct: 0.50       # Eliminar proteínas con >50% missing en cualquier grupo
+  imputation_method: "MinProb"   # Opciones: MinProb, QRILC, kNN
+  normalization: "median"        # Opciones: median, vsn, quantile
+
+# --- Enriquecimiento de rutas (script 04) ---
+pathway:
+  pval_cutoff: 0.05
+  qval_cutoff: 0.20
+  min_gs_size: 10
+  max_gs_size: 500
+  simplify_cutoff: 0.70          # Umbral para simplify() en GO (evitar redundancia)
+
+# --- CMap / LINCS L1000 (script 08) ---
+cmap:
+  connectivity_score_threshold: -90   # Score < -90 = reversor potente
+  adj_pval_threshold: 0.05
+  method: "LINCS"                     # Opciones: LINCS, CMAP2
+
+# --- Red PPI STRING (script 10) ---
+network:
+  string_version: "12.0"
+  string_score_threshold: 700         # Score combinado 0-1000 (700 = alta confianza)
+  hub_percentile: 90                  # Top 10% por grado de nodo = hub
+
+# --- Priorización multi-criterio (script 11) ---
+scoring:
+  weight_log2fc: 0.20
+  weight_significance: 0.15
+  weight_clinical_phase: 0.20
+  weight_cmap_connectivity: 0.15
+  weight_pathway_relevance: 0.15
+  weight_network_centrality: 0.15
+  # Suma debe ser 1.0
+
+# --- Candidatos finales (script 11) ---
+candidates:
+  top_n: 20                           # Top N candidatos para validación profunda
+  min_databases: 2                    # Mínimo de bases de datos de soporte
+
+# --- Fase clínica → score (script 11) ---
+clinical_phase_scores:
+  "4": 1.00    # Aprobado
+  "3": 0.75    # Fase 3
+  "2": 0.50    # Fase 2
+  "1": 0.25    # Fase 1
+  "0": 0.00    # Pre-clínico / desconocido
+
+# --- Exclusiones de Top 20 (fármacos no-antitumorales) ---
+exclusions:
+  # Fármacos cuyo mecanismo no tiene plausibilidad antitumoral en HNSCC
+  drugs:
+    - "FOMEPIZOLE"                              # Antídoto metanol (ADH1B)
+    - "ADUCANUMAB"                              # Anti-amiloide Alzheimer (APP)
+    - "LECANEMAB"                               # Anti-amiloide Alzheimer (APP)
+    - "DONANEMAB"                               # Anti-amiloide Alzheimer (APP)
+    - "TRAMIPROSATE"                            # Anti-amiloide Alzheimer (APP)
+    - "CRENEZUMAB"                              # Anti-amiloide Alzheimer (APP)
+    - "GANTENERUMAB"                            # Anti-amiloide Alzheimer (APP)
+    - "PREGABALIN"                              # Gabapentinoide analgésico (CACNA2D1)
+    - "GABAPENTIN ENACARBIL"                    # Gabapentinoide analgésico (CACNA2D1)
+    - "GABAPENTIN"                              # Gabapentinoide analgésico (CACNA2D1)
+    - "SULOCTIDIL"                              # Vasodilatador/gabapentinoide (CACNA2D1)
+    - "ARGATROBAN"                              # Anticoagulante (F2)
+    - "ANTITHROMBIN ALFA"                       # Anticoagulante (F2)
+    - "DESIRUDIN"                               # Anticoagulante (F2)
+    - "LEPIRUDIN"                               # Anticoagulante (F2)
+    - "DABIGATRAN ETEXILATE MESYLATE"           # Anticoagulante (F2)
+    - "XIMELAGATRAN"                            # Anticoagulante (F2)
+  # Exclusión por gen diana primario: todos los fármacos cuyo target único
+  # no tiene plausibilidad antitumoral
+  exclude_single_target_genes:
+    - "F2"         # Trombina — anticoagulantes (manejo sintomático)
+    - "APP"        # Amiloide — anticuerpos Alzheimer (sin relevancia oncológica)
+    - "CACNA2D1"   # Canal calcio α2δ — gabapentinoides analgésicos
+    - "ADH1B"      # Alcohol deshidrogenasa — antídotos
+  # Motivo: aparecen en trials HNSCC para manejo sintomático (dolor, trombosis)
+  #         o no tienen relevancia oncológica (Alzheimer, antídotos)
