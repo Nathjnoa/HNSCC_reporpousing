@@ -1,6 +1,6 @@
 # RUNBOOK — HNSCC Drug Repurposing Pipeline
 
-Guia paso a paso para reproducir el analisis completo (14 scripts).
+Guia paso a paso para reproducir el analisis completo (16 scripts: 01–15 + 17).
 
 ---
 
@@ -10,7 +10,7 @@ Guia paso a paso para reproducir el analisis completo (14 scripts).
 
 | Ambiente | Scripts | Proposito |
 | -------- | ------- | --------- |
-| `omics-R` | 01, 02, 03, 07, 08, 09, 10, 13, 14 | Analisis proteomica, enriquecimiento, red, scoring |
+| `omics-R` | 01, 02, 03, 07, 08, 09, 10, 13, 14, 15, 17 | Analisis proteomica, enriquecimiento, red, scoring, figuras pub |
 | `omics-py` | 04, 05, 06, 11, 12 | Consultas a bases de datos de farmacos |
 
 ### Paquetes adicionales (instalar una sola vez)
@@ -103,7 +103,7 @@ Rscript scripts/07_cmap_connectivity.R
 
 # 08 - Integrar 4 fuentes en tabla maestra
 Rscript scripts/08_integrate_drug_targets.R
-# Output: results/tables/drug_targets/08_*.tsv, results/figures/drug_targets/08_*.pdf
+# Output: results/tables/drug_targets/08_*.tsv, results/figures/08_*.pdf
 ```
 
 ### Fase 4: Red PPI + Scoring (R)
@@ -113,7 +113,7 @@ conda activate omics-R
 
 # 09 - Red STRING + metricas de centralidad
 Rscript scripts/09_string_network.R
-# Output: results/tables/network/09_*.tsv, results/network/09_network_giant.graphml
+# Output: results/tables/network/09_*.tsv, results/figures/09_*.pdf
 
 # 10 - Scoring multi-criterio + Top 20 (aplica exclusiones de config)
 Rscript scripts/10_prioritization_scoring.R
@@ -155,7 +155,17 @@ conda activate omics-R
 
 # 15 - Analisis de sensibilidad de pesos (6 configuraciones)
 Rscript scripts/15_sensitivity_analysis.R
-# Output: results/tables/15_sensitivity_ranks.tsv, results/figures/15_*.pdf
+# Output: results/tables/15_sensitivity_ranks.tsv, results/figures/15_score_distribution.pdf
+```
+
+### Fase 8: Figuras de publicacion (R)
+
+```bash
+conda activate omics-R
+
+# 17 - Figuras calidad publicacion (PDF + PNG 300 DPI)
+Rscript scripts/17_pub_figures.R
+# Output: results/figures/pub/A1..F2_*.pdf/.png, results/figures/pub/FIG1..FIG5_*.pdf/.png
 ```
 
 ---
@@ -180,7 +190,7 @@ Los scripts solo pueden ejecutarse si sus dependencias estan completas. Respetar
 | `results/tables/13_FINAL_drug_candidates.xlsx` | **Excel final** con Top 20, todos los candidatos, matriz de evidencia |
 | `results/tables/10_top20_candidates.tsv` | Top 20 candidatos con scores desglosados |
 | `results/tables/10_all_candidates_scored.tsv` | 177 candidatos con scoring completo |
-| `results/network/09_network_giant.graphml` | Red PPI para visualizar en Cytoscape |
+| `results/tables/network/09_network_giant.graphml` | Red PPI para visualizar en Cytoscape |
 | `docs/METHODS.md` | Seccion de metodos para manuscrito |
 | `docs/OUTPUTS.md` | Catalogo de todos los archivos generados |
 
@@ -204,6 +214,7 @@ Los scripts solo pueden ejecutarse si sus dependencias estan completas. Respetar
 - [ ] Ambientes `omics-R` y `omics-py` activados y con paquetes instalados
 - [ ] Datos en `data/raw/` (3 archivos)
 - [ ] `config/analysis_params.yaml` revisado (parametros por defecto son los usados en el analisis)
-- [ ] Scripts 01-14 ejecutados en orden sin errores
+- [ ] Scripts 01-15 ejecutados en orden sin errores
+- [ ] Script 17 ejecutado para figuras de publicacion
 - [ ] `results/tables/13_FINAL_drug_candidates.xlsx` generado
 - [ ] Logs verificados en `logs/` (cada script genera log con timestamp)

@@ -1,6 +1,6 @@
 # Outputs Catalogue — HNSCC Drug Repurposing
 
-*Última actualización: 2026-03-05*
+*Última actualización: 2026-03-06 — verificado contra archivos en disco; figuras de scripts intermedios reemplazadas por versiones pub/ cuando aplica.*
 *Organizado script por script, con rutas relativas desde la raíz del proyecto.*
 
 Convención de la columna Tipo: `T` = tabla/archivo de datos, `F` = figura.
@@ -56,8 +56,6 @@ Enriquecimiento funcional: ORA (GO/KEGG/Reactome) y GSEA (Hallmarks/GO BP).
 | F | `results/figures/pathway_enrichment/03_Reactome_dotplot.pdf` | Dotplot top 15 rutas Reactome ORA |
 | F | `results/figures/pathway_enrichment/03_GO_BP_emapplot.pdf` | Red de similitud semántica entre términos GO BP (top 30) |
 | F | `results/figures/pathway_enrichment/03_GO_BP_cnetplot.pdf` | Red gen-concepto GO BP: top 8 términos con genes coloreados por logFC |
-| F | `results/figures/pathway_enrichment/03_Hallmarks_GSEA_dotplot.pdf` | Dotplot GSEA Hallmarks separado por activación/represión |
-| F | `results/figures/pathway_enrichment/03_Hallmarks_GSEA_ridgeplot.pdf` | Ridgeplot distribución de ranks para Hallmarks significativos |
 | F | `results/figures/pathway_enrichment/03_GO_BP_GSEA_dotplot.pdf` | Dotplot GSEA GO BP separado por dirección de enriquecimiento |
 
 ---
@@ -117,8 +115,6 @@ Integración de 4 fuentes (DGIdb, ChEMBL, Open Targets, CMap2) en tabla maestra;
 | T | `results/tables/drug_targets/08_drug_summary_per_drug.tsv` | Resumen por fármaco: n_sources, fuentes, max_phase, is_approved, cmap_score, genes diana, clase |
 | T | `results/tables/drug_targets/08_multi_source_candidates.tsv` | Candidatos con soporte en >= 2 fuentes (o clase A/B por criterio clínico) |
 | F | `results/figures/08_drug_class_barplot.pdf` | Barplot horizontal de fármacos por clase (A: HNSCC, B: Phase III+, C: Repurposing, D: Experimental) |
-| F | `results/figures/08_drug_sources_support.pdf` | Barplot del número de fármacos según cuántas bases de datos los detectaron |
-| F | `results/figures/08_top_candidates_lollipop.pdf` | Lollipop: top 20 candidatos clases A/B/C por genes diana y n_sources |
 | F | `results/figures/08_cmap_vs_targets.pdf` | Scatter CMap scaled_score vs número de genes diana (solo candidatos con score CMap) |
 
 ---
@@ -149,8 +145,6 @@ Scoring multi-criterio (6 dimensiones) y selección del Top 20 candidatos con di
 | --- | --- | --- |
 | T | `results/tables/10_all_candidates_scored.tsv` | Todos los candidatos con s_logfc, s_sig, s_clinical, s_cmap, s_pathway, s_network, composite_score, final_score |
 | T | `results/tables/10_top20_candidates.tsv` | Top 20 candidatos finales seleccionados con criterio de diversidad (max. 3 por target primario) |
-| F | `results/figures/10_top20_barplot.pdf` | Barplot horizontal del ranking final Top 20, coloreado por clase A/B/C/D |
-| F | `results/figures/10_scoring_heatmap.pdf` | Heatmap de los 6 componentes de score para el Top 20 (valores 0-1) |
 | F | `results/figures/10_score_vs_targets.pdf` | Scatter score compuesto vs número de genes diana DE; etiquetados los Top 20 |
 
 ---
@@ -164,7 +158,6 @@ Consulta a ClinicalTrials.gov API v2 y PubMed para evidencia clínica de los Top
 | T | `results/tables/evidence/11_clinical_evidence.tsv` | Por candidato: n_ensayos HNSCC, n_ensayos activos, n_publicaciones PubMed HNSCC, evidence_score |
 | T | `results/tables/evidence/11_trials_detail.tsv` | Detalle de cada ensayo clínico encontrado: título, fase, estado, NCT ID |
 | F | `results/figures/evidence/11_evidence_bubble.pdf` | Bubble plot: candidatos por evidencia clínica y bibliográfica |
-| F | `results/figures/evidence/11_trials_phase_bar.pdf` | Barplot de ensayos clínicos por fase (I/II/III/IV) |
 
 ---
 
@@ -190,10 +183,7 @@ Integración final de toda la evidencia y generación del reporte maestro.
 | --- | --- | --- |
 | T | `results/tables/13_FINAL_drug_candidates.xlsx` | Archivo maestro con 5 hojas: Top20_Final, Todos_Candidatos, Evidencia_Matriz, Ensayos_Clinicos, Metodologia |
 | T | `results/tables/13_evidence_matrix.tsv` | Matriz binaria 20 candidatos × 10 dimensiones de evidencia (0/1 por dimensión) |
-| F | `results/figures/final/13_evidence_heatmap.pdf` | Heatmap ComplexHeatmap con anotación por nivel de evidencia (1-4) y check marks por dimensión |
-| F | `results/figures/final/13_final_ranking.pdf` | Lollipop de ranking final combinado (0.6 × scoring + 0.4 × evidencia clínica) |
 | F | `results/figures/final/13_evidence_radar.pdf` | Barplot grouped del perfil de scoring de los Top 5 candidatos por dimensión |
-| F | `results/figures/final/13_multipanel_summary.pdf` | Multipanel: distribución de niveles de evidencia, ensayos vs PubMed, clase de reposicionamiento |
 
 ---
 
@@ -215,8 +205,6 @@ Análisis de sensibilidad de los pesos del scoring en 6 configuraciones distinta
 | Tipo | Archivo | Descripción |
 | --- | --- | --- |
 | T | `results/tables/15_sensitivity_ranks.tsv` | Rankings de todos los candidatos en 6 configuraciones de pesos, con n_configs_top20 |
-| F | `results/figures/15_rank_heatmap.pdf` | Heatmap candidatos × configuraciones de pesos, coloreado por posición en el ranking |
-| F | `results/figures/15_stability_bar.pdf` | Barplot de cuántas configuraciones incluyen a cada candidato en el Top 20 |
 | F | `results/figures/15_score_distribution.pdf` | Boxplot + jitter de la distribución de scores finales entre configuraciones (candidatos robustos) |
 
 ---
