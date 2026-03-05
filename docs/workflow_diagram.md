@@ -11,84 +11,78 @@
 ```mermaid
 flowchart TD
 
-    DATA[("🔬 Datos de partida
+    DATA[("🔬 Punto de partida
     20 muestras · 10 Tumor / 10 Normal
     3 352 proteínas cuantificadas")]
 
-    subgraph P1["📂  Fase 1 — Preparación"]
-        QC["① Control de calidad
-        520 proteínas alteradas detectadas"]
-        IDMAP["② Traducción de identificadores
-        97.3 % de proteínas convertidas a genes"]
-    end
+    PREP["📂 Fase 1 — Preparación y control de calidad
+    Verificar datos e identificar proteínas alteradas
+    520 proteínas significativas · 248 aumentadas · 272 disminuidas"]
 
-    subgraph P2["🧬  Fase 2 — Biología alterada"]
-        PATH["③ Análisis de rutas biológicas
-        Procesos sobreactivados o apagados en el tumor"]
-    end
+    BIO["🧬 Fase 2 — Biología del tumor
+    Rutas celulares sobreactivadas o apagadas
+    Metabolismo · Ciclo celular · ECM · Inmunidad"]
 
-    subgraph P3["💊  Fase 3 — Búsqueda de fármacos"]
-        DB1[("DGIdb
-        2 252 fármacos")]
-        DB2[("ChEMBL
-        55 fármacos aprobados")]
-        DB3[("Open Targets
-        66 candidatos a reposicionamiento")]
-        DB4[("CMap2
-        174 reversores del perfil tumoral")]
-        INT["④ Integración de las 4 fuentes
-        2 421 fármacos únicos
-        187 en ≥ 2 fuentes"]
-    end
+    DB1[("DGIdb
+    2 252 fármacos")]
 
-    subgraph P4["🕸️  Fase 4 — Red y puntuación"]
-        NET["⑤ Red de interacciones entre proteínas
-        403 proteínas · 2 001 conexiones
-        Hubs: Complejo I mitocondrial → Metformina"]
-        SCO["⑥ Puntuación multi-criterio
-        6 dimensiones · 177 candidatos evaluados"]
-    end
+    DB2[("ChEMBL
+    55 aprobados")]
 
-    subgraph P5["🏥  Fase 5 — Validación clínica"]
-        CT[("ClinicalTrials.gov
-        11 / 20 con ensayos en HNSCC")]
-        COS[("Genes driver de cáncer
-        EGFR: gen driver principal")]
-    end
+    DB3[("Open Targets
+    66 candidatos")]
 
-    subgraph P6["🏆  Resultado final"]
-        TOP["⑦ Top 20 fármacos candidatos
-        🥇 Erlotinib  🥈 Cetuximab  🥉 Metformina"]
-        OUT[("📄 Excel · 14 figuras
-        Niveles de evidencia 1–4")]
-    end
+    DB4[("CMap2
+    174 reversores")]
 
-    DATA --> QC --> IDMAP
-    IDMAP --> PATH
-    IDMAP --> DB1 & DB2 & DB3 & DB4
+    INT["💊 Fase 3 — Integración de fármacos
+    4 bases de datos consultadas en paralelo
+    2 421 fármacos únicos · 187 en ≥ 2 fuentes"]
+
+    NET["🕸️ Fase 4A — Red de proteínas
+    403 proteínas · 2 001 conexiones
+    Hubs: Complejo I mitocondrial → Metformina"]
+
+    SCO["Fase 4B — Puntuación multi-criterio
+    6 criterios · 177 candidatos evaluados
+    Expresión · Clínica · CMap · Red · Rutas"]
+
+    VAL["🏥 Fase 5 — Validación clínica
+    11/20 candidatos con ensayos activos en HNSCC
+    EGFR: gen driver principal · logFC = 4.33"]
+
+    TOP["🏆 Resultado — Top 20 candidatos a reposicionamiento
+    Ranking: 60 % puntuación · 40 % evidencia clínica
+    🥇 Erlotinib · 🥈 Cetuximab · 🥉 Metformina"]
+
+    OUT[("📄 Reporte final
+    Excel 5 hojas · 14 figuras
+    Niveles de evidencia 1–4")]
+
+    DATA --> PREP
+    PREP --> BIO
+    PREP --> DB1 & DB2 & DB3 & DB4
     DB1 & DB2 & DB3 & DB4 --> INT
-    PATH --> SCO
-    INT --> NET --> SCO
-    SCO --> CT & COS
-    CT & COS --> TOP --> OUT
+    BIO --> SCO
+    INT --> NET --> SCO --> VAL --> TOP --> OUT
 
     classDef input  fill:#0d5c8c,color:#ffffff,stroke:#063d5e,font-weight:bold
     classDef p1     fill:#dbeafe,color:#1e3a5f,stroke:#3b82f6
     classDef p2     fill:#ede9fe,color:#3b1f7a,stroke:#7c3aed
     classDef dbase  fill:#fef9c3,color:#78350f,stroke:#f59e0b
-    classDef integ  fill:#f59e0b,color:#ffffff,stroke:#b45309,font-weight:bold
+    classDef p3     fill:#f59e0b,color:#ffffff,stroke:#b45309,font-weight:bold
     classDef p4     fill:#dcfce7,color:#14532d,stroke:#16a34a
     classDef p5     fill:#fee2e2,color:#7f1d1d,stroke:#dc2626
     classDef result fill:#14532d,color:#ffffff,stroke:#052e16,font-weight:bold
-    classDef output fill:#22c55e,color:#ffffff,stroke:#15803d,font-weight:bold
+    classDef output fill:#22c55e,color:#ffffff,stroke:#15803d
 
     class DATA input
-    class QC,IDMAP p1
-    class PATH p2
+    class PREP p1
+    class BIO p2
     class DB1,DB2,DB3,DB4 dbase
-    class INT integ
+    class INT p3
     class NET,SCO p4
-    class CT,COS p5
+    class VAL p5
     class TOP result
     class OUT output
 ```
