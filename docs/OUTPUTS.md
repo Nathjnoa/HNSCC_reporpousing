@@ -18,8 +18,6 @@ Parseo de resultados proteómica (proteoDA/limma), QC y exportación de proteín
 | T | `results/tables/de_limma/01_TVsS_upregulated.tsv` | Solo proteínas upreguladas (sig.FDR = 1) |
 | T | `results/tables/de_limma/01_TVsS_downregulated.tsv` | Solo proteínas downreguladas (sig.FDR = −1) |
 | F | `results/figures/qc/01_boxplot_intensidades.pdf` | Distribución log2 de intensidades por muestra, coloreada por condición y VPH |
-| F | `results/figures/qc/01_PCA_muestras.pdf` | PCA de las 20 muestras coloreado por condición (Tumor/Normal) y VPH status |
-| F | `results/figures/qc/01_volcano_TVsS.pdf` | Volcano plot Tumor vs Sano con etiquetas en genes extremos (\|logFC\| > 3.5) |
 | F | `results/figures/qc/01_resumen_DE.pdf` | Barplot de conteos de proteínas upreguladas vs downreguladas |
 
 ---
