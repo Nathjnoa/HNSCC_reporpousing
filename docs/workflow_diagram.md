@@ -2,176 +2,67 @@
 
 > **¿Qué hace este proyecto?**
 > A partir de muestras de tejido tumoral de pacientes con cáncer de cabeza y cuello (HNSCC),
-> identificamos qué proteínas están alteradas y usamos inteligencia artificial y bases de datos
-> farmacológicas para proponer qué fármacos ya aprobados (para otras enfermedades) podrían
-> funcionar contra este cáncer — una estrategia llamada **reposicionamiento de fármacos**.
+> identificamos qué proteínas están alteradas y usamos bases de datos farmacológicas para proponer
+> qué fármacos ya aprobados podrían funcionar contra este cáncer —
+> estrategia llamada **reposicionamiento de fármacos**.
 
 ---
 
 ```mermaid
 flowchart TD
 
-    %% ═══════════════════════════════════════════════════════
-    %%  INPUT
-    %% ═══════════════════════════════════════════════════════
-    DATA[("🔬 Punto de partida
-    20 muestras de tejido de pacientes
-    10 Tumor  ·  10 Tejido sano
-    Cáncer de cabeza y cuello — HNSCC
-    ━━━━━━━━━━━━━━━━━━━━━━━
+    DATA[("🔬 Datos de partida
+    20 muestras · 10 Tumor / 10 Normal
     3 352 proteínas cuantificadas")]
 
-    %% ═══════════════════════════════════════════════════════
-    %%  FASE 1 — Preparación
-    %% ═══════════════════════════════════════════════════════
-    subgraph P1["📂  Fase 1 — Preparación de datos"]
+    subgraph P1["📂  Fase 1 — Preparación"]
         QC["① Control de calidad
-        Verificar integridad, distribución
-        y validez estadística de los datos
-        ────────────────────
-        🔎 520 proteínas con cambios
-        significativos en el tumor
-        (248 aumentadas · 272 disminuidas)"]
-
+        520 proteínas alteradas detectadas"]
         IDMAP["② Traducción de identificadores
-        Los códigos internos de proteínas
-        se convierten a nombres de genes
-        ────────────────────
-        ✅ 97.3 % de proteínas traducidas
-        (3 263 de 3 352)"]
+        97.3 % de proteínas convertidas a genes"]
     end
 
-    %% ═══════════════════════════════════════════════════════
-    %%  FASE 2 — Biología alterada
-    %% ═══════════════════════════════════════════════════════
-    subgraph P2["🧬  Fase 2 — ¿Qué biología está alterada en el tumor?"]
-        PATH["③ Análisis de procesos biológicos
-        Se identifican cuáles funciones celulares
-        están sobreactivadas o apagadas en el tumor
-        ────────────────────
-        Procesos clave alterados:
-        ▸ Metabolismo mitocondrial (energía celular)
-        ▸ División y crecimiento celular
-        ▸ Matriz extracelular (estructura del tejido)
-        ▸ Respuesta inmune e inflamación"]
+    subgraph P2["🧬  Fase 2 — Biología alterada"]
+        PATH["③ Análisis de rutas biológicas
+        Procesos sobreactivados o apagados en el tumor"]
     end
 
-    %% ═══════════════════════════════════════════════════════
-    %%  FASE 3 — Búsqueda de fármacos
-    %% ═══════════════════════════════════════════════════════
-    subgraph P3["💊  Fase 3 — ¿Qué fármacos existen para estas proteínas?"]
+    subgraph P3["💊  Fase 3 — Búsqueda de fármacos"]
         DB1[("DGIdb
-        Base de datos de interacciones
-        entre genes y fármacos
-        ────────────
-        2 252 fármacos identificados
-        para 226 de las 520 proteínas")]
-
+        2 252 fármacos")]
         DB2[("ChEMBL
-        Compuestos bioactivos
-        y fases de ensayo clínico
-        ────────────
-        55 fármacos aprobados
-        309 proteínas con diana")]
-
+        55 fármacos aprobados")]
         DB3[("Open Targets
-        Evidencia gen-enfermedad
-        en base de datos global
-        ────────────
-        66 candidatos a reposicionamiento
-        354 proteínas con evidencia HNSCC")]
-
+        66 candidatos a reposicionamiento")]
         DB4[("CMap2
-        Perfiles de expresión génica
-        de miles de compuestos
-        ────────────
-        174 compuestos que invierten
-        el perfil del tumor")]
-
+        174 reversores del perfil tumoral")]
         INT["④ Integración de las 4 fuentes
-        ──────────────────────────────────
-        🔗 2 421 fármacos únicos identificados
-        📌 187 respaldados por ≥ 2 fuentes independientes
-        Clasificación:
-        A · Aprobado para HNSCC  (1)
-        B · Aprobado para otro cáncer  (51)
-        C · Aprobado para otra enfermedad  (80)
-        D · En investigación  (2 289)"]
+        2 421 fármacos únicos
+        187 en ≥ 2 fuentes"]
     end
 
-    %% ═══════════════════════════════════════════════════════
-    %%  FASE 4 — Red y puntuación
-    %% ═══════════════════════════════════════════════════════
-    subgraph P4["🕸️  Fase 4 — Red de proteínas y puntuación integrada"]
+    subgraph P4["🕸️  Fase 4 — Red y puntuación"]
         NET["⑤ Red de interacciones entre proteínas
-        Se construye un mapa de cómo se
-        conectan entre sí las proteínas tumorales
-        ────────────────────
-        403 proteínas  ·  2 001 conexiones
-        41 proteínas 'hub' (los nodos más conectados)
-        🎯 Hallazgo clave: todos los hubs son
-        subunidades del Complejo I mitocondrial
-        → diana conocida de la Metformina"]
-
+        403 proteínas · 2 001 conexiones
+        Hubs: Complejo I mitocondrial → Metformina"]
         SCO["⑥ Puntuación multi-criterio
-        Cada fármaco candidato recibe una puntuación
-        que combina 6 dimensiones independientes
-        ────────────────────
-        ▸ Nivel de expresión de la proteína blanco
-        ▸ Fase clínica del fármaco (aprobado = más puntos)
-        ▸ Inversión del perfil tumoral (CMap)
-        ▸ Relevancia en las rutas alteradas
-        ▸ Centralidad en la red de proteínas
-        ▸ Significancia estadística
-        ────────────────────
-        177 candidatos evaluados"]
+        6 dimensiones · 177 candidatos evaluados"]
     end
 
-    %% ═══════════════════════════════════════════════════════
-    %%  FASE 5 — Validación clínica
-    %% ═══════════════════════════════════════════════════════
-    subgraph P5["🏥  Fase 5 — Validación con evidencia clínica"]
+    subgraph P5["🏥  Fase 5 — Validación clínica"]
         CT[("ClinicalTrials.gov
-        Se buscan ensayos clínicos
-        activos de cada candidato
-        específicamente en HNSCC
-        ────────────
-        11 de 20 candidatos ya tienen
-        ensayos clínicos en este cáncer
-        8 de ellos activos en 2026")]
-
+        11 / 20 con ensayos en HNSCC")]
         COS[("Genes driver de cáncer
-        Se cruzan los targets con
-        oncogenes reportados en
-        literatura científica de HNSCC
-        ────────────
-        EGFR: gen driver principal
-        (logFC = 4.33 en tumor)")]
+        EGFR: gen driver principal")]
     end
 
-    %% ═══════════════════════════════════════════════════════
-    %%  RESULTADO
-    %% ═══════════════════════════════════════════════════════
-    subgraph P6["🏆  Resultado final — Candidatos a reposicionamiento"]
-        TOP["⑦ Top 20 fármacos candidatos para HNSCC
-        Ranking final combinado:
-        60 % puntuación multi-criterio
-        40 % evidencia clínica disponible
-        ══════════════════════════════
-        🥇 Erlotinib     🥈 Cetuximab
-        🥉 Metformina    4° Lapatinib
-        5° Doxiciclina   ···  Top 20"]
-
-        OUT[("📄 Entregables finales
-        Archivo Excel · 5 hojas de resultados
-        14 figuras listas para publicación
-        Niveles de evidencia 1–4
-        por cada candidato")]
+    subgraph P6["🏆  Resultado final"]
+        TOP["⑦ Top 20 fármacos candidatos
+        🥇 Erlotinib  🥈 Cetuximab  🥉 Metformina"]
+        OUT[("📄 Excel · 14 figuras
+        Niveles de evidencia 1–4")]
     end
 
-    %% ═══════════════════════════════════════════════════════
-    %%  FLUJO DE CONEXIONES
-    %% ═══════════════════════════════════════════════════════
     DATA --> QC --> IDMAP
     IDMAP --> PATH
     IDMAP --> DB1 & DB2 & DB3 & DB4
@@ -181,9 +72,6 @@ flowchart TD
     SCO --> CT & COS
     CT & COS --> TOP --> OUT
 
-    %% ═══════════════════════════════════════════════════════
-    %%  ESTILOS
-    %% ═══════════════════════════════════════════════════════
     classDef input  fill:#0d5c8c,color:#ffffff,stroke:#063d5e,font-weight:bold
     classDef p1     fill:#dbeafe,color:#1e3a5f,stroke:#3b82f6
     classDef p2     fill:#ede9fe,color:#3b1f7a,stroke:#7c3aed
@@ -204,6 +92,22 @@ flowchart TD
     class TOP result
     class OUT output
 ```
+
+---
+
+## Descripción detallada de cada fase
+
+| Fase | Paso | Qué se hace | Resultado clave |
+| ------ | ------ | ------------- | ----------------- |
+| 📂 Preparación | ① Control de calidad | Verificar integridad, distribución y validez estadística de los datos proteómicos | 520 proteínas significativamente alteradas (248 ↑ · 272 ↓) |
+| | ② Traducción de IDs | Convertir códigos internos UniProt a nombres de genes reconocibles | 3 263 de 3 352 proteínas mapeadas (97.3 %) |
+| 🧬 Biología | ③ Análisis de rutas | Identificar qué funciones celulares están sobreactivadas o apagadas en el tumor usando GO, KEGG, Reactome y Hallmarks | Metabolismo mitocondrial · ciclo celular · matriz extracelular · inmunidad |
+| 💊 Fármacos | ④ Consulta a bases de datos | Buscar en 4 bases de datos independientes qué fármacos conocidos actúan sobre las proteínas alteradas | 2 421 fármacos únicos · 187 respaldados por ≥ 2 fuentes |
+| 🕸️ Red | ⑤ Red de proteínas | Construir mapa de conexiones entre las proteínas tumorales para identificar las más importantes (hubs) | 403 proteínas · 2 001 conexiones · Hubs = Complejo I mitocondrial |
+| | ⑥ Puntuación integrada | Asignar un puntaje a cada candidato combinando 6 criterios independientes | 177 candidatos evaluados con ranking objetivo |
+| 🏥 Validación | Ensayos clínicos | Buscar en ClinicalTrials.gov si los candidatos ya tienen estudios en HNSCC | 11 de 20 con ensayos · 8 activos en 2026 |
+| | Genes driver | Cruzar los targets con oncogenes conocidos de cáncer de cabeza y cuello | EGFR: gen driver principal (logFC = 4.33) |
+| 🏆 Resultado | ⑦ Ranking final | Combinar puntuación multi-criterio (60 %) con evidencia clínica (40 %) | Top 20 candidatos · #1 Erlotinib · #2 Cetuximab · #3 Metformina |
 
 ---
 
