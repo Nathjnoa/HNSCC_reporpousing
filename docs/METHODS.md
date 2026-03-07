@@ -240,7 +240,6 @@ Esta clasificación es útil porque un reposicionamiento de clase A requiere muc
 > **Evidencia clave:**
 >
 > - Pushpakom S et al. (2019) [PMID 30310233](https://pubmed.ncbi.nlm.nih.gov/30310233/) — Propone clasificar candidatos de reposicionamiento según su nivel de evidencia clínica existente, lo que fundamenta el esquema de clases A–D.
-> - Parisi D et al. (2022) Drug repositioning or target repositioning: a structural perspective of drug-target-indication relationships. *PLOS Computational Biology* 18:e1009853. [PMID 35238873](https://pubmed.ncbi.nlm.nih.gov/35238873/) — Análisis de integración multi-base de datos para reposicionamiento, que valida la estrategia de convergencia de múltiples fuentes de evidencia.
 
 ---
 
