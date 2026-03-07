@@ -177,6 +177,10 @@ Rscript scripts/17_pub_figures.R
         → 04, 05, 06 (paralelos)
         → 07 (CMap)
               → 08 → 09 → 10 → 11, 12 (paralelos) → 13 → 14
+                              ↓
+                             15 (sensibilidad; requiere columna `bonus` de 10)
+                              ↓
+                             17 (figuras pub; requiere outputs de 01, 03, 09, 10, 13, 15)
 ```
 
 Los scripts solo pueden ejecutarse si sus dependencias estan completas. Respetar el orden numerico garantiza que todos los inputs existan.
@@ -207,6 +211,10 @@ Los scripts solo pueden ejecutarse si sus dependencias estan completas. Respetar
 | Script 11: advertencia de email NCBI | El script usa `NCBI_EMAIL` como identificador en PubMed E-utilities. Por defecto usa `jcarvajal@fucsalud.edu.co`. Para sobreescribir: `export NCBI_EMAIL="tu@email.com"` antes de ejecutar. |
 | `STRINGdb` no disponible | Normal. Script 09 usa STRING REST API directamente con httr2+jsonlite. |
 | COSMIC CGC vacio | Descarga manual requerida (login en cancer.sanger.ac.uk). Script 12 funciona sin el con NCG7 embebido. |
+| Script 17: `avg_intensity_TVsS` no encontrada | Columna opcional. Script 17 detecta automáticamente `AveExpr` (columna estándar de salida limma) como alternativa para el MA plot. No requiere intervención. |
+| Script 17: `drug_class_label` no encontrada | La columna exportada por script 10 se llama `drug_class` (valores A/B/C/D). Script 17 traduce internamente a etiquetas descriptivas; no existe columna `drug_class_label` en los archivos intermedios. |
+| Script 15: advertencia `bonus` column not found | La columna `bonus` la exporta script 10. Si no está presente, script 15 usa 0 y continúa; verificar que script 10 se ejecutó sin errores y que `10_all_candidates_scored.tsv` está completo. |
+| Script 17: `logFC_TVsS` no encontrada en nodos de red | El archivo `09_network_node_metrics.tsv` solo contiene métricas de red. Script 17 hace un `left_join` automático desde la tabla DE para añadir `logFC_TVsS` y `adj.P.Val_TVsS`. No requiere intervención. |
 
 ---
 

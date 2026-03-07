@@ -441,10 +441,10 @@ if (nrow(top_plot) > 0) {
                    linewidth = 1) +
       geom_point(aes(size = n_sources), alpha = 0.9) +
       scale_color_manual(values = c(
-        "A: HNSCC approved/evidence"  = "#d62728",
-        "B: Phase III+"               = "#ff7f0e",
-        "C: Approved repurposing"     = "#2ca02c",
-        "D: Experimental/CMap"        = "#7f7f7f"
+        "A: Approved + HNSCC evidence"   = "#d62728",
+        "B: Approved other cancer"       = "#ff7f0e",
+        "C: Approved non-oncology"       = "#2ca02c",
+        "D: Not approved / Experimental" = "#7f7f7f"
       )) +
       scale_size_continuous(range = c(3, 8), breaks = 1:4) +
       coord_flip() +
@@ -472,10 +472,10 @@ if (nrow(cmap_cands) >= 3) {
       geom_point(size = 2.5, alpha = 0.8) +
       ggrepel::geom_text_repel(size = 2.8, max.overlaps = 15) +
       scale_color_manual(values = c(
-        "A: HNSCC approved/evidence"  = "#d62728",
-        "B: Phase III+"               = "#ff7f0e",
-        "C: Approved repurposing"     = "#2ca02c",
-        "D: Experimental/CMap"        = "#7f7f7f"
+        "A: Approved + HNSCC evidence"   = "#d62728",
+        "B: Approved other cancer"       = "#ff7f0e",
+        "C: Approved non-oncology"       = "#2ca02c",
+        "D: Not approved / Experimental" = "#7f7f7f"
       )) +
       geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
       labs(title = "CMap connectivity score vs. number of DE target genes",

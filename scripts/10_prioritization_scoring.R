@@ -379,10 +379,10 @@ safe_pdf("results/figures/10_top20_barplot.pdf", w = 11, h = 8, {
     geom_text(aes(label = sprintf("%.3f", final_score)),
               hjust = -0.1, size = 3.2) +
     scale_fill_manual(values = c(
-      "A: HNSCC approved/evidence" = "#d62728",
-      "B: Phase III+"              = "#ff7f0e",
-      "C: Approved repurposing"    = "#2ca02c",
-      "D: Experimental/CMap"       = "#7f7f7f"
+      "A: Approved + HNSCC evidence"   = "#d62728",
+      "B: Approved other cancer"       = "#ff7f0e",
+      "C: Approved non-oncology"       = "#2ca02c",
+      "D: Not approved / Experimental" = "#7f7f7f"
     )) +
     coord_flip() +
     expand_limits(y = 1.1) +
@@ -441,10 +441,10 @@ safe_pdf("results/figures/10_score_vs_targets.pdf", w = 10, h = 7, {
              label = sprintf("Top %d cutoff", top_n),
              hjust = 1, color = "gray40", size = 3) +
     scale_color_manual(values = c(
-      "A: HNSCC approved/evidence" = "#d62728",
-      "B: Phase III+"              = "#ff7f0e",
-      "C: Approved repurposing"    = "#2ca02c",
-      "D: Experimental/CMap"       = "#7f7f7f"
+      "A: Approved + HNSCC evidence"   = "#d62728",
+      "B: Approved other cancer"       = "#ff7f0e",
+      "C: Approved non-oncology"       = "#2ca02c",
+      "D: Not approved / Experimental" = "#7f7f7f"
     )) +
     scale_size_continuous(range = c(2, 6), name = "N databases") +
     labs(title = "Drug candidates: composite score vs. DE target genes",

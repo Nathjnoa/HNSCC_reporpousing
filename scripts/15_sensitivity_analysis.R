@@ -85,9 +85,20 @@ cat(sprintf("Candidatos cargados: %d\n", nrow(all_scored)))
 excluded_drugs  <- toupper(unlist(params$exclusions$drugs))
 excl_targets    <- toupper(unlist(params$exclusions$exclude_single_target_genes))
 
+# Verificar que columna 'bonus' existe (calculada y exportada por script 10)
+if (!"bonus" %in% colnames(all_scored)) {
+  cat("WARN: columna 'bonus' no encontrada en 10_all_candidates_scored.tsv — usando 0\n")
+  all_scored$bonus <- 0
+}
+
 all_scored <- all_scored %>%
-  filter(!drug_name_norm %in% excluded_drugs) %>%
-  filter(!de_genes %in% excl_targets)
+  # drug_name_norm está en minúsculas; excluded_drugs en mayúsculas → toupper antes de comparar
+  filter(!toupper(drug_name_norm) %in% excluded_drugs) %>%
+  # de_genes puede contener múltiples genes separados por "|"; comparar gen a gen
+  filter(!sapply(de_genes, function(g) {
+    if (is.na(g) || g == "") return(FALSE)
+    any(toupper(str_split(g, "\\|")[[1]]) %in% excl_targets)
+  }))
 
 cat(sprintf("Candidatos tras exclusiones: %d\n", nrow(all_scored)))
 

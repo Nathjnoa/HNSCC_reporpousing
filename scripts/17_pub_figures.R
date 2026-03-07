@@ -6,26 +6,28 @@
 # Aplica tema centralizado (pub-figures double_col / single_col), paleta
 # Okabe-Ito (colorblind-safe) y exporta PDF + PNG 300 DPI.
 #
+# Nota sobre nomenclatura: TVsS = Tumor vs. Sano (tejido adyacente del mismo
+# paciente). En inglés: Tumor vs. Adjacent Normal.
+#
 # Figuras generadas (results/figures/pub/):
 #   SECCIÓN A — Proteómica QC/DE
 #     A1_volcano          — Volcano plot mejorado (top labels ggrepel)
-#     A2_MA_plot          — MA plot (logFC vs intensidad media) [NUEVO]
+#     A2_MA_plot          — MA plot (logFC vs intensidad media)
 #     A3_PCA              — PCA biplot con líneas de pares
-#     A4_heatmap_topDE    — Heatmap top 30 proteínas DE × 20 muestras [NUEVO]
-#     A_multipanel_QC     — Multipanel: Volcano + MA + PCA
+#     A4_heatmap_topDE    — Heatmap top 30 proteínas DE × 20 muestras
 #   SECCIÓN B — Enriquecimiento funcional
-#     B1_hallmarks_barplot — Hallmarks GSEA horizontal por NES [MEJORADO]
+#     B1_hallmarks_barplot — Hallmarks GSEA horizontal por NES
 #   SECCIÓN C — Bases de datos de fármacos
 #     C1_drug_sources_bar  — Nº candidatos por fuente
-#     C2_drug_phase_dist   — Distribución fases clínicas [NUEVO]
+#     C2_drug_phase_dist   — Distribución fases clínicas
 #   SECCIÓN D — Red PPI + Scoring
-#     D1_degree_vs_logFC   — Scatter grado PPI vs logFC [NUEVO]
-#     D2_scoring_components_dot — Dot matrix 6 componentes × Top 20 [NUEVO]
+#     D1_degree_vs_logFC   — Scatter grado PPI vs logFC
+#     D2_scoring_components_dot — Dot matrix 6 componentes × Top 20
 #     D3_top20_lollipop    — Lollipop ranking final mejorado
 #   SECCIÓN E — Evidencia final
 #     E1_evidence_heatmap  — Heatmap binario de evidencia (ComplexHeatmap)
 #   SECCIÓN F — Análisis de sensibilidad
-#     F1_bump_chart        — Bump chart estabilidad de ranks [NUEVO]
+#     F1_bump_chart        — Bump chart estabilidad de ranks
 #     F2_stability_bar     — Barplot de robustez mejorado
 #   FIGURAS MULTIPANEL (para manuscrito)
 #     FIG1_QC_DE          — Volcano + MA
@@ -96,10 +98,18 @@ PRESETS <- list(
 OKB       <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
                "#0072B2", "#D55E00", "#CC79A7", "#000000")
 DE_COLS   <- c(up = "#D55E00", down = "#0072B2", ns = "#CCCCCC")
-COND_COLS <- c(Tumor = "#D55E00", Surrounding = "#0072B2")
+COND_COLS <- c(Tumor = "#D55E00", "Adjacent Normal" = "#0072B2")
 PHASE_COLS <- c(
   "Phase IV (Approved)" = "#009E73", "Phase III" = "#56B4E9",
   "Phase II" = "#E69F00", "Phase I" = "#CC79A7", "Unknown" = "#CCCCCC"
+)
+
+# Etiquetas legibles de clase de fármaco (script 10 exporta drug_class = A/B/C/D)
+DRUG_CLASS_LABELS <- c(
+  A = "HNSCC-approved",
+  B = "Other cancer",
+  C = "Non-oncology",
+  D = "Experimental"
 )
 
 # ── Tema centralizado ─────────────────────────────────────────────────────────
@@ -160,31 +170,55 @@ save_ch <- function(ht, name, preset = "double_col", w_add = 0, h_add = 0) {
   invisible(pdf_path)
 }
 
+# ── Helper: asignar categoría a columnas de evidencia por patrón ──────────────
+# Robusto ante cambios de idioma/formato en nombres de columna de script 13
+assign_ev_category <- function(col_names) {
+  sapply(col_names, function(cn) {
+    cl <- tolower(iconv(cn, to = "ASCII//TRANSLIT"))
+    if      (grepl("proteom|logfc|de_sig|significant|expr", cl)) "Proteomics"
+    else if (grepl("multi.*source|n_source|cmap|pathway|fuente|reversor", cl)) "Databases"
+    else if (grepl("hub|network|ppi|degree|betweenness", cl))    "Network"
+    else if (grepl("phase|trial|clinic|fase|hnscc", cl))         "Clinical"
+    else if (grepl("pubmed|paper|literature|literat", cl))       "Literature"
+    else if (grepl("driver|cancer|cosmic|oncogen", cl))          "Genomics"
+    else                                                          "Other"
+  })
+}
+
 # =============================================================================
 # CARGAR DATOS
 # =============================================================================
 cat("\n-- Cargando datos...\n")
 
-de       <- read_tsv("results/tables/de_limma/01_TVsS_all_proteins.tsv",
-                     show_col_types = FALSE)
-meta_raw <- read_delim("data/raw/metadata.csv", delim = ";",
-                       show_col_types = FALSE)
-hallmarks  <- read_tsv("results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv",
-                       show_col_types = FALSE)
-drug_sum   <- read_tsv("results/tables/drug_targets/08_drug_summary_per_drug.tsv",
-                       show_col_types = FALSE)
-net_nodes  <- read_tsv("results/tables/network/09_network_node_metrics.tsv",
-                       show_col_types = FALSE)
-top20      <- read_tsv("results/tables/10_top20_candidates.tsv",
-                       show_col_types = FALSE)
-evidence   <- read_tsv("results/tables/13_evidence_matrix.tsv",
-                       show_col_types = FALSE)
-sens       <- read_tsv("results/tables/15_sensitivity_ranks.tsv",
-                       show_col_types = FALSE)
+de        <- read_tsv("results/tables/de_limma/01_TVsS_all_proteins.tsv",
+                      show_col_types = FALSE)
+hallmarks <- read_tsv("results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv",
+                      show_col_types = FALSE)
+drug_sum  <- read_tsv("results/tables/drug_targets/08_drug_summary_per_drug.tsv",
+                      show_col_types = FALSE)
+net_nodes <- read_tsv("results/tables/network/09_network_node_metrics.tsv",
+                      show_col_types = FALSE)
+top20     <- read_tsv("results/tables/10_top20_candidates.tsv",
+                      show_col_types = FALSE)
+evidence  <- read_tsv("results/tables/13_evidence_matrix.tsv",
+                      show_col_types = FALSE)
+sens      <- read_tsv("results/tables/15_sensitivity_ranks.tsv",
+                      show_col_types = FALSE)
 
 cat("  Datos cargados OK\n")
 
-# Derivar dirección DE (para todas las secciones)
+# ── Columna de intensidad media para MA plot ──────────────────────────────────
+# limma estándar exporta "AveExpr"; script 01 puede haberla renombrado
+avg_col <- if ("avg_intensity_TVsS" %in% colnames(de)) {
+  "avg_intensity_TVsS"
+} else if ("AveExpr" %in% colnames(de)) {
+  cat("  NOTE: usando 'AveExpr' para MA plot (avg_intensity_TVsS no encontrada)\n")
+  "AveExpr"
+} else {
+  stop("Columna de intensidad media no encontrada (avg_intensity_TVsS o AveExpr)")
+}
+
+# ── Derivar dirección DE ──────────────────────────────────────────────────────
 de <- de %>%
   mutate(
     direction = case_when(
@@ -197,10 +231,25 @@ de <- de %>%
 n_up   <- sum(de$direction == "up")
 n_down <- sum(de$direction == "down")
 n_ns   <- sum(de$direction == "ns")
+cat(sprintf("  DE: %d up, %d down, %d NS\n", n_up, n_down, n_ns))
 
-# Matriz de expresión por muestra (cols M1S .. M10T)
+# ── Unir columnas DE a net_nodes si no están presentes ───────────────────────
+# Script 09 exporta métricas de red; logFC y adj.P.Val vienen del TSV de script 01
+de_cols_needed <- c("logFC_TVsS", "adj.P.Val_TVsS")
+if (!all(de_cols_needed %in% colnames(net_nodes))) {
+  cat("  NOTE: uniendo logFC_TVsS/adj.P.Val_TVsS a net_nodes desde tabla DE\n")
+  net_nodes <- net_nodes %>%
+    left_join(
+      de %>% select(gene_symbol, logFC_TVsS, adj.P.Val_TVsS),
+      by = "gene_symbol"
+    )
+}
+
+# ── Matriz de expresión por muestra ──────────────────────────────────────────
 sample_cols <- c("M1S","M1T","M2S","M2T","M3S","M3T","M4S","M4T","M5S","M5T",
                  "M6S","M6T","M7S","M7T","M8S","M8T","M9S","M9T","M10S","M10T")
+sample_cols <- intersect(sample_cols, colnames(de))  # solo columnas que existen
+
 expr_mat <- de %>%
   select(gene_symbol, all_of(sample_cols)) %>%
   filter(complete.cases(.)) %>%
@@ -213,10 +262,11 @@ expr_mat <- de %>%
 cat("\n--- Sección A: QC / DE ---\n")
 
 # ── A1: Volcano plot ──────────────────────────────────────────────────────────
-top_vol <- de %>%
-  filter(direction != "ns") %>%
-  arrange(desc(abs(logFC_TVsS))) %>%
-  slice_head(n = 20)
+# Top 10 por dirección para garantizar etiquetas en ambos grupos (up Y down)
+top_vol <- bind_rows(
+  de %>% filter(direction == "up")   %>% arrange(desc(logFC_TVsS)) %>% slice_head(n = 10),
+  de %>% filter(direction == "down") %>% arrange(logFC_TVsS)       %>% slice_head(n = 10)
+)
 
 p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
                             color = direction)) +
@@ -228,7 +278,7 @@ p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
   geom_label_repel(
     data = top_vol, aes(label = gene_symbol),
     size = 1.8, label.padding = 0.1, label.size = 0.15,
-    max.overlaps = 18, segment.size = 0.25,
+    max.overlaps = 20, segment.size = 0.25,
     min.segment.length = 0.2, show.legend = FALSE
   ) +
   scale_color_manual(
@@ -239,8 +289,8 @@ p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
   ) +
   scale_alpha_manual(values = c(up = 0.85, down = 0.85, ns = 0.25),
                      guide = "none") +
-  labs(title = "Differential proteome — Tumor vs. Surrounding",
-       x     = expression(log[2]~"Fold Change"),
+  labs(title = "Differential proteome — Tumor vs. Adjacent Normal",
+       x     = expression(log[2]~"Fold Change  (TVsS)"),
        y     = expression(-log[10]~"FDR"),
        color = NULL) +
   theme_pub() +
@@ -249,13 +299,14 @@ p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
 save_pub(p_volcano, "A1_volcano")
 cat("  A1: Volcano — OK\n")
 
-# ── A2: MA plot [NUEVO] ───────────────────────────────────────────────────────
-top_ma <- de %>%
-  filter(direction != "ns") %>%
-  arrange(desc(abs(logFC_TVsS))) %>%
-  slice_head(n = 15)
+# ── A2: MA plot ───────────────────────────────────────────────────────────────
+# Top 8 up + 7 down para garantizar etiquetas en ambos grupos (up Y down)
+top_ma <- bind_rows(
+  de %>% filter(direction == "up")   %>% arrange(desc(logFC_TVsS)) %>% slice_head(n = 8),
+  de %>% filter(direction == "down") %>% arrange(logFC_TVsS)       %>% slice_head(n = 7)
+)
 
-p_ma <- ggplot(de, aes(x = avg_intensity_TVsS, y = logFC_TVsS,
+p_ma <- ggplot(de, aes(x = .data[[avg_col]], y = logFC_TVsS,
                        color = direction)) +
   geom_point(aes(alpha = direction), size = PRESETS$double_col$pt, stroke = 0) +
   geom_hline(yintercept = 0,       linetype = "solid",
@@ -265,7 +316,7 @@ p_ma <- ggplot(de, aes(x = avg_intensity_TVsS, y = logFC_TVsS,
   geom_label_repel(
     data = top_ma, aes(label = gene_symbol),
     size = 1.8, label.padding = 0.1, label.size = 0.15,
-    max.overlaps = 12, segment.size = 0.25, show.legend = FALSE
+    max.overlaps = 15, segment.size = 0.25, show.legend = FALSE
   ) +
   scale_color_manual(
     values = DE_COLS,
@@ -292,13 +343,8 @@ var_exp <- round(summary(pca_res)$importance[2, 1:2] * 100, 1)
 pca_df <- as.data.frame(pca_res$x[, 1:2]) %>%
   rownames_to_column("sample_id") %>%
   mutate(
-    condition = ifelse(str_ends(sample_id, "T"), "Tumor", "Surrounding"),
+    condition = ifelse(str_ends(sample_id, "T"), "Tumor", "Adjacent Normal"),
     patient   = str_remove(sample_id, "[TS]$")
-  ) %>%
-  left_join(
-    meta_raw %>% select(sample_id, vph) %>%
-      mutate(vph = factor(ifelse(is.na(vph), "Unknown", as.character(vph)))),
-    by = "sample_id"
   )
 
 p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = condition)) +
@@ -306,8 +352,8 @@ p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = condition)) +
             linewidth = 0.4, linetype = "dotted") +
   geom_point(aes(shape = condition), size = 2.4, stroke = 0.5) +
   scale_color_manual(values = COND_COLS) +
-  scale_shape_manual(values = c(Tumor = 16, Surrounding = 1)) +
-  labs(title = "PCA — paired tumor/surrounding samples",
+  scale_shape_manual(values = c(Tumor = 16, "Adjacent Normal" = 1)) +
+  labs(title = "PCA — paired tumor/adjacent normal samples",
        x     = sprintf("PC1  (%.1f%%)", var_exp[1]),
        y     = sprintf("PC2  (%.1f%%)", var_exp[2]),
        color = "Condition", shape = "Condition") +
@@ -319,63 +365,44 @@ p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = condition)) +
 save_pub(p_pca, "A3_PCA")
 cat("  A3: PCA — OK\n")
 
-# ── A4: Heatmap top 30 proteínas DE [NUEVO] ───────────────────────────────────
+# ── A4: Heatmap top 30 proteínas DE ──────────────────────────────────────────
 top_up   <- de %>% filter(direction == "up")   %>%
-  slice_max(logFC_TVsS,  n = 15) %>% pull(gene_symbol)
+  slice_max(logFC_TVsS, n = 15) %>% pull(gene_symbol)
 top_down <- de %>% filter(direction == "down") %>%
-  slice_min(logFC_TVsS,  n = 15) %>% pull(gene_symbol)
+  slice_min(logFC_TVsS, n = 15) %>% pull(gene_symbol)
 top_genes <- c(top_up, top_down)
 
-heat_mat  <- expr_mat[top_genes[top_genes %in% rownames(expr_mat)], , drop = FALSE]
-heat_z    <- t(scale(t(heat_mat)))   # Z-score por proteína
+heat_mat <- expr_mat[top_genes[top_genes %in% rownames(expr_mat)], , drop = FALSE]
+heat_z   <- t(scale(t(heat_mat)))   # Z-score por proteína (gen)
 
-# Anotación de columnas (muestras)
-col_cond  <- ifelse(str_ends(colnames(heat_mat), "T"), "Tumor", "Surrounding")
-col_pati  <- str_remove(colnames(heat_mat), "[TS]$")
-col_order <- order(col_cond)   # agrupar T/S
+# Ordenar columnas: agrupar Tumor / Adjacent Normal
+col_cond  <- ifelse(str_ends(colnames(heat_mat), "T"), "Tumor", "Adjacent Normal")
+col_order <- order(col_cond)
 heat_z    <- heat_z[, col_order]
 col_cond  <- col_cond[col_order]
-col_pati  <- col_pati[col_order]
 
 ht_col_ann <- HeatmapAnnotation(
   Condition = col_cond,
-  col = list(Condition = c(Tumor = "#D55E00", Surrounding = "#0072B2")),
+  col = list(Condition = c(Tumor = "#D55E00", "Adjacent Normal" = "#0072B2")),
   annotation_name_gp = gpar(fontsize = 6.5),
   simple_anno_size   = unit(3, "mm")
 )
 
-# logFC como barplot lateral
-gene_logfc <- de %>%
-  filter(gene_symbol %in% rownames(heat_z)) %>%
-  arrange(match(gene_symbol, rownames(heat_z))) %>%
-  pull(logFC_TVsS)
-gene_dir   <- de %>%
-  filter(gene_symbol %in% rownames(heat_z)) %>%
-  arrange(match(gene_symbol, rownames(heat_z))) %>%
-  pull(direction) %>% as.character()
-
-ht_row_ann <- rowAnnotation(
-  logFC = anno_barplot(
-    gene_logfc,
-    gp    = gpar(fill = ifelse(gene_dir == "up", "#D55E00", "#0072B2"), border = NA),
-    width = unit(8, "mm")
-  ),
-  annotation_name_gp = gpar(fontsize = 6.5)
-)
-
+# row_split: up genes primero, down genes después
 n_up_heat   <- sum(rownames(heat_z) %in% top_up)
 n_down_heat <- sum(rownames(heat_z) %in% top_down)
-row_split    <- factor(
+row_split <- factor(
   c(rep("Up-regulated", n_up_heat), rep("Down-regulated", n_down_heat)),
   levels = c("Up-regulated", "Down-regulated")
 )
 
+# Sin anotación derecha de logFC: el row_split y los colores del mapa ya
+# diferencian claramente las dos direcciones
 ht_de <- Heatmap(
   heat_z,
   name    = "Z-score",
   col     = colorRamp2(c(-2.5, 0, 2.5), c("#0072B2", "white", "#D55E00")),
   top_annotation    = ht_col_ann,
-  right_annotation  = ht_row_ann,
   row_split         = row_split,
   cluster_row_slices = FALSE,
   cluster_rows       = TRUE,
@@ -384,7 +411,7 @@ ht_de <- Heatmap(
   column_names_gp    = gpar(fontsize = 5.5),
   row_names_gp       = gpar(fontsize = 6.5),
   row_title_gp       = gpar(fontsize = 8, fontface = "bold"),
-  column_title       = "Top 30 differentially expressed proteins",
+  column_title       = "Top 30 differentially expressed proteins — Tumor vs. Adjacent Normal",
   column_title_gp    = gpar(fontsize = 8, fontface = "bold"),
   rect_gp            = gpar(col = "grey90", lwd = 0.4),
   heatmap_legend_param = list(
@@ -396,21 +423,12 @@ ht_de <- Heatmap(
 save_ch(ht_de, "A4_heatmap_topDE", "double_col", h_add = 50)
 cat("  A4: Heatmap top DE — OK\n")
 
-# ── A_multipanel: Volcano + MA ────────────────────────────────────────────────
-p_fig1 <- (p_volcano | p_ma) +
-  plot_annotation(tag_levels = "A",
-                  tag_prefix = "",
-                  theme = theme(plot.tag = element_text(size = 10, face = "bold")))
-
-save_pub(p_fig1, "A_multipanel_QC_DE", "double_col", w_add = 0, h_add = 0)
-cat("  A_multipanel: Volcano + MA — OK\n")
-
 # =============================================================================
 # SECCIÓN B — ENRIQUECIMIENTO FUNCIONAL
 # =============================================================================
 cat("\n--- Sección B: Pathways ---\n")
 
-# ── B1: Hallmarks GSEA — barplot horizontal [MEJORADO] ───────────────────────
+# ── B1: Hallmarks GSEA — barplot horizontal ───────────────────────────────────
 hall_df <- hallmarks %>%
   mutate(
     pathway  = str_remove(Description, "^HALLMARK_") %>%
@@ -421,8 +439,8 @@ hall_df <- hallmarks %>%
       ifelse(NES < 0, "Downregulated in tumor", "Upregulated in tumor"),
       levels = c("Upregulated in tumor", "Downregulated in tumor")
     ),
-    pval_label = sprintf("p=%.1e", p.adjust),
-    label_x    = ifelse(NES > 0, NES + 0.05, NES - 0.05),
+    pval_label  = sprintf("p=%.1e", p.adjust),
+    label_x     = ifelse(NES > 0, NES + 0.05, NES - 0.05),
     label_hjust = ifelse(NES > 0, 0, 1)
   ) %>%
   arrange(NES)
@@ -438,16 +456,16 @@ p_hall <- ggplot(hall_df,
                "Downregulated in tumor" = "#0072B2")
   ) +
   scale_x_continuous(expand = expansion(mult = c(0.2, 0.25))) +
-  labs(title = "Hallmark gene sets — GSEA  (Tumor vs. Surrounding)",
+  labs(title = "Hallmark gene sets — GSEA  (Tumor vs. Adjacent Normal)",
        x     = "Normalized enrichment score (NES)",
        y     = NULL,
        fill  = NULL) +
   theme_pub() +
   theme(
-    legend.position  = "bottom",
-    legend.direction = "horizontal",
-    axis.line.y      = element_blank(),
-    axis.ticks.y     = element_blank(),
+    legend.position    = "bottom",
+    legend.direction   = "horizontal",
+    axis.line.y        = element_blank(),
+    axis.ticks.y       = element_blank(),
     panel.grid.major.x = element_line(color = "grey90", linewidth = 0.3)
   )
 
@@ -488,7 +506,7 @@ p_sources <- ggplot(source_long,
 save_pub(p_sources, "C1_drug_sources_bar")
 cat("  C1: Drug sources bar — OK\n")
 
-# ── C2: Distribución de fases clínicas [NUEVO] ────────────────────────────────
+# ── C2: Distribución de fases clínicas ────────────────────────────────────────
 phase_df <- drug_sum %>%
   mutate(
     phase_label = case_when(
@@ -525,7 +543,7 @@ cat("  C2: Phase distribution — OK\n")
 # =============================================================================
 cat("\n--- Sección D: Network + Scoring ---\n")
 
-# ── D1: logFC vs grado PPI [NUEVO] ───────────────────────────────────────────
+# ── D1: logFC vs grado PPI ────────────────────────────────────────────────────
 net_df <- net_nodes %>%
   mutate(
     de_dir = case_when(
@@ -564,7 +582,7 @@ p_deg_fc <- ggplot(net_df, aes(x = degree, y = logFC_TVsS,
   labs(
     title = "PPI network centrality vs. proteomic fold change",
     x     = "PPI degree  (log scale)",
-    y     = expression(log[2]~"Fold Change  (T/S)"),
+    y     = expression(log[2]~"Fold Change  (TVsS)"),
     color = NULL
   ) +
   theme_pub() +
@@ -573,7 +591,7 @@ p_deg_fc <- ggplot(net_df, aes(x = degree, y = logFC_TVsS,
 save_pub(p_deg_fc, "D1_degree_vs_logFC")
 cat("  D1: Degree vs logFC scatter — OK\n")
 
-# ── D2: Dot matrix de componentes de score [NUEVO] ────────────────────────────
+# ── D2: Dot matrix de componentes de score ────────────────────────────────────
 score_cols   <- c("s_logfc","s_sig","s_clinical","s_cmap","s_pathway","s_network")
 score_labels <- c("Proteomics\n(logFC)","Proteomics\n(FDR)","Clinical\nphase",
                   "CMap\nconn.","Pathway\nrelevance","Network\nhub")
@@ -613,13 +631,19 @@ p_dot_matrix <- ggplot(scores_long,
 save_pub(p_dot_matrix, "D2_scoring_components_dot", "double_col", h_add = 60)
 cat("  D2: Scoring dot matrix — OK\n")
 
-# ── D3: Top 20 lollipop [MEJORADO] ───────────────────────────────────────────
+# ── D3: Top 20 lollipop ───────────────────────────────────────────────────────
+# drug_class (A/B/C/D) → etiqueta legible; si no existe la columna se advierte
 top20_plot <- top20 %>%
   slice_head(n = 20) %>%
   mutate(
-    drug_label   = str_to_title(drug_name_norm) %>% str_trunc(28),
-    drug_label   = factor(drug_label, levels = rev(drug_label)),
-    class_short  = str_remove(drug_class_label, "^[A-Z]: ")
+    drug_label  = str_to_title(drug_name_norm) %>% str_trunc(28),
+    drug_label  = factor(drug_label, levels = rev(drug_label)),
+    class_short = if ("drug_class" %in% colnames(top20)) {
+      DRUG_CLASS_LABELS[drug_class]
+    } else {
+      cat("  WARN: columna 'drug_class' no encontrada en top20 — sin color por clase\n")
+      rep("Unknown", n())
+    }
   )
 
 p_lollipop <- ggplot(top20_plot,
@@ -629,7 +653,9 @@ p_lollipop <- ggplot(top20_plot,
   geom_point(size = 2.2) +
   scale_x_continuous(limits = c(0, NA),
                      expand = expansion(mult = c(0, 0.1))) +
-  scale_color_manual(values = setNames(OKB, unique(top20_plot$class_short))) +
+  scale_color_manual(values = setNames(OKB[seq_along(DRUG_CLASS_LABELS)],
+                                       DRUG_CLASS_LABELS),
+                     na.value = "grey50") +
   labs(title = "Top 20 drug candidates — composite score",
        x = "Final composite score",
        y = NULL,
@@ -653,48 +679,52 @@ cat("\n--- Sección E: Evidencia final ---\n")
 # ── E1: Heatmap de evidencia binaria (ComplexHeatmap) ────────────────────────
 ev_mat_raw <- evidence %>%
   slice_head(n = 20) %>%
-  select(-final_rank, -evidence_level)
+  select(-any_of(c("final_rank", "evidence_level")))
 
-ev_drug_names <- str_to_title(ev_mat_raw$drug_name) %>% str_trunc(28)
+# Detectar columna de nombre de fármaco (puede ser drug_name o drug_name_norm)
+ev_drug_col <- intersect(c("drug_name", "drug_name_norm"), colnames(ev_mat_raw))[1]
+if (is.na(ev_drug_col))
+  stop("Columna de nombre de fármaco no encontrada en 13_evidence_matrix.tsv")
+
+ev_drug_names <- str_to_title(ev_mat_raw[[ev_drug_col]]) %>% str_trunc(28)
 ev_mat <- ev_mat_raw %>%
-  select(-drug_name) %>%
+  select(-all_of(ev_drug_col)) %>%
   mutate(across(everything(), as.integer)) %>%
   as.matrix()
 rownames(ev_mat) <- ev_drug_names
 
-# Categorías de columnas
-col_cats <- c(
-  "Prote\u00F3mica DE" = "Proteomics",
-  "Multi-fuente DB"         = "Databases",
-  "CMap reversor"           = "Databases",
-  "Pathway relevante"       = "Databases",
-  "Hub PPI"                 = "Network",
-  "Fase cl\u00EDnica \u2265 3" = "Clinical",
-  "Trial HNSCC"             = "Clinical",
-  "Trial HNSCC activo"      = "Clinical",
-  "PubMed HNSCC"            = "Literature",
-  "Target cancer driver"    = "Genomics"
-)
+# Categorías por patrón de nombre de columna (robusto ante cambios de idioma)
+ev_cats  <- assign_ev_category(colnames(ev_mat))
 cat_cols <- c(Proteomics = "#E69F00", Databases = "#56B4E9",
-              Network = "#009E73", Clinical = "#D55E00",
-              Literature = "#CC79A7", Genomics = "#0072B2")
+              Network    = "#009E73", Clinical  = "#D55E00",
+              Literature = "#CC79A7", Genomics  = "#0072B2",
+              Other      = "#AAAAAA")
 
-ev_level <- evidence %>% slice_head(n = 20) %>% pull(evidence_level)
+ev_level <- if ("evidence_level" %in% colnames(evidence)) {
+  evidence %>% slice_head(n = 20) %>% pull(evidence_level)
+} else {
+  NULL
+}
 
 ha_ev_top <- HeatmapAnnotation(
-  Category = col_cats[colnames(ev_mat)],
-  col = list(Category = cat_cols),
-  annotation_name_gp = gpar(fontsize = 6.5),
-  simple_anno_size   = unit(3, "mm"),
+  Category = ev_cats,
+  col = list(Category = cat_cols[intersect(names(cat_cols), unique(ev_cats))]),
+  annotation_name_gp   = gpar(fontsize = 6.5),
+  simple_anno_size     = unit(3, "mm"),
   show_annotation_name = TRUE
 )
-ha_ev_row <- rowAnnotation(
-  Level = ev_level,
-  col = list(Level = c("1" = "#D55E00", "2" = "#E69F00",
-                       "3" = "#56B4E9", "4" = "#009E73")),
-  annotation_name_gp = gpar(fontsize = 6),
-  simple_anno_size   = unit(3, "mm")
-)
+
+ha_ev_row <- if (!is.null(ev_level)) {
+  rowAnnotation(
+    Level = as.character(ev_level),
+    col = list(Level = c("1" = "#D55E00", "2" = "#E69F00",
+                         "3" = "#56B4E9", "4" = "#009E73")),
+    annotation_name_gp = gpar(fontsize = 6),
+    simple_anno_size   = unit(3, "mm")
+  )
+} else {
+  NULL
+}
 
 ht_ev <- Heatmap(
   ev_mat,
@@ -708,7 +738,7 @@ ht_ev <- Heatmap(
   column_names_gp   = gpar(fontsize = 7),
   column_names_rot  = 40,
   rect_gp           = gpar(col = "grey80", lwd = 0.5),
-  column_title      = "Evidence matrix - Top 20 candidates",
+  column_title      = "Evidence matrix — Top 20 candidates",
   column_title_gp   = gpar(fontsize = 8, fontface = "bold"),
   heatmap_legend_param = list(
     title_gp  = gpar(fontsize = 7, fontface = "bold"),
@@ -735,7 +765,7 @@ config_names <- c(
   equal_weights   = "Equal\nweights"
 )
 
-# ── F1: Bump chart [NUEVO] ────────────────────────────────────────────────────
+# ── F1: Bump chart ────────────────────────────────────────────────────────────
 bump_drugs <- sens %>%
   filter(n_configs_top20 >= 4) %>%
   arrange(baseline) %>%
@@ -760,7 +790,6 @@ p_bump <- ggplot(bump_df, aes(x = config_num, y = rank,
                                group = drug_label, color = drug_label)) +
   geom_line(linewidth = 0.7, alpha = 0.85) +
   geom_point(size = 2.0) +
-  # Etiquetas a la izquierda (config 1)
   geom_text(
     data = bump_df %>% filter(config_num == 1),
     aes(label = drug_label, x = 0.85), hjust = 1, size = 1.85,
@@ -771,8 +800,8 @@ p_bump <- ggplot(bump_df, aes(x = config_num, y = rank,
     labels = unname(config_names),
     expand = expansion(add = c(2.8, 0.4))
   ) +
-  scale_y_reverse(breaks = seq(1, 20, 2),
-                  limits = c(20, 1)) +
+  # limits en orden natural (min, max); scale_y_reverse invierte la visualización
+  scale_y_reverse(breaks = seq(1, 20, 2), limits = c(1, 20)) +
   scale_color_manual(values = bump_palette) +
   labs(title = "Rank stability across weight configurations",
        x     = "Weight configuration",
@@ -788,7 +817,7 @@ p_bump <- ggplot(bump_df, aes(x = config_num, y = rank,
 save_pub(p_bump, "F1_bump_chart", "double_col", w_add = 30, h_add = 10)
 cat("  F1: Bump chart — OK\n")
 
-# ── F2: Stability bar [MEJORADO] ─────────────────────────────────────────────
+# ── F2: Stability bar ─────────────────────────────────────────────────────────
 stab_df <- sens %>%
   mutate(
     drug_label = str_to_title(drug_name_norm) %>% str_trunc(25),
@@ -829,38 +858,35 @@ cat("  F2: Stability bar — OK\n")
 # =============================================================================
 cat("\n--- Figuras multipanel para manuscrito ---\n")
 
+tag_theme <- theme(plot.tag = element_text(size = 10, face = "bold"))
+
 # FIG1: QC/DE — Volcano + MA
 p_fig1 <- (p_volcano | p_ma) +
-  plot_annotation(tag_levels = "A",
-                  theme = theme(plot.tag = element_text(size = 10, face = "bold")))
+  plot_annotation(tag_levels = "A", theme = tag_theme)
 save_pub(p_fig1, "FIG1_QC_DE", "double_col")
 cat("  FIG1: Volcano + MA — OK\n")
 
 # FIG2: Pathways — Hallmarks
 p_fig2 <- p_hall +
-  plot_annotation(tag_levels = "A",
-                  theme = theme(plot.tag = element_text(size = 10, face = "bold")))
+  plot_annotation(tag_levels = "A", theme = tag_theme)
 save_pub(p_fig2, "FIG2_pathways", "double_col", h_add = 50)
 cat("  FIG2: Pathways — OK\n")
 
 # FIG3: Scoring — Lollipop + Dot matrix
 p_fig3 <- (p_lollipop | p_dot_matrix) +
-  plot_annotation(tag_levels = "A",
-                  theme = theme(plot.tag = element_text(size = 10, face = "bold")))
+  plot_annotation(tag_levels = "A", theme = tag_theme)
 save_pub(p_fig3, "FIG3_scoring", "double_col", h_add = 60)
 cat("  FIG3: Scoring — OK\n")
 
 # FIG4: Network — Degree vs logFC
 p_fig4 <- p_deg_fc +
-  plot_annotation(tag_levels = "A",
-                  theme = theme(plot.tag = element_text(size = 10, face = "bold")))
+  plot_annotation(tag_levels = "A", theme = tag_theme)
 save_pub(p_fig4, "FIG4_network", "double_col")
 cat("  FIG4: Network — OK\n")
 
 # FIG5: Sensibilidad — Bump + Stability
 p_fig5 <- (p_bump | p_stab) +
-  plot_annotation(tag_levels = "A",
-                  theme = theme(plot.tag = element_text(size = 10, face = "bold")))
+  plot_annotation(tag_levels = "A", theme = tag_theme)
 save_pub(p_fig5, "FIG5_sensitivity", "double_col", w_add = 20, h_add = 70)
 cat("  FIG5: Sensibilidad — OK\n")
 

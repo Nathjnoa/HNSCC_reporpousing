@@ -69,7 +69,7 @@ eh <- ExperimentHub()
 # Usamos cmap_expr (EH3224) = matrix de expresion CMap2 normalizada
 # Alternativa: cmap_rank (EH3225) para metodo de ranking
 tryCatch({
-  cmap_db_path <- eh[["EH3224"]]  # CMap2 cmap_rank HDF5 — requerido por gess_cmap()
+  cmap_db_path <- eh[["EH3225"]]  # CMap2 cmap_rank HDF5 — requerido por gess_cmap()
   cat("CMap2 DB cargado:", format(Sys.time()), "\n")
   cat("Path:", cmap_db_path, "\n")
 }, error = function(e) {
@@ -256,7 +256,7 @@ dsea_res <- tryCatch({
 })
 
 if (!is.null(dsea_res)) {
-  df_dsea <- as.data.frame(dsea_res)
+  df_dsea <- result(dsea_res)
   cat(sprintf("DSEA: %d terminos GO BP significativos\n", nrow(df_dsea)))
   write.table(df_dsea,
               "results/tables/drug_targets/07_cmap_dsea_go_bp.tsv",

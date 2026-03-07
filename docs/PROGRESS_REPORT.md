@@ -478,7 +478,7 @@ Revisión minuciosa de los scripts de priorización y validación in silico. Se 
 | 9 | **Calidad** | `sym_col` inferido de `df_sig` pero usado directamente en `df_all` sin verificar que la columna existe. Corregido: `if sym_col in df_all.columns` antes de construir volcano. | `KeyError` si los dos archivos DE tienen esquemas diferentes. |
 | 10 | **Calidad** | Fallback IntOGen pan-cancer loggeado como `INFO`. Degradado a `WARNING` con mensaje explícito sobre riesgo de inflar falsos positivos. | El fallback usa miles de genes → solapamiento `intogen_de` artificialmente grande sin advertencia visible. |
 
-### Archivos modificados en esta sesión
+### Archivos modificados en esta sesión (2026-03-07 — Scripts 10-12)
 
 | Archivo | Cambios |
 |---------|---------|
@@ -489,3 +489,57 @@ Revisión minuciosa de los scripts de priorización y validación in silico. Se 
 | `docs/OUTPUTS.md` | Agregados: `10_scoring_heatmap.pdf`, `10_top20_barplot.pdf`, `11_trials_phase_bar.pdf`; columna `primary_target` en descripción de `10_all_candidates_scored.tsv` |
 | `docs/METHODS.md` | Header actualizado con scripts 10, 11, 12 |
 | `docs/RUNBOOK.md` | Nota de troubleshooting para variable `NCBI_EMAIL` |
+
+---
+
+## Revisión crítica — Scripts 14 y 15 (2026-03-07)
+
+### Script 14 — `14_methods_summary.R`
+
+| # | Tipo | Descripción | Impacto |
+|---|------|-------------|---------|
+| 1 | **Bug crítico** | `%||%` usada desde línea 73 pero definida en línea 236 — crash garantizado. Primera asignación de `methods_text` (líneas 58-233) era código muerto. Corregido: definir `%||%` antes del primer uso y eliminar el bloque muerto. | El script no podía ejecutarse; solo el bloque `local({...})` producía output pero perdía secciones del methods_text largo. |
+| 2 | **Bug** | Typo `TVsS` debería ser `TVsN` (Tumor vs. Normal). | Habría entrado en `METHODS.md` del manuscrito. |
+| 3 | **Calidad** | Pipe nativo con placeholder `_` (`\|> grep(..., x = _, ...)`) requiere R ≥ 4.2. Frágil y dependiente de formato de `cat_files()`. Reemplazado por variable intermedia con `grep()` tradicional. | Fallo en R 4.1; potencial para OUTPUTS.md vacío o con entradas duplicadas. |
+| 4 | **Calidad** | Sección "Prioritization & Evidence" en OUTPUTS.md con lógica confusa (regex frágil + posible duplicación). Refactorizado: usar `grep()` sobre `cat_files("results/tables")` con patrón `/(10_\|11_\|12_\|13_)/`. | Sección podía quedar vacía o con entradas duplicadas. |
+
+### Script 15 — `15_sensitivity_analysis.R`
+
+| # | Tipo | Descripción | Impacto |
+|---|------|-------------|---------|
+| 1 | **Bug crítico** | `filter(!drug_name_norm %in% excluded_drugs)` — `excluded_drugs` está en mayúsculas (`toupper`), `drug_name_norm` en minúsculas → ningún fármaco excluido. Mismo bug que script 10 bug #1. Corregido: `toupper(drug_name_norm)`. | Los 18 fármacos no-antitumorales seguían en el pool de candidatos del análisis de sensibilidad, invalidando la comparación con el baseline de script 10. |
+| 2 | **Bug crítico** | `filter(!de_genes %in% excl_targets)` — `de_genes` contiene strings multi-gen separados por `\|` (ej: "EGFR\|ERBB2"); nunca coincide con un gen individual. Corregido: `sapply()` con `str_split(..., "\\|")` + `any(...%in% excl_targets)`. | Targets excluidos (CACNA2D1, F2, APP, etc.) no se filtraban. |
+| 3 | **Calidad** | Variable `bonus` usada en `mutate()` (líneas 134 y 339) sin verificar que existe como columna en el TSV de entrada. Añadido: check explícito con fallback `bonus <- 0` y log `WARN`. | Si script 10 no exportó la columna `bonus`, el script crasheaba con error de variable no encontrada. |
+
+### Archivos modificados — Scripts 14-15 (2026-03-07)
+
+| Archivo | Cambios |
+|---------|---------|
+| `scripts/14_methods_summary.R` | Reescritura estructural: eliminar 175 líneas de código muerto, mover `%||%`, fix descripción TVsS = "Tumor vs. Adjacent Normal", fix OUTPUTS pipe |
+| `scripts/15_sensitivity_analysis.R` | Bug crítico 1-2 (exclusiones rotas) + calidad 3 (check columna bonus) |
+
+---
+
+## Revisión crítica — Script 17 (2026-03-07)
+
+### Script 17 — `17_pub_figures.R`
+
+| # | Tipo | Descripción | Impacto |
+|---|------|-------------|---------|
+| 1 | **Bug crítico** | `drug_class_label` no existe en `10_top20_candidates.tsv` (script 10 exporta `drug_class` = A/B/C/D). `str_remove(drug_class_label, "^[A-Z]: ")` crasheaba. Corregido: lookup `DRUG_CLASS_LABELS["A"] = "HNSCC-approved"`, etc. | Crash en D3 lollipop. |
+| 2 | **Bug crítico** | `col_cats[colnames(ev_mat)]` usaba strings exactos con acentos ("Proteómica DE", "Fase clínica ≥ 3") para mapear categorías. Si los nombres de columna en `13_evidence_matrix.tsv` difieren, produce NAs y `HeatmapAnnotation` falla. Corregido: función `assign_ev_category()` con `grepl()` insensible a acentos/idioma. | Crash o anotación vacía en E1 evidence heatmap. |
+| 3 | **Bug crítico** | `avg_intensity_TVsS` no es columna estándar de limma (`AveExpr`). MA plot crasheaba si script 01 no renombró esa columna. Corregido: detección automática con fallback a `AveExpr` y log informativo. | Crash en A2 MA plot. |
+| 4 | **Bug crítico** | `logFC_TVsS` y `adj.P.Val_TVsS` ausentes en `09_network_node_metrics.tsv` (script 09 exporta métricas de red, no valores DE). Corregido: `left_join` desde tabla DE antes de construir `net_df`. | Crash en D1 scatter. |
+| 5 | **Bug** | Labels volcano y MA plot: `slice_head(n=20)` sobre todo el rango ordena por `abs(logFC)` y en datos reales todos los top 20 pueden ser de la misma dirección → una dirección sin etiquetas. Corregido: `bind_rows(top N up, top N down)` separados por dirección. | Volcano: solo genes down etiquetados. MA: solo genes down etiquetados. |
+| 6 | **Calidad** | `scale_y_reverse(limits = c(20, 1))` — `limits` con min > max genera warning/comportamiento indefinido. Corregido: `limits = c(1, 20)` (orden natural antes de revertir). | Warning en F1 bump chart; eje posiblemente sin límite inferior. |
+| 7 | **Calidad** | `FIG1_QC_DE` y `A_multipanel_QC_DE` guardaban la misma figura dos veces. Eliminado el guardado duplicado en sección A; se conserva solo `FIG1_QC_DE`. | Output redundante (2 archivos idénticos). |
+| 8 | **Calidad** | Join `meta_raw` para columna `vph` nunca usada en el plot PCA (solo `condition`). Eliminado. | Dead code; podía crashear si `metadata.csv` no tenía columnas esperadas. |
+| 9 | **Calidad** | `ha_ev_row` definido como `NULL` cuando `evidence_level` no existe — `Heatmap(right_annotation = NULL)` es válido en ComplexHeatmap, pero mejor explícito. Refactorizado con manejo condicional. | Robusto ante ausencia de columna `evidence_level`. |
+| 10 | **Nomenclatura** | Títulos usaban "Surrounding" inconsistente con terminología del proyecto. Corregido a "Adjacent Normal" (TVsS = Tumor vs. Sano, tejido adyacente del mismo paciente). | Consistencia en figuras y METHODS.md. |
+
+### Archivos modificados — Script 17 (2026-03-07)
+
+| Archivo | Cambios |
+|---------|---------|
+| `scripts/17_pub_figures.R` | Reescritura completa: bugs 1-5 críticos + calidad 6-10 + quitar barplot logFC de heatmap topDE + fix etiquetas volcano/MA |
+| `scripts/14_methods_summary.R` | Fix nomenclatura: "TVsN" → "TVsS = Tumor vs. Adjacent Normal" |
