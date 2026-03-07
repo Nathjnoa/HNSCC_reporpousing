@@ -112,7 +112,7 @@ Key R packages:
 Key packages: requests, pandas, numpy, matplotlib
 
 **Databases:** DGIdb v5, ChEMBL v33, Open Targets (Mar 2026),
-CMap2 (EH3223), STRING v12, ClinicalTrials.gov API v2,
+CMap2 cmap_rank (EH3225, signatureSearch), STRING v12, ClinicalTrials.gov API v2,
 NCBI PubMed, MSigDB Hallmark, NCG7
 
 **Analysis date:** 2026-03-07

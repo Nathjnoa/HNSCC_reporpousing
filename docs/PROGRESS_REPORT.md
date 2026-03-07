@@ -1,6 +1,11 @@
 # Reporte de Progreso — HNSCC Drug Repurposing
-**Actualización:** 2026-03-04
-**Estado:** Pipeline completado (14/14 scripts)
+**Actualización:** 2026-03-07
+**Estado:** Pipeline completado y validado (16 scripts: 01-15 + 17) — re-ejecutado 2026-03-07
+
+### Correcciones aplicadas (2026-03-07)
+
+- **Bug crítico (script 07):** Dataset CMap2 incorrecto — se usaba `EH3224` (cmap_expr) en lugar de `EH3225` (cmap_rank). Con el dataset incorrecto todos los scores de conectividad resultaban 0. Corregido; el análisis ahora produce scores en rango [-1, 1] con 180 reversores potentes (bottom 5%).
+- **Paletas de color (scripts 08, 10):** Etiquetas en `scale_color_manual`/`scale_fill_manual` no coincidían con los valores reales de `drug_class_label`. Corregidas en 4 figuras (lollipop, CMap scatter, barplot top20, scatter scoring).
 
 ---
 
