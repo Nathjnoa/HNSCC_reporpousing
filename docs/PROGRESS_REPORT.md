@@ -438,3 +438,54 @@ Ver `docs/FUTURE_WORK.md` para el plan detallado de:
 ---
 
 Generado automáticamente — 2026-03-04
+
+---
+
+## Revisión crítica Fase 4–5 — Scripts 10, 11 y 12 (2026-03-07)
+
+Revisión minuciosa de los scripts de priorización y validación in silico. Se documentan todos los bugs encontrados y corregidos.
+
+### Script 10 — `10_prioritization_scoring.R`
+
+| # | Tipo | Descripción | Impacto |
+|---|------|-------------|---------|
+| 1 | **Bug** | `toupper()` aplicado a `excluded_drugs` pero no a `drug_name_norm` → exclusiones silenciosamente fallidas (la columna está en minúsculas). Corregido: `toupper(drug_name_norm) %in% excluded_drugs`. | Los 18 fármacos no-antitumorales (Alzheimer, anticoagulantes, gabapentinoides) no se excluían del Top 20. |
+| 2 | **Bug** | Falta validación de suma de pesos. Si `config/analysis_params.yaml` se modifica y los pesos no suman 1.0, el score compuesto queda mal escalado sin advertencia. Corregido: `stop()` si `abs(sum - 1.0) > 0.001`. | Protege contra errores silenciosos en análisis de sensibilidad. |
+| 3 | **Bug** | `betweenness_norm` (output de script 09, ya normalizado 0-1) se dividía nuevamente por `max_betw` → doble normalización distorsiona el componente de red. Corregido: usar directamente `nm$betweenness_norm`. | El componente `score_network` (peso 0.15) estaba comprimido incorrectamente. |
+| 4 | **Bug** | Header del log listaba `"radar"` como output, pero el script genera `"scatter"`. Corregido en lista de outputs. | Cosmético/trazabilidad. |
+| 5 | **Calidad** | Deduplicación ChEMBL con `group_by("")` sobre strings vacíos colapsaba todos los fármacos sin ChEMBL en uno solo. Refactorizado: filtrar antes de `group_by`, luego `bind_rows` con no-ChEMBL. | Podía eliminar candidatos legítimos sin ChEMBL ID. |
+| 6 | **Calidad** | `library(ggrepel)` faltaba en el bloque inicial (se usaba en el scatter plot). Agregado. | Error en ejecución si ggrepel no está cargado. |
+| 7 | **Calidad** | Columna `primary_target` no incluida en `out_cols` → ausente en `10_top20_candidates.tsv`. Agregada. | Script 11 usaba `drug_class` para colorear figuras; script 12 usaba `de_genes` con separador `\|`. |
+| 8 | **Calidad** | Carga muerta de `drug_summary` (archivo no existente en pipeline actual). Eliminada. | Error si se ejecuta sin ese archivo. |
+
+### Script 11 — `11_clinicaltrials_pubmed.py`
+
+| # | Tipo | Descripción | Impacto |
+|---|------|-------------|---------|
+| 1 | **Bug** | `class_col` buscaba `["repurposing_class", "class", "clase"]` pero script 10 exporta `drug_class`. Corregido: agregar `"drug_class"` como primera opción. | Bubble plot y barplots sin diferenciación de color por clase (A/B/C/D); todos los puntos tomaban color por defecto. |
+| 2 | **Bug** | `simplify_drug_name`: loop `for` sobre sufijos eliminaba solo el primero encontrado; nombres compuestos (ej. `"drug mesylate monohydrate"`) quedaban con sufijos residuales. Corregido con `while changed` + `break`. | Búsquedas en APIs con nombre incorrecto → menos ensayos encontrados para algunos candidatos. |
+| 3 | **Calidad** | `HNSCC_CT_TERMS` definida pero no usada; keywords hardcodeadas en `query_clinicaltrials()`. Corregido: usar la constante como fuente única. | Dead code; inconsistencia entre constante y uso real. |
+| 4 | **Calidad** | `drug_confirmed` calculado pero no usado en el filtro de `hnscc_trials`. Corregido: `[t for t in all_trials if t["is_hnscc"] and t["drug_confirmed"]]`. | `ct_hnscc_trials` sobreestimado para fármacos con nombres genéricos. |
+| 5 | **Calidad** | `"rettype": "count"` inválido con `format="json"` en PubMed E-utilities (silenciosamente ignorado). Eliminado de ambos dicts de parámetros. | Claridad del código; previene advertencias en versiones futuras de la API. |
+| 6 | **Calidad** | `NCBI_EMAIL` hardcodeado como `researcher@example.com`. Cambiado a variable de entorno con fallback real: `os.environ.get("NCBI_EMAIL", "jcarvajal@fucsalud.edu.co")`. Log de inicio reporta el email utilizado. | Buenas prácticas NCBI E-utilities; identificación correcta ante el servidor. |
+
+### Script 12 — `12_cosmic_overlap.py`
+
+| # | Tipo | Descripción | Impacto |
+|---|------|-------------|---------|
+| 7 | **Bug crítico** | `annotate_row`: `de_genes_str.split("/")` debería ser `split("\|")`. Script 10 almacena genes separados por `\|` (e.g., `"EGFR\|ERBB2"`). Con `/`, cada string se trata como gen único y nunca coincide con `any_driver`. | `n_target_drivers` siempre 0 → `has_driver_target` siempre `False` en `12_top20_with_drivers.tsv`. Erlotinib/Cetuximab (EGFR) no quedaban marcados como driver-targets. |
+| 8 | **Calidad** | `INPUT_DE` sin manejo de `FileNotFoundError`. Corregido: verificar existencia con log WARNING y `df_all = None` si no existe; proteger uso posterior con `if df_all is not None`. | Crash no informativo si script 01 no se ha ejecutado o el nombre cambió por timestamp. |
+| 9 | **Calidad** | `sym_col` inferido de `df_sig` pero usado directamente en `df_all` sin verificar que la columna existe. Corregido: `if sym_col in df_all.columns` antes de construir volcano. | `KeyError` si los dos archivos DE tienen esquemas diferentes. |
+| 10 | **Calidad** | Fallback IntOGen pan-cancer loggeado como `INFO`. Degradado a `WARNING` con mensaje explícito sobre riesgo de inflar falsos positivos. | El fallback usa miles de genes → solapamiento `intogen_de` artificialmente grande sin advertencia visible. |
+
+### Archivos modificados en esta sesión
+
+| Archivo | Cambios |
+|---------|---------|
+| `scripts/10_prioritization_scoring.R` | Bugs 1-3 + calidad 4-8 (ver tabla arriba) |
+| `scripts/11_clinicaltrials_pubmed.py` | Bugs 1-2 + calidad 3-6 (ver tabla arriba) |
+| `scripts/12_cosmic_overlap.py` | Bug crítico 7 + calidad 8-10 (ver tabla arriba) |
+| `config/analysis_params.yaml` | Corrección de 4 comentarios con número de script incorrecto (09, 10 en lugar de 10, 11) |
+| `docs/OUTPUTS.md` | Agregados: `10_scoring_heatmap.pdf`, `10_top20_barplot.pdf`, `11_trials_phase_bar.pdf`; columna `primary_target` en descripción de `10_all_candidates_scored.tsv` |
+| `docs/METHODS.md` | Header actualizado con scripts 10, 11, 12 |
+| `docs/RUNBOOK.md` | Nota de troubleshooting para variable `NCBI_EMAIL` |

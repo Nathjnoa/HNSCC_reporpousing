@@ -29,13 +29,13 @@ cmap:
   adj_pval_threshold: 0.05
   method: "LINCS"                     # Opciones: LINCS, CMAP2
 
-# --- Red PPI STRING (script 10) ---
+# --- Red PPI STRING (script 09) ---
 network:
   string_version: "12.0"
   string_score_threshold: 700         # Score combinado 0-1000 (700 = alta confianza)
   hub_percentile: 90                  # Top 10% por grado de nodo = hub
 
-# --- Priorización multi-criterio (script 11) ---
+# --- Priorización multi-criterio (script 10) ---
 scoring:
   weight_log2fc: 0.20
   weight_significance: 0.15
@@ -45,12 +45,12 @@ scoring:
   weight_network_centrality: 0.15
   # Suma debe ser 1.0
 
-# --- Candidatos finales (script 11) ---
+# --- Candidatos finales (script 10) ---
 candidates:
   top_n: 20                           # Top N candidatos para validación profunda
   min_databases: 2                    # Mínimo de bases de datos de soporte
 
-# --- Fase clínica → score (script 11) ---
+# --- Fase clínica → score (script 10) ---
 clinical_phase_scores:
   "4": 1.00    # Aprobado
   "3": 0.75    # Fase 3

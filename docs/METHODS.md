@@ -1,7 +1,7 @@
 # Metodología — HNSCC Drug Repurposing Pipeline
 
 *Guía académica y didáctica del pipeline computacional*
-*Última actualización: 2026-03-06 — revisión crítica del pipeline; secciones de scripts 03, 07, 08 y 09 actualizadas.*
+*Última actualización: 2026-03-07 — revisión crítica del pipeline; secciones de scripts 03, 07, 08, 09, 10, 11 y 12 actualizadas.*
 
 ---
 

@@ -63,7 +63,7 @@ CT_BASE = "https://clinicaltrials.gov/api/v2/studies"
 
 # NCBI E-utilities
 NCBI_ESEARCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-NCBI_EMAIL   = "researcher@example.com"   # buenas prácticas NCBI
+NCBI_EMAIL   = os.environ.get("NCBI_EMAIL", "jcarvajal@fucsalud.edu.co")
 
 # HNSCC search terms
 HNSCC_CT_TERMS = [
@@ -141,12 +141,9 @@ def query_clinicaltrials(drug_name: str) -> dict:
             overall_st = status.get("overallStatus", "")
             conditions = [c.lower() for c in cond.get("conditions", [])]
 
-            # Comprobar si menciona HNSCC en condición
-            is_hnscc = any(
-                kw in " ".join(conditions)
-                for kw in ["head and neck", "hnscc", "oral", "oropharyn", "laryn",
-                            "pharyn", "squamous cell carcinoma"]
-            )
+            # Comprobar si menciona HNSCC en condición (usa HNSCC_CT_TERMS)
+            conditions_str = " ".join(conditions)
+            is_hnscc = any(kw.lower() in conditions_str for kw in HNSCC_CT_TERMS)
 
             # Obtener nombre de intervención para confirmar el fármaco
             interventions = []
@@ -171,7 +168,7 @@ def query_clinicaltrials(drug_name: str) -> dict:
             break
         page_token = next_token
 
-    hnscc_trials = [t for t in all_trials if t["is_hnscc"]]
+    hnscc_trials = [t for t in all_trials if t["is_hnscc"] and t["drug_confirmed"]]
     by_phase = {}
     for t in hnscc_trials:
         p = t["phase"]
@@ -194,11 +191,18 @@ SALT_SUFFIXES = [
 
 
 def simplify_drug_name(name: str) -> str:
-    """Elimina sufijos de sales/formas farmacéuticas para mejorar búsqueda PubMed."""
+    """Elimina sufijos de sales/formas farmacéuticas para mejorar búsqueda PubMed.
+    Itera hasta eliminar todos los sufijos compuestos (ej: 'mesylate monohydrate').
+    """
     s = name.lower().strip()
-    for suffix in SALT_SUFFIXES:
-        if s.endswith(suffix):
-            s = s[: -len(suffix)].strip()
+    changed = True
+    while changed:
+        changed = False
+        for suffix in SALT_SUFFIXES:
+            if s.endswith(suffix):
+                s = s[: -len(suffix)].strip()
+                changed = True
+                break
     # Capitalizar primera letra
     return s.capitalize()
 
@@ -219,7 +223,6 @@ def query_pubmed(drug_name: str) -> dict:
         "db": "pubmed",
         "term": q_drug,
         "retmax": 0,
-        "rettype": "count",
         "tool": "hnscc_drug_repurposing",
         "email": NCBI_EMAIL,
         "format": "json",
@@ -234,7 +237,6 @@ def query_pubmed(drug_name: str) -> dict:
         "db": "pubmed",
         "term": q_hnscc,
         "retmax": 0,
-        "rettype": "count",
         "tool": "hnscc_drug_repurposing",
         "email": NCBI_EMAIL,
         "format": "json",
@@ -255,6 +257,7 @@ def main():
     log.info("=" * 60)
     log.info("Script 11: ClinicalTrials.gov + PubMed evidence")
     log.info("=" * 60)
+    log.info(f"NCBI email: {NCBI_EMAIL}")
 
     # Cargar top 20
     if not INPUT_TOP20.exists():
@@ -350,7 +353,7 @@ def main():
     # ── Figuras ───────────────────────────────────────────────────────────────
     # Color por clase
     class_colors = {"A": "#d62728", "B": "#ff7f0e", "C": "#2ca02c", "D": "#1f77b4"}
-    class_col = next((c for c in ["repurposing_class", "class", "clase"] if c in df_evidence.columns), None)
+    class_col = next((c for c in ["drug_class", "repurposing_class", "class", "clase"] if c in df_evidence.columns), None)
 
     def get_color(row):
         if class_col and class_col in row:

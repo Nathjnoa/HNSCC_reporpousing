@@ -204,6 +204,7 @@ Los scripts solo pueden ejecutarse si sus dependencias estan completas. Respetar
 | Script 07 lento la primera vez | CMap2 (EH3224 — cmap_rank) descarga ~370MB de ExperimentHub. Solo ocurre una vez (se cachea). |
 | Script 09 timeout en STRING API | Reintentar. STRING tiene rate limits; el script hace pausa entre batches. Si score >= 700 no retorna aristas, el script reintenta automáticamente con score = 400 y actualiza el umbral en consecuencia. |
 | Scripts 11-12 sin resultados de internet | Verificar conexion a internet. Las APIs de ClinicalTrials.gov y PubMed requieren acceso HTTPS. |
+| Script 11: advertencia de email NCBI | El script usa `NCBI_EMAIL` como identificador en PubMed E-utilities. Por defecto usa `jcarvajal@fucsalud.edu.co`. Para sobreescribir: `export NCBI_EMAIL="tu@email.com"` antes de ejecutar. |
 | `STRINGdb` no disponible | Normal. Script 09 usa STRING REST API directamente con httr2+jsonlite. |
 | COSMIC CGC vacio | Descarga manual requerida (login en cancer.sanger.ac.uk). Script 12 funciona sin el con NCG7 embebido. |
 

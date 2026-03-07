@@ -27,7 +27,7 @@
 #         results/tables/10_all_candidates_scored.tsv
 #         results/figures/10_scoring_heatmap.pdf
 #         results/figures/10_top20_barplot.pdf
-#         results/figures/10_score_components_radar.pdf
+#         results/figures/10_score_vs_targets.pdf
 # =============================================================================
 
 suppressPackageStartupMessages({
@@ -35,6 +35,7 @@ suppressPackageStartupMessages({
   library(tidyr)
   library(stringr)
   library(ggplot2)
+  library(ggrepel)
   library(yaml)
 })
 
@@ -81,7 +82,10 @@ phase_scores <- setNames(
 
 cat(sprintf("Pesos: logFC=%.2f | sig=%.2f | clinical=%.2f | cmap=%.2f | pathway=%.2f | network=%.2f\n",
             w_logfc, w_sig, w_clin, w_cmap, w_path, w_net))
-cat(sprintf("Sum pesos: %.2f\n", w_logfc+w_sig+w_clin+w_cmap+w_path+w_net))
+weight_sum <- w_logfc + w_sig + w_clin + w_cmap + w_path + w_net
+cat(sprintf("Sum pesos: %.4f\n", weight_sum))
+if (abs(weight_sum - 1.0) > 0.001)
+  stop(sprintf("FATAL: pesos suman %.4f, deben sumar exactamente 1.0", weight_sum))
 cat(sprintf("Top N candidatos: %d\n\n", top_n))
 
 # =============================================================================
@@ -95,21 +99,21 @@ candidates_raw <- read.delim("results/tables/drug_targets/08_multi_source_candid
 cat(sprintf("Candidatos multi-fuente (raw): %d\n", nrow(candidates_raw)))
 
 # Deduplicar por ChEMBL ID canonico: si varios nombres apuntan al mismo ChEMBL,
-# quedarse con el nombre mas corto (nombre base, sin sal/formulacion)
+# quedarse con el nombre mas corto (nombre base, sin sal/formulacion).
+# Se filtra primero para no agrupar entradas sin ChEMBL junto con las que sí lo tienen.
 candidates <- candidates_raw %>%
+  filter(!is.na(chembl_id) & chembl_id != "") %>%
   group_by(chembl_id) %>%
   slice_min(nchar(drug_name_norm), n = 1, with_ties = FALSE) %>%
   ungroup() %>%
-  bind_rows(candidates_raw %>%
-              filter(is.na(chembl_id) | chembl_id == "") %>%
-              distinct(drug_name_norm, .keep_all = TRUE)) %>%
+  bind_rows(
+    candidates_raw %>%
+      filter(is.na(chembl_id) | chembl_id == "") %>%
+      distinct(drug_name_norm, .keep_all = TRUE)
+  ) %>%
   distinct(drug_name_norm, .keep_all = TRUE)
 
 cat(sprintf("Candidatos tras dedup por ChEMBL ID: %d\n", nrow(candidates)))
-
-# Summary per drug (script 08) — tiene max_phase, is_approved, cmap_score
-drug_summary <- read.delim("results/tables/drug_targets/08_drug_summary_per_drug.tsv",
-                            stringsAsFactors = FALSE)
 
 # Tabla DE (script 02) — logFC y p-valor por gen
 sig <- read.delim("results/tables/de_limma/02_TVsS_significant_with_ids.tsv",
@@ -212,14 +216,13 @@ score_pathway_fn <- function(gene_str) {
 #              usa combinacion degree + betweenness normalizada
 # =============================================================================
 max_degree <- max(net_metrics$degree, na.rm = TRUE)
-max_betw   <- max(net_metrics$betweenness_norm, na.rm = TRUE)
 
 score_network_fn <- function(gene_str) {
   genes <- get_target_genes(gene_str)
   nm    <- net_metrics %>% filter(gene_symbol %in% genes)
   if (nrow(nm) == 0) return(0)
   deg_norm  <- mean(nm$degree / max_degree, na.rm = TRUE)
-  betw_norm <- mean(nm$betweenness_norm / max_betw, na.rm = TRUE)
+  betw_norm <- mean(nm$betweenness_norm,    na.rm = TRUE)  # ya normalizado en script 09
   # Combinacion: 60% degree, 40% betweenness (degree refleja conectividad global)
   0.6 * deg_norm + 0.4 * betw_norm
 }
@@ -268,8 +271,8 @@ cat(sprintf("Score range: %.4f - %.4f\n",
 excluded_drugs <- toupper(unlist(params$exclusions$drugs))
 n_excl_name <- 0
 if (length(excluded_drugs) > 0) {
-  n_excl_name <- sum(scored$drug_name_norm %in% excluded_drugs)
-  scored <- scored %>% filter(!drug_name_norm %in% excluded_drugs)
+  n_excl_name <- sum(toupper(scored$drug_name_norm) %in% excluded_drugs)
+  scored <- scored %>% filter(!toupper(drug_name_norm) %in% excluded_drugs)
   cat(sprintf("Exclusiones por nombre: %d fármacos removidos\n", n_excl_name))
 }
 
@@ -461,6 +464,7 @@ cat("\n--- Exportando ---\n")
 out_cols <- c("drug_name_norm", "chembl_id", "drug_class", "drug_class_label",
               "n_sources", "sources", "max_phase", "is_approved", "hnscc_indication",
               "cmap_score", "n_de_genes", "n_up_genes", "n_down_genes", "de_genes",
+              "primary_target",
               "s_logfc", "s_sig", "s_clinical", "s_cmap", "s_pathway", "s_network",
               "composite_score", "bonus", "final_score")
 out_cols_avail <- intersect(out_cols, colnames(scored))

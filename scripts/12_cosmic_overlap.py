@@ -206,9 +206,10 @@ def extract_intogen_hnscc_genes(df: pd.DataFrame) -> set:
     log.info(f"IntOGen genes HNSCC-specific: {len(genes)}")
 
     if len(genes) == 0:
-        log.info("IntOGen: 0 genes HNSCC-specific. Usando todos los genes del compendio.")
+        log.warning("IntOGen: 0 genes HNSCC-specific encontrados. "
+                    "Usando genes pan-cancer del compendio — puede inflar falsos positivos.")
         genes = set(df[gene_col].dropna().astype(str).str.upper())
-        log.info(f"IntOGen genes totales (pan-cancer): {len(genes)}")
+        log.warning(f"IntOGen genes totales (pan-cancer, fallback): {len(genes)}")
 
     return genes
 
@@ -234,17 +235,22 @@ def main():
     de_genes = set(df_sig[sym_col].dropna().astype(str).str.upper())
     log.info(f"Genes DE unicos: {len(de_genes)}")
 
-    # Cargar logFC para volcano
-    df_all = pd.read_csv(INPUT_DE, sep="\t")
-    lfc_col  = next((c for c in df_all.columns
-                     if c.lower() in {"logfc", "log2fc", "logfc_tvss"}), None)
-    padj_col = next((c for c in df_all.columns
-                     if c.lower() in {"adj.p.val_tvss", "adj.p.val", "adj_p_val", "padj", "fdr"}), None)
-    # Fallback: buscar por patrón
-    if lfc_col is None:
-        lfc_col = next((c for c in df_all.columns if "logfc" in c.lower()), None)
-    if padj_col is None:
-        padj_col = next((c for c in df_all.columns if "adj.p" in c.lower()), None)
+    # Cargar logFC para volcano (opcional — si no existe, se omite la figura)
+    if not INPUT_DE.exists():
+        log.warning(f"Archivo DE completo no encontrado: {INPUT_DE}. Omitiendo volcano plot.")
+        df_all = None
+        lfc_col = padj_col = None
+    else:
+        df_all = pd.read_csv(INPUT_DE, sep="\t")
+        lfc_col  = next((c for c in df_all.columns
+                         if c.lower() in {"logfc", "log2fc", "logfc_tvss"}), None)
+        padj_col = next((c for c in df_all.columns
+                         if c.lower() in {"adj.p.val_tvss", "adj.p.val", "adj_p_val", "padj", "fdr"}), None)
+        # Fallback: buscar por patrón
+        if lfc_col is None:
+            lfc_col = next((c for c in df_all.columns if "logfc" in c.lower()), None)
+        if padj_col is None:
+            padj_col = next((c for c in df_all.columns if "adj.p" in c.lower()), None)
 
     # ── Cargar fuentes de cancer drivers ─────────────────────────────────────
     cosmic_raw  = load_cosmic(COSMIC_FILE)
@@ -342,7 +348,9 @@ def main():
     log.info(f"Figura barras: {out_bar}")
 
     # ---- Figura 2: Volcano con drivers resaltados ------------------------------
-    if lfc_col and padj_col and lfc_col in df_all.columns and padj_col in df_all.columns:
+    if (df_all is not None and lfc_col and padj_col
+            and lfc_col in df_all.columns and padj_col in df_all.columns
+            and sym_col in df_all.columns):
         df_vol = df_all[[sym_col, lfc_col, padj_col]].dropna().copy()
         df_vol.columns = ["gene", "logFC", "padj"]
         df_vol["gene_upper"] = df_vol["gene"].str.upper()
@@ -425,7 +433,7 @@ def main():
         def annotate_row(de_genes_str):
             if pd.isna(de_genes_str):
                 return 0, False
-            genes_up = [g.strip().upper() for g in str(de_genes_str).split("/")]
+            genes_up = [g.strip().upper() for g in str(de_genes_str).split("|")]
             n_drivers = sum(g in any_driver for g in genes_up)
             return n_drivers, n_drivers > 0
 

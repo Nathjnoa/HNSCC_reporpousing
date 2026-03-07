@@ -1,6 +1,6 @@
 # Outputs Catalogue — HNSCC Drug Repurposing
 
-*Última actualización: 2026-03-06 — revisión crítica del pipeline; outputs de scripts 03, 07, 08 y 09 actualizados para reflejar mejoras metodológicas.*
+*Última actualización: 2026-03-07 — revisión crítica del pipeline; outputs de scripts 03, 07, 08, 09, 10, 11 y 12 actualizados para reflejar mejoras metodológicas.*
 *Organizado script por script, con rutas relativas desde la raíz del proyecto.*
 
 Convención de la columna Tipo: `T` = tabla/archivo de datos, `F` = figura.
@@ -148,8 +148,10 @@ Scoring multi-criterio (6 dimensiones) y selección del Top 20 candidatos con di
 
 | Tipo | Archivo | Descripción |
 | --- | --- | --- |
-| T | `results/tables/10_all_candidates_scored.tsv` | Todos los candidatos con s_logfc, s_sig, s_clinical, s_cmap, s_pathway, s_network, composite_score, final_score |
-| T | `results/tables/10_top20_candidates.tsv` | Top 20 candidatos finales seleccionados con criterio de diversidad (max. 3 por target primario) |
+| T | `results/tables/10_all_candidates_scored.tsv` | Todos los candidatos con s_logfc, s_sig, s_clinical, s_cmap, s_pathway, s_network, composite_score, final_score, `primary_target` (gen diana con mayor logFC) |
+| T | `results/tables/10_top20_candidates.tsv` | Top 20 candidatos finales seleccionados con criterio de diversidad (max. 3 por target primario); incluye columna `drug_class` (A/B/C/D) |
+| F | `results/figures/10_scoring_heatmap.pdf` | Heatmap de los 6 componentes de score × Top 20 candidatos (escala 0-1 por dimensión) |
+| F | `results/figures/10_top20_barplot.pdf` | Barplot horizontal de score final de los Top 20 candidatos, coloreado por clase (drug_class) |
 | F | `results/figures/10_score_vs_targets.pdf` | Scatter score compuesto vs número de genes diana DE; etiquetados los Top 20 |
 
 ---
@@ -162,7 +164,8 @@ Consulta a ClinicalTrials.gov API v2 y PubMed para evidencia clínica de los Top
 | --- | --- | --- |
 | T | `results/tables/evidence/11_clinical_evidence.tsv` | Por candidato: n_ensayos HNSCC, n_ensayos activos, n_publicaciones PubMed HNSCC, evidence_score |
 | T | `results/tables/evidence/11_trials_detail.tsv` | Detalle de cada ensayo clínico encontrado: título, fase, estado, NCT ID |
-| F | `results/figures/evidence/11_evidence_bubble.pdf` | Bubble plot: candidatos por evidencia clínica y bibliográfica |
+| F | `results/figures/evidence/11_evidence_bubble.pdf` | Bubble plot: candidatos por evidencia clínica y bibliográfica, coloreado por drug_class (A/B/C/D) |
+| F | `results/figures/evidence/11_trials_phase_bar.pdf` | Barplot apilado de fases de ensayos clínicos HNSCC por candidato (Fase I/II/III/IV/N.A.) |
 
 ---
 
