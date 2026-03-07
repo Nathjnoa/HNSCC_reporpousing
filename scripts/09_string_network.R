@@ -155,6 +155,10 @@ if (is.null(net_result) || nrow(as.data.frame(net_result)) == 0) {
     required_score = "400",
     caller_identity = "hnscc_drug_repurposing"
   ))
+  if (!is.null(net_result) && nrow(as.data.frame(net_result)) > 0) {
+    score_thr <- 400L  # actualizar para que filtros posteriores sean consistentes
+    cat("Fallback exitoso. score_thr actualizado a 400.\n")
+  }
 }
 
 if (is.null(net_result)) {
@@ -251,14 +255,24 @@ df_nodes <- data.frame(
   left_join(gene_meta, by = c("gene_symbol" = "symbol_org")) %>%
   arrange(desc(degree))
 
-# Hub threshold
-hub_thr <- quantile(deg, probs = hub_percentile / 100, na.rm = TRUE)
+# Hub criteria: union de degree >= p90 OR betweenness >= p90
+# Captura "party hubs" (grado alto) y "bottleneck hubs" (intermediacion alta)
+hub_thr_deg  <- quantile(deg,  probs = hub_percentile / 100, na.rm = TRUE)
+hub_thr_betw <- quantile(betw, probs = hub_percentile / 100, na.rm = TRUE)
+hub_thr      <- hub_thr_deg  # referencia para plots de distribucion de grado
+
 df_nodes <- df_nodes %>%
-  mutate(is_hub = degree >= hub_thr)
+  mutate(
+    # Score compuesto: media de rangos normalizados (robusto ante escalas distintas)
+    hub_score = (rank(degree) + rank(betweenness_norm) +
+                 rank(coalesce(eigenvector, 0))) / (3 * n()),
+    is_hub    = degree >= hub_thr_deg | betweenness_norm >= hub_thr_betw
+  )
 
 n_hubs <- sum(df_nodes$is_hub)
-cat(sprintf("Hub threshold (degree >= %.0f, top %d%%): %d hubs\n",
-            hub_thr, 100 - hub_percentile, n_hubs))
+cat(sprintf("Hub threshold: degree >= %.0f (p%d) OR betweenness >= %.4f (p%d)\n",
+            hub_thr_deg, hub_percentile, hub_thr_betw, hub_percentile))
+cat(sprintf("Hubs identificados: %d (union criterio dual)\n", n_hubs))
 
 cat("\nTop 20 hubs:\n")
 top20 <- head(df_nodes, 20)
@@ -406,7 +420,7 @@ g_giant     <- induced_subgraph(g, vids = giant_nodes)
 node_attrs <- df_nodes %>%
   filter(gene_symbol %in% V(g_giant)$name) %>%
   select(gene_symbol, degree, betweenness_norm, direction,
-         logFC_TVsS, is_hub) %>%
+         logFC_TVsS, is_hub, hub_score) %>%
   mutate(direction = coalesce(direction, "unknown"))
 
 V(g_giant)$degree        <- node_attrs$degree[match(V(g_giant)$name, node_attrs$gene_symbol)]
@@ -414,70 +428,140 @@ V(g_giant)$betweenness   <- node_attrs$betweenness_norm[match(V(g_giant)$name, n
 V(g_giant)$direction     <- node_attrs$direction[match(V(g_giant)$name, node_attrs$gene_symbol)]
 V(g_giant)$logFC         <- node_attrs$logFC_TVsS[match(V(g_giant)$name, node_attrs$gene_symbol)]
 V(g_giant)$is_hub        <- node_attrs$is_hub[match(V(g_giant)$name, node_attrs$gene_symbol)]
-V(g_giant)$label         <- ifelse(V(g_giant)$is_hub == TRUE, V(g_giant)$name, NA)
+V(g_giant)$hub_score     <- node_attrs$hub_score[match(V(g_giant)$name, node_attrs$gene_symbol)]
+V(g_giant)$label         <- ifelse(V(g_giant)$is_hub == TRUE, V(g_giant)$name, NA_character_)
 
+# Asignar score de aristas (match insensible al orden A-B / B-A)
+edge_ends    <- ends(g_giant, E(g_giant), names = TRUE)
+score_lookup <- setNames(df_edges$score,
+                         paste(df_edges$gene_A, df_edges$gene_B))
+score_lookup_rev <- setNames(df_edges$score,
+                             paste(df_edges$gene_B, df_edges$gene_A))
+e_keys       <- paste(edge_ends[,1], edge_ends[,2])
+e_scores     <- score_lookup[e_keys]
+na_mask      <- is.na(e_scores)
+e_scores[na_mask] <- score_lookup_rev[e_keys[na_mask]]
+E(g_giant)$score <- as.numeric(e_scores)
+
+# Propagar score al subgrafo de hubs (se creara despues, pero lo necesitamos)
+# -> se hara tras crear g_hubs (linea siguiente en el bloque de Plot 2)
+
+# Red minimalista: nodos pequenos para proteinas comunes, grandes para hubs.
+# Solo se renderizan edges; el alpha muy bajo evita el efecto "hairball"
+# manteniendo la estructura topologica visible.
 safe_pdf("results/figures/09_network_full.pdf", w = 14, h = 12, {
   set.seed(42)
   p <- ggraph(g_giant, layout = "fr") +
-    geom_edge_link(alpha = 0.08, color = "gray50", linewidth = 0.3) +
-    geom_node_point(aes(size  = degree,
-                        color = direction,
-                        shape = is_hub),
-                    alpha = 0.85) +
+    # Aristas: alpha bajo — muestra estructura sin crear hairball
+    geom_edge_link(color = "gray70", linewidth = 0.2, alpha = 0.06,
+                   show.legend = FALSE) +
+    # No-hubs: puntos pequenos y semitransparentes (contexto)
+    geom_node_point(aes(size = degree, color = direction),
+                    data = function(d) d[d$is_hub == FALSE, ],
+                    alpha = 0.45, shape = 16) +
+    # Hubs: diamantes grandes, completamente visibles (protagonistas)
+    geom_node_point(aes(size = degree, color = direction),
+                    data = function(d) d[d$is_hub == TRUE, ],
+                    alpha = 1.0, shape = 18) +
+    # Labels solo en hubs
     geom_node_text(aes(label = label),
-                   size = 2.5, repel = TRUE,
-                   max.overlaps = 50, na.rm = TRUE,
-                   fontface = "bold") +
-    scale_color_manual(values = c(up = "#e31a1c", down = "#1f78b4",
-                                  unknown = "#aaaaaa"),
+                   size = 2.8, repel = TRUE,
+                   max.overlaps = 60, na.rm = TRUE,
+                   fontface = "bold", bg.color = "white", bg.r = 0.1) +
+    scale_color_manual(values = c(up = "#d62728", down = "#1f78b4",
+                                  unknown = "#999999"),
                        name = "Expression\nvs Normal") +
-    scale_size_continuous(range = c(1.5, 7), name = "Degree") +
-    scale_shape_manual(values = c("TRUE" = 18, "FALSE" = 16),
-                       name = "Hub (top 10%)") +
+    scale_size_continuous(range = c(0.8, 8), name = "Degree") +
     labs(title = "STRING PPI network — DE proteins in HNSCC",
-         subtitle = sprintf("Giant component: %d nodes, %d edges | score >= %d | hubs labeled",
-                            vcount(g_giant), ecount(g_giant), score_thr)) +
+         subtitle = sprintf(
+           "Giant component: %d nodes, %d edges | score \u2265 %d | diamonds = hubs (degree OR betweenness \u2265 p%d)",
+           vcount(g_giant), ecount(g_giant), score_thr, hub_percentile)) +
     theme_graph(base_family = "sans") +
-    theme(legend.position = "right",
-          plot.title    = element_text(size = 14, face = "bold"),
-          plot.subtitle = element_text(size = 10))
+    theme(legend.position    = "right",
+          plot.title         = element_text(size = 14, face = "bold"),
+          plot.subtitle      = element_text(size = 9),
+          plot.background    = element_rect(fill = "white", color = NA),
+          panel.background   = element_rect(fill = "white", color = NA))
   print(p)
 })
 
-# Plot 2: Subred de hubs solamente (mas legible)
+# Plot 2: Subred de hubs solamente — layout KK para grafos medianos (~50-150 nodos)
 cat("  [ggraph] Subred de hubs...\n")
-hub_names     <- df_nodes$gene_symbol[df_nodes$is_hub]
-g_hubs        <- induced_subgraph(g, vids = hub_names)
-V(g_hubs)$degree    <- degree(g_hubs)
-V(g_hubs)$direction <- node_attrs$direction[match(V(g_hubs)$name, node_attrs$gene_symbol)]
-V(g_hubs)$is_druggable <- V(g_hubs)$name %in% df_druggable$gene_symbol[df_druggable$is_druggable]
+hub_names <- df_nodes$gene_symbol[df_nodes$is_hub]
+g_hubs    <- induced_subgraph(g, vids = hub_names)
 
-safe_pdf("results/figures/09_network_hubs_only.pdf", w = 10, h = 9, {
+# Propagar score de aristas desde g al subgrafo
+hub_edge_ends <- ends(g_hubs, E(g_hubs), names = TRUE)
+hub_e_keys    <- paste(hub_edge_ends[,1], hub_edge_ends[,2])
+hub_e_scores  <- score_lookup[hub_e_keys]
+hub_na        <- is.na(hub_e_scores)
+hub_e_scores[hub_na] <- score_lookup_rev[hub_e_keys[hub_na]]
+E(g_hubs)$score <- as.numeric(hub_e_scores)
+
+# Grado en el subgrafo de hubs (no el grado en la red completa)
+deg_hubs <- degree(g_hubs)
+V(g_hubs)$degree       <- deg_hubs
+V(g_hubs)$degree_full  <- deg[match(V(g_hubs)$name, names(deg))]  # grado en la red completa
+V(g_hubs)$direction    <- node_attrs$direction[match(V(g_hubs)$name, node_attrs$gene_symbol)]
+V(g_hubs)$hub_score    <- node_attrs$hub_score[match(V(g_hubs)$name, node_attrs$gene_symbol)]
+V(g_hubs)$is_druggable <- V(g_hubs)$name %in%
+  df_druggable$gene_symbol[df_druggable$is_druggable]
+
+# Si el subgrafo es muy grande (>150 nodos), usar FR; si no, KK (mas estetico)
+hub_layout <- if (vcount(g_hubs) <= 150) "kk" else "fr"
+cat(sprintf("    Hub subgraph: %d nodos, %d aristas | layout = %s\n",
+            vcount(g_hubs), ecount(g_hubs), hub_layout))
+
+# Normalizar scores de aristas a [0,1] para alpha; fallback a 0.5 si todos NA
+hub_scores_raw <- E(g_hubs)$score
+if (all(is.na(hub_scores_raw))) {
+  E(g_hubs)$score_norm <- rep(0.5, ecount(g_hubs))
+} else {
+  s_min <- min(hub_scores_raw, na.rm = TRUE)
+  s_max <- max(hub_scores_raw, na.rm = TRUE)
+  E(g_hubs)$score_norm <- ifelse(
+    s_max > s_min,
+    (hub_scores_raw - s_min) / (s_max - s_min),
+    0.5
+  )
+}
+
+safe_pdf("results/figures/09_network_hubs_only.pdf", w = 11, h = 10, {
   set.seed(42)
-  p <- ggraph(g_hubs, layout = "fr") +
-    geom_edge_link(alpha = 0.4, color = "gray40", linewidth = 0.5) +
-    geom_node_point(aes(size        = degree(g_hubs),
-                        color       = direction,
-                        shape       = is_druggable),
-                    alpha = 0.9) +
+  p <- ggraph(g_hubs, layout = hub_layout) +
+    geom_edge_link(aes(edge_alpha = score_norm),
+                   color = "gray40", linewidth = 0.6,
+                   show.legend = FALSE) +
+    scale_edge_alpha_continuous(range = c(0.2, 0.85)) +
+    # Nodos — tamaño por hub_score compuesto (mejor ranking que grado simple)
+    geom_node_point(aes(size  = hub_score,
+                        color = direction,
+                        shape = is_druggable),
+                    alpha = 0.92) +
+    # Labels en todos los hubs (grafo pequeno, todos son relevantes)
     geom_node_text(aes(label = name),
-                   size = 3.5, repel = TRUE,
-                   max.overlaps = 60, fontface = "bold") +
-    scale_color_manual(values = c(up = "#e31a1c", down = "#1f78b4",
-                                  unknown = "#aaaaaa"),
+                   size = 3.2, repel = TRUE,
+                   max.overlaps = 80, fontface = "bold",
+                   bg.color = "white", bg.r = 0.12,
+                   force = 1.5) +
+    scale_color_manual(values = c(up = "#d62728", down = "#1f78b4",
+                                  unknown = "#999999"),
                        name = "Expression\nvs Normal") +
-    scale_size_continuous(range = c(4, 12), name = "Degree\n(in hub subgraph)") +
+    scale_size_continuous(range = c(3, 11), name = "Hub score\n(composite)") +
     scale_shape_manual(values = c("TRUE" = 18, "FALSE" = 16),
                        labels = c("TRUE" = "Has drug candidate",
-                                  "FALSE" = "No drug"),
+                                  "FALSE" = "No drug candidate"),
                        name = "Druggable") +
-    labs(title = "STRING PPI — Hub subnetwork",
-         subtitle = sprintf("%d hub proteins (top 10%% degree) | diamonds = druggable",
-                            vcount(g_hubs))) +
+    labs(title = "STRING PPI — Hub protein subnetwork",
+         subtitle = sprintf(
+           "%d hub proteins (degree OR betweenness \u2265 p%d) | diamonds = druggable | edge alpha \u221d STRING score",
+           vcount(g_hubs), hub_percentile)) +
     theme_graph(base_family = "sans") +
-    theme(legend.position = "right",
-          plot.title    = element_text(size = 14, face = "bold"),
-          plot.subtitle = element_text(size = 10))
+    theme(legend.position   = "right",
+          plot.title        = element_text(size = 14, face = "bold"),
+          plot.subtitle     = element_text(size = 9),
+          plot.background   = element_rect(fill = "white", color = NA),
+          panel.background  = element_rect(fill = "white", color = NA))
   print(p)
 })
 

@@ -5,10 +5,10 @@
 # =============================================================================
 # Objetivo: Unificar 4 fuentes (DGIdb, ChEMBL, Open Targets, CMap2) en una
 #           tabla maestra. Clasificar farmacos:
-#           A = aprobado para HNSCC
-#           B = aprobado para otro cancer
-#           C = aprobado no-cancer (reposicionamiento)
-#           D = experimental (fase < 4, incluye CMap hits sin aprobacion)
+#           A = aprobado + indicacion HNSCC directa
+#           B = aprobado + otra indicacion oncologica (reposicionamiento intra-oncologico)
+#           C = aprobado + indicacion no-oncologica (reposicionamiento clasico)
+#           D = no aprobado (fase 3, experimental o solo CMap)
 #
 # Input:  results/tables/drug_targets/04_dgidb_raw.tsv
 #         results/tables/drug_targets/05_chembl_drugs.tsv
@@ -28,6 +28,7 @@ suppressPackageStartupMessages({
   library(tidyr)
   library(stringr)
   library(ggplot2)
+  library(ggrepel)
   library(yaml)
 })
 
@@ -126,6 +127,18 @@ cat(sprintf("    ChEMBL: %d filas, %d drugs, %d genes\n",
             nrow(chembl), n_distinct(chembl$drug_name_norm), n_distinct(chembl$gene_symbol)))
 
 # ---------------------------------------------------------------------------
+# Keywords oncologicos para detectar indicaciones cancer (Open Targets)
+# Se aplica sobre indication_name (texto libre de OT)
+# ---------------------------------------------------------------------------
+CANCER_KW <- paste(
+  c("cancer", "carcinoma", "tumor", "tumour", "lymphoma",
+    "leukemia", "leukaemia", "sarcoma", "melanoma",
+    "neoplasm", "glioma", "myeloma", "adenocarcinoma",
+    "mesothelioma", "blastoma", "malignant"),
+  collapse = "|"
+)
+
+# ---------------------------------------------------------------------------
 # 1c. Open Targets
 # ---------------------------------------------------------------------------
 cat("  [Open Targets]\n")
@@ -135,22 +148,25 @@ ot_raw <- read.delim("results/tables/drug_targets/06_opentargets_gene_drugs.tsv"
 ot <- ot_raw %>%
   filter(!is.na(drug_name), drug_name != "") %>%
   mutate(
-    drug_name_norm    = str_to_upper(str_trim(drug_name)),
-    chembl_id         = str_to_upper(str_trim(drug_id)),
-    source_db         = "OpenTargets",
-    max_phase_db      = as.numeric(max_phase_global),
+    drug_name_norm      = str_to_upper(str_trim(drug_name)),
+    chembl_id           = str_to_upper(str_trim(drug_id)),
+    source_db           = "OpenTargets",
+    max_phase_db        = as.numeric(max_phase_global),
     # Python escribe "True"/"False" — R necesita tolower() para parsear
-    is_approved_db    = (tolower(as.character(is_approved)) == "true"),
+    is_approved_db      = (tolower(as.character(is_approved)) == "true"),
     is_hnscc_indication = (tolower(as.character(is_hnscc_indication)) == "true"),
-    cmap_score        = NA_real_,
-    interaction_score = NA_real_,
-    gene_symbol       = str_to_upper(str_trim(symbol_org)),
-    direction         = direction
+    # Flag: indicacion oncologica (cualquier cancer, incluye HNSCC)
+    has_cancer_indication = str_detect(str_to_lower(indication_name), CANCER_KW),
+    has_cancer_indication = ifelse(is.na(has_cancer_indication), FALSE, has_cancer_indication),
+    cmap_score          = NA_real_,
+    interaction_score   = NA_real_,
+    gene_symbol         = str_to_upper(str_trim(symbol_org)),
+    direction           = direction
   ) %>%
   select(gene_symbol, drug_name_norm, chembl_id, source_db,
          max_phase_db, is_approved_db, cmap_score,
          interaction_score, direction,
-         is_hnscc_indication)
+         is_hnscc_indication, has_cancer_indication)
 
 cat(sprintf("    OpenTargets: %d filas, %d drugs, %d genes\n",
             nrow(ot), n_distinct(ot$drug_name_norm), n_distinct(ot$gene_symbol)))
@@ -163,24 +179,32 @@ cmap_raw <- read.delim("results/tables/drug_targets/07_cmap_top_reversors.tsv",
                        stringsAsFactors = FALSE)
 
 # CMap no tiene gene targets directos; usamos como evidencia a nivel de firma
-# Solo tomamos los reversores (scaled_score < 0)
+# Detectar columna de score dinamicamente (misma logica que script 07)
+cmap_score_col <- if ("scaled_score" %in% colnames(cmap_raw)) "scaled_score" else
+                  if ("raw_score"    %in% colnames(cmap_raw)) "raw_score"    else
+                  colnames(cmap_raw)[which(sapply(cmap_raw, is.numeric))[1]]
+cat(sprintf("    CMap2 score column detectada: %s\n", cmap_score_col))
+
+# Solo tomamos los reversores (score < 0)
 cmap <- cmap_raw %>%
-  filter(type == "trt_cp", scaled_score < 0) %>%
+  filter(type == "trt_cp", .data[[cmap_score_col]] < 0) %>%
   mutate(
-    drug_name_norm = str_to_upper(str_trim(pert)),
-    chembl_id      = NA_character_,
-    gene_symbol    = NA_character_,  # no es gene-drug sino firma-compound
-    source_db      = "CMap2",
-    max_phase_db   = NA_real_,
-    is_approved_db = NA,
-    cmap_score     = scaled_score,
-    direction      = NA_character_,
-    interaction_score = NA_real_,
-    is_hnscc_indication = FALSE
+    drug_name_norm      = str_to_upper(str_trim(pert)),
+    chembl_id           = NA_character_,
+    gene_symbol         = NA_character_,  # no es gene-drug sino firma-compound
+    source_db           = "CMap2",
+    max_phase_db        = NA_real_,
+    is_approved_db      = NA,
+    cmap_score          = .data[[cmap_score_col]],
+    direction           = NA_character_,
+    interaction_score   = NA_real_,
+    is_hnscc_indication = FALSE,
+    has_cancer_indication = FALSE
   ) %>%
   select(gene_symbol, drug_name_norm, chembl_id, source_db,
          max_phase_db, is_approved_db, cmap_score,
-         interaction_score, direction, is_hnscc_indication)
+         interaction_score, direction,
+         is_hnscc_indication, has_cancer_indication)
 
 cat(sprintf("    CMap2: %d compuestos reversores\n", nrow(cmap)))
 
@@ -189,19 +213,24 @@ cat(sprintf("    CMap2: %d compuestos reversores\n", nrow(cmap)))
 # =============================================================================
 cat("\n--- 2. Combinando fuentes ---\n")
 
-# Agregar columna is_hnscc_indication a DGIdb y ChEMBL si no la tienen
-dgidb$is_hnscc_indication  <- FALSE
-chembl$is_hnscc_indication <- FALSE
+# Columnas ausentes en DGIdb y ChEMBL — asignar valores por defecto
+dgidb$is_hnscc_indication   <- FALSE
+dgidb$has_cancer_indication <- FALSE
+chembl$is_hnscc_indication  <- FALSE
+chembl$has_cancer_indication <- FALSE
 
 # Asegurar tipos consistentes antes del bind
-dgidb$is_hnscc_indication  <- as.logical(dgidb$is_hnscc_indication)
-chembl$is_hnscc_indication <- as.logical(chembl$is_hnscc_indication)
-ot$is_hnscc_indication     <- as.logical(ot$is_hnscc_indication)
-cmap$is_hnscc_indication   <- as.logical(cmap$is_hnscc_indication)
+for (col in c("is_hnscc_indication", "has_cancer_indication")) {
+  dgidb[[col]]  <- as.logical(dgidb[[col]])
+  chembl[[col]] <- as.logical(chembl[[col]])
+  ot[[col]]     <- as.logical(ot[[col]])
+  cmap[[col]]   <- as.logical(cmap[[col]])
+}
 
 all_cols <- c("gene_symbol", "drug_name_norm", "chembl_id", "source_db",
               "max_phase_db", "is_approved_db", "cmap_score",
-              "interaction_score", "direction", "is_hnscc_indication")
+              "interaction_score", "direction",
+              "is_hnscc_indication", "has_cancer_indication")
 
 master_long <- bind_rows(
   dgidb  %>% select(any_of(all_cols)),
@@ -235,19 +264,22 @@ drug_summary <- master_long %>%
     is_approved       = any(is_approved_db == TRUE, na.rm = TRUE),
 
     # Indicacion HNSCC directa (Open Targets)
-    hnscc_indication  = any(is_hnscc_indication == TRUE, na.rm = TRUE),
+    hnscc_indication      = any(is_hnscc_indication == TRUE, na.rm = TRUE),
+
+    # Indicacion oncologica (cualquier cancer, desde OT)
+    has_cancer_indication = any(has_cancer_indication == TRUE, na.rm = TRUE),
 
     # CMap connectivity score (negativo = mejor reversor)
     cmap_score        = suppressWarnings(min(cmap_score, na.rm = TRUE)),
     cmap_score        = ifelse(is.infinite(cmap_score), NA_real_, cmap_score),
 
-    # Genes diana afectados
+    # Genes diana afectados (conteo de genes unicos, no filas)
     n_de_genes        = n_distinct(na.omit(gene_symbol)),
     de_genes          = paste(sort(unique(na.omit(gene_symbol))), collapse = "|"),
 
-    # Direccion: cuantos genes up vs down
-    n_up_genes        = sum(direction == "up",   na.rm = TRUE),
-    n_down_genes      = sum(direction == "down",  na.rm = TRUE),
+    # Direccion: genes unicos up vs down (no filas, para evitar doble conteo)
+    n_up_genes        = n_distinct(gene_symbol[direction == "up"   & !is.na(gene_symbol)]),
+    n_down_genes      = n_distinct(gene_symbol[direction == "down" & !is.na(gene_symbol)]),
 
     # Max interaction score (DGIdb)
     max_interaction_score = suppressWarnings(max(interaction_score, na.rm = TRUE)),
@@ -267,16 +299,20 @@ cat("\n--- 4. Clasificando farmacos ---\n")
 drug_summary <- drug_summary %>%
   mutate(
     drug_class = case_when(
-      hnscc_indication                              ~ "A",  # Aprobado/evidencia HNSCC
-      is_approved & !hnscc_indication               ~ "C",  # Aprobado otra indicacion (reposicionamiento)
-      !is.na(max_phase) & max_phase >= 3 & !is_approved ~ "B",  # Fase 3+ pero no aprobado (incluye cancer)
-      TRUE                                          ~ "D"   # Experimental / CMap
+      # A: aprobado + evidencia directa en HNSCC (uso actual o ensayo avanzado)
+      is_approved & hnscc_indication                           ~ "A",
+      # B: aprobado para otro cancer — reposicionamiento intra-oncologico
+      is_approved & has_cancer_indication & !hnscc_indication  ~ "B",
+      # C: aprobado para indicacion no-oncologica — reposicionamiento clasico
+      is_approved & !has_cancer_indication & !hnscc_indication ~ "C",
+      # D: no aprobado (fase 3, experimental, solo CMap)
+      TRUE                                                      ~ "D"
     ),
     drug_class_label = case_when(
-      drug_class == "A" ~ "A: HNSCC approved/evidence",
-      drug_class == "B" ~ "B: Phase III+",
-      drug_class == "C" ~ "C: Approved repurposing",
-      drug_class == "D" ~ "D: Experimental/CMap"
+      drug_class == "A" ~ "A: Approved + HNSCC evidence",
+      drug_class == "B" ~ "B: Approved other cancer",
+      drug_class == "C" ~ "C: Approved non-oncology",
+      drug_class == "D" ~ "D: Not approved / Experimental"
     )
   )
 
@@ -358,10 +394,10 @@ safe_pdf("results/figures/08_drug_class_barplot.pdf", {
     geom_col(width = 0.7, show.legend = FALSE) +
     geom_text(aes(label = n), hjust = -0.2, size = 4) +
     scale_fill_manual(values = c(
-      "A: HNSCC approved/evidence"  = "#d62728",
-      "B: Phase III+"               = "#ff7f0e",
-      "C: Approved repurposing"     = "#2ca02c",
-      "D: Experimental/CMap"        = "#7f7f7f"
+      "A: Approved + HNSCC evidence"   = "#d62728",
+      "B: Approved other cancer"       = "#ff7f0e",
+      "C: Approved non-oncology"       = "#2ca02c",
+      "D: Not approved / Experimental" = "#7f7f7f"
     )) +
     coord_flip() +
     expand_limits(y = max(drug_summary %>% count(drug_class_label) %>% pull(n)) * 1.15) +

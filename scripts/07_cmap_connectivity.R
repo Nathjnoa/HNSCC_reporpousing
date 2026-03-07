@@ -69,7 +69,7 @@ eh <- ExperimentHub()
 # Usamos cmap_expr (EH3224) = matrix de expresion CMap2 normalizada
 # Alternativa: cmap_rank (EH3225) para metodo de ranking
 tryCatch({
-  cmap_db_path <- eh[["EH3223"]]  # CMap2 HDF5 path
+  cmap_db_path <- eh[["EH3224"]]  # CMap2 cmap_rank HDF5 — requerido por gess_cmap()
   cat("CMap2 DB cargado:", format(Sys.time()), "\n")
   cat("Path:", cmap_db_path, "\n")
 }, error = function(e) {
@@ -92,7 +92,10 @@ cat("\n--- Paso 2: Overlap con genes CMap2 ---\n")
 
 # Obtener los nombres de genes en CMap2 usando rhdf5
 if (!requireNamespace("rhdf5", quietly = TRUE)) {
-  BiocManager::install("rhdf5", ask = FALSE, update = FALSE)
+  cat("ERROR: el paquete 'rhdf5' no esta instalado.\n")
+  cat("Instalar con: BiocManager::install('rhdf5')\n")
+  sink(type = "message"); sink(); close(con_log)
+  quit(status = 1)
 }
 suppressPackageStartupMessages(library(rhdf5))
 
@@ -112,7 +115,6 @@ if (!is.null(h5_contents)) {
     cat("Primeros 10 genes:", paste(head(gene_ids, 10), collapse=", "), "\n")
 
     overlap_up   <- intersect(toupper(up_genes),   toupper(gene_ids))
-    overlap_down <- intersect(toupper(down_genes), toupper(down_genes))
     overlap_down <- intersect(toupper(down_genes), toupper(gene_ids))
 
     cat(sprintf("Overlap up (nuestros / CMap): %d / %d\n",
@@ -240,7 +242,7 @@ for (i in seq_len(nrow(top20))) {
 cat("\n--- Paso 5: Drug set enrichment analysis (DSEA) ---\n")
 dsea_res <- tryCatch({
   dsea_hyperG(
-    drugs    = reversors[1:min(100, nrow(reversors)), 1],
+    drugs    = reversors$pert[seq_len(min(100, nrow(reversors)))],
     type     = "GO",
     ont      = "BP",
     pvalueCutoff  = 0.05,
@@ -252,6 +254,17 @@ dsea_res <- tryCatch({
   cat("DSEA no disponible o error:", e$message, "\n")
   NULL
 })
+
+if (!is.null(dsea_res)) {
+  df_dsea <- as.data.frame(dsea_res)
+  cat(sprintf("DSEA: %d terminos GO BP significativos\n", nrow(df_dsea)))
+  write.table(df_dsea,
+              "results/tables/drug_targets/07_cmap_dsea_go_bp.tsv",
+              sep = "\t", quote = FALSE, row.names = FALSE)
+  cat("Exportado: 07_cmap_dsea_go_bp.tsv\n")
+} else {
+  cat("DSEA sin resultados — tabla no generada\n")
+}
 
 # --- Paso 6: Exportar --------------------------------------------------------
 cat("\n--- Paso 6: Exportando resultados ---\n")
@@ -269,6 +282,7 @@ write.table(head(df_export, 200),
 
 cat(sprintf("Exportado: 07_cmap_results.tsv (%d compuestos)\n", nrow(df_export)))
 cat(sprintf("Exportado: 07_cmap_top_reversors.tsv (top 200)\n"))
+if (!is.null(dsea_res)) cat("Exportado: 07_cmap_dsea_go_bp.tsv\n")
 
 # Resumen
 cat("\n=== RESUMEN ===\n")

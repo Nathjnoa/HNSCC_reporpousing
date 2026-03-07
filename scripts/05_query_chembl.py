@@ -21,6 +21,7 @@ import logging
 import os
 from datetime import datetime
 
+import yaml
 import requests
 import pandas as pd
 
@@ -45,11 +46,15 @@ log.info("=== 05_query_chembl.py (REST, sin libreria) ===")
 log.info(f"Inicio: {datetime.now()}")
 
 # ---------------------------------------------------------------------------
-# Parametros
+# Parametros desde config
 # ---------------------------------------------------------------------------
-BASE   = "https://www.ebi.ac.uk/chembl/api/data"
-MIN_PHASE = 3
+with open("config/analysis_params.yaml") as f:
+    params = yaml.safe_load(f)
+
+BASE      = "https://www.ebi.ac.uk/chembl/api/data"
+MIN_PHASE = int(params["chembl"]["min_phase"])
 TIMEOUT   = 20    # segundos
+log.info(f"MIN_PHASE (desde config): {MIN_PHASE}")
 SLEEP_SEC = 0.3
 BATCH     = 50    # moleculas por request
 

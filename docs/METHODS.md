@@ -1,7 +1,7 @@
 # Metodología — HNSCC Drug Repurposing Pipeline
 
 *Guía académica y didáctica del pipeline computacional*
-*Última actualización: 2026-03-06*
+*Última actualización: 2026-03-06 — revisión crítica del pipeline; secciones de scripts 03, 07, 08 y 09 actualizadas.*
 
 ---
 
@@ -151,6 +151,10 @@ Se aplica GSEA a:
 
 - **MSigDB Hallmark gene sets**: 50 conjuntos curados que representan estados biológicos bien definidos en cáncer (e.g., *Hallmark_E2F_Targets*, *Hallmark_Hypoxia*). Su nivel de curación los hace ideales para interpretación biológica de alto nivel.
 - **GO Biological Process**: para mayor granularidad mecanística
+- **KEGG Pathways** (`gseKEGG`): rutas metabólicas y de señalización; permite comparar con la literatura basada en KEGG
+- **Reactome** (`gsePathway`): base de datos curada manualmente; complementa KEGG con mayor cobertura de procesos humanos y mejor integración con datos proteómicos
+
+La simetría entre ORA y GSEA (ambos cubren GO/KEGG/Reactome) permite comparar los resultados de las dos estrategias y priorizar vías respaldadas por ambos métodos.
 
 Parámetros clave: `minGSSize=10, maxGSSize=500` limitan el análisis a sets que tengan representación cuantificable (ni muy pequeños para ser ruidosos, ni tan grandes que sean inespecíficos). Se usan 1000 permutaciones para estimar la distribución nula.
 
@@ -205,11 +209,13 @@ Se usa la **GraphQL API** de Open Targets (más eficiente que REST para este tip
 
 **CMap** (*Connectivity Map*) es un proyecto del Broad Institute que mide los cambios transcriptómicos en líneas celulares tratadas con miles de compuestos. La idea central es que si la firma transcriptómica de un fármaco es **opuesta** a la firma del tumor, ese fármaco podría revertir el estado tumoral.
 
-Se usa la función `gess_cmap()` del paquete **signatureSearch** con las **top 150 proteínas up-reguladas y 150 down-reguladas** (por |logFC|) como firma de consulta. El resultado es un **scaled_score**: valores muy negativos indican que el fármaco tiende a inducir la expresión opuesta a la firma tumoral (reversores potenciales).
+Se usa la función `gess_cmap()` del paquete **signatureSearch** con las **top 150 proteínas up-reguladas y 150 down-reguladas** (por |logFC|) como firma de consulta. El resultado es un **scaled_score**: valores muy negativos indican que el fármaco tiende a inducir la expresión opuesta a la firma tumoral (reversores potenciales). Se carga la base de datos de ranking CMap2 mediante `ExperimentHub` (accesión **EH3224** — `cmap_rank`, requerida por `gess_cmap()`; ~370 MB, se cachea tras la primera descarga).
+
+Como análisis complementario, se realiza un **Drug Set Enrichment Analysis (DSEA)** sobre los 100 mejores reversores usando `dsea_hyperG()` (GO Biological Process, BH-FDR < 0.05), lo que permite identificar qué categorías funcionales están sobre-representadas entre los compuestos con mayor capacidad de reversión.
 
 **¿Por qué CMap?** A diferencia de las otras tres fuentes (que buscan fármacos que actúen directamente sobre los genes DE), CMap identifica compuestos que revierten la *firma global* del tumor, independientemente del mecanismo. Esto permite descubrir candidatos no obvios.
 
-**Limitación importante**: CMap2 (EH3223) usa datos transcriptómicos de líneas celulares, no de tejido tumoral primario. La correlación entre firma proteómica tumoral primaria y perfil transcriptómico en líneas celulares es imperfecta, por lo que el score CMap se usa como una dimensión adicional de evidencia y no como único criterio.
+**Limitación importante**: CMap2 usa datos transcriptómicos de líneas celulares, no de tejido tumoral primario. La correlación entre firma proteómica tumoral primaria y perfil transcriptómico en líneas celulares es imperfecta, por lo que el score CMap se usa como una dimensión adicional de evidencia y no como único criterio.
 
 > **Evidencia clave:**
 >
@@ -230,12 +236,14 @@ Se usa la función `gess_cmap()` del paquete **signatureSearch** con las **top 1
 
 | Clase | Criterio | Interpretación |
 | ----- | -------- | -------------- |
-| A | Aprobado para HNSCC | Mayor prioridad: evidencia directa en la indicación |
-| B | Aprobado para otro cáncer, fase III+ | Alta prioridad: evidencia oncológica sólida |
-| C | Aprobado en indicación no oncológica | Media: evidencia de seguridad, mecanismo a explorar |
-| D | Solo experimental o CMap | Menor: hipótesis computacional, sin validación clínica |
+| A | Aprobado + indicación HNSCC confirmada en Open Targets | Mayor prioridad: evidencia directa en la indicación |
+| B | Aprobado + indicación oncológica (no HNSCC) | Alta prioridad: evidencia oncológica sólida, reposicionamiento dentro del cáncer |
+| C | Aprobado + indicación no oncológica | Media: evidencia de seguridad, pero mecanismo tumoral a explorar |
+| D | No aprobado / solo experimental o CMap | Menor: hipótesis computacional, sin validación clínica |
 
-Esta clasificación es útil porque un reposicionamiento de clase A requiere mucho menos trabajo de validación que uno de clase D.
+La distinción entre clases B y C se implementa mediante un vector de 17 palabras clave oncológicas (`cancer`, `carcinoma`, `tumor`, `leukemia`, etc.) aplicado sobre la columna `indication_name` de Open Targets, lo que permite separar sistemáticamente indicaciones oncológicas de no oncológicas sin depender de listas manuales específicas por fármaco.
+
+Esta clasificación es útil porque un reposicionamiento de clase A requiere mucho menos trabajo de validación que uno de clase D, y permite comunicar a clínicos el nivel de evidencia clínica preexistente de forma inmediata.
 
 > **Evidencia clave:**
 >
@@ -256,10 +264,16 @@ Esta clasificación es útil porque un reposicionamiento de clase A requiere muc
 **Métricas de centralidad calculadas con igraph:**
 
 - **Degree (grado)**: número de proteínas con las que interacciona directamente. Mide la conectividad local.
-- **Betweenness**: número de caminos más cortos entre pares de nodos que pasan por este nodo. Mide la influencia como "puente" en la red; nodos con alta betweenness controlan el flujo de información.
+- **Betweenness**: número de caminos más cortos entre pares de nodos que pasan por este nodo. Mide la influencia como "puente" en la red; nodos con alta betweenness controlan el flujo de información entre módulos.
 - **Eigenvector centrality**: similar al algoritmo PageRank; un nodo es más central si sus vecinos también son altamente conectados. Mide la influencia global considerando la calidad de las conexiones.
 
-**Definición de hub**: top 10% de proteínas por grado. Los hubs druggables (hubs para los que existe un candidato farmacológico) son de especial interés ya que representan dianas accesibles farmacológicamente que además son centrales en la red tumoral.
+**Definición de hub (criterio dual):** un nodo es hub si degree ≥ p90 **O** betweenness ≥ p90 en la red. Esta **unión de criterios** captura dos tipos de hubs biológicamente distintos: los *party hubs* (alto grado, muy conectados) y los *bottleneck hubs* (alta betweenness, actúan como puentes críticos entre módulos funcionales). Restringirse solo al grado perdería nodos con betweenness alta que son farmacológicamente relevantes como reguladores de flujo en la red.
+
+Se calcula además un **hub_score compuesto** = media de los rankings normalizados de degree, betweenness y eigenvector. Este score ordena y dimensiona los nodos en las visualizaciones y refleja de forma más robusta la centralidad global que cualquier métrica individual.
+
+Los hubs druggables (hubs para los que existe un candidato farmacológico en la tabla integrada del script 08) son de especial interés ya que representan dianas accesibles farmacológicamente que además son centrales en la red tumoral.
+
+**Visualización de la red:** La red completa del componente mayor se representa con layout Fruchterman-Reingold (FR), con alpha de aristas muy bajo (0.06) para mostrar la estructura topológica sin efecto "hairball". Los hubs se representan como diamantes grandes y totalmente opacos; las proteínas comunes como puntos pequeños y semitransparentes, aportando contexto espacial sin saturar la figura. La subred de hubs usa layout Kamada-Kawai (KK, si ≤150 nodos), que produce disposiciones más estéticas y estructuradas para grafos de tamaño mediano; el alpha de las aristas es proporcional al STRING combined_score normalizado.
 
 > **Evidencia clave:**
 >
@@ -420,7 +434,7 @@ Se utilizan paletas **colorblind-safe** (Okabe-Ito) para garantizar que las figu
 | DGIdb | v5 | GraphQL API |
 | ChEMBL | v33 | REST API |
 | Open Targets Platform | Mar 2026 | GraphQL API |
-| CMap2 | EH3223 | ExperimentHub (R) |
+| CMap2 | EH3224 (cmap_rank) | ExperimentHub (R) |
 | STRING | v12 | REST API |
 | ClinicalTrials.gov | API v2 | REST API |
 | NCBI PubMed | - | E-utilities |

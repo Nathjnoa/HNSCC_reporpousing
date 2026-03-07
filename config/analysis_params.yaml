@@ -19,7 +19,11 @@ pathway:
   max_gs_size: 500
   simplify_cutoff: 0.70          # Umbral para simplify() en GO (evitar redundancia)
 
-# --- CMap / LINCS L1000 (script 08) ---
+# --- ChEMBL (script 05) ---
+chembl:
+  min_phase: 3                        # Fase clínica mínima (3=Fase III, 4=Aprobado)
+
+# --- CMap / LINCS L1000 (script 07) ---
 cmap:
   connectivity_score_threshold: -90   # Score < -90 = reversor potente
   adj_pval_threshold: 0.05

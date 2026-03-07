@@ -1,6 +1,6 @@
 # Outputs Catalogue — HNSCC Drug Repurposing
 
-*Última actualización: 2026-03-06 — verificado contra archivos en disco; figuras de scripts intermedios reemplazadas por versiones pub/ cuando aplica.*
+*Última actualización: 2026-03-06 — revisión crítica del pipeline; outputs de scripts 03, 07, 08 y 09 actualizados para reflejar mejoras metodológicas.*
 *Organizado script por script, con rutas relativas desde la raíz del proyecto.*
 
 Convención de la columna Tipo: `T` = tabla/archivo de datos, `F` = figura.
@@ -36,7 +36,7 @@ Mapeo UniProt → Entrez ID + símbolo canónico via `org.Hs.eg.db`.
 
 ## Script 03 — `03_pathway_enrichment.R`
 
-Enriquecimiento funcional: ORA (GO/KEGG/Reactome) y GSEA (Hallmarks/GO BP).
+Enriquecimiento funcional: ORA (GO/KEGG/Reactome) y GSEA (Hallmarks/GO BP/KEGG/Reactome).
 
 | Tipo | Archivo | Descripción |
 | --- | --- | --- |
@@ -48,15 +48,19 @@ Enriquecimiento funcional: ORA (GO/KEGG/Reactome) y GSEA (Hallmarks/GO BP).
 | T | `results/tables/pathway_enrichment/03_Reactome_ORA.tsv` | ORA Reactome Pathways |
 | T | `results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv` | GSEA MSigDB Hallmarks con NES y p.adjust |
 | T | `results/tables/pathway_enrichment/03_GO_BP_GSEA.tsv` | GSEA GO Biological Process |
-| T | `results/tables/pathway_enrichment/03_summary_top10_all.tsv` | Top 10 resultados de cada análisis agrupados (vista rápida integrada) |
+| T | `results/tables/pathway_enrichment/03_KEGG_GSEA.tsv` | GSEA KEGG Pathways (gseKEGG con ranking logFC × -log10 p.adj) |
+| T | `results/tables/pathway_enrichment/03_Reactome_GSEA.tsv` | GSEA Reactome Pathways (gsePathway) |
+| T | `results/tables/pathway_enrichment/03_summary_top10_all.tsv` | Top 10 resultados de cada análisis agrupados: GO_BP_ORA, KEGG_ORA, Reactome_ORA, Hallmarks_GSEA, GO_BP_GSEA, KEGG_GSEA, Reactome_GSEA |
 | F | `results/figures/pathway_enrichment/03_GO_BP_dotplot.pdf` | Dotplot top 20 términos GO BP ORA (versión simplificada) |
 | F | `results/figures/pathway_enrichment/03_GO_MF_dotplot.pdf` | Dotplot top 15 términos GO MF ORA |
 | F | `results/figures/pathway_enrichment/03_GO_CC_dotplot.pdf` | Dotplot top 15 términos GO CC ORA |
 | F | `results/figures/pathway_enrichment/03_KEGG_barplot.pdf` | Barplot top 15 rutas KEGG ORA |
 | F | `results/figures/pathway_enrichment/03_Reactome_dotplot.pdf` | Dotplot top 15 rutas Reactome ORA |
-| F | `results/figures/pathway_enrichment/03_GO_BP_emapplot.pdf` | Red de similitud semántica entre términos GO BP (top 30) |
+| F | `results/figures/pathway_enrichment/03_GO_BP_emapplot.pdf` | Red de similitud semántica entre términos GO BP (≥10 términos; `showCategory` adaptativo) |
 | F | `results/figures/pathway_enrichment/03_GO_BP_cnetplot.pdf` | Red gen-concepto GO BP: top 8 términos con genes coloreados por logFC |
 | F | `results/figures/pathway_enrichment/03_GO_BP_GSEA_dotplot.pdf` | Dotplot GSEA GO BP separado por dirección de enriquecimiento |
+| F | `results/figures/pathway_enrichment/03_KEGG_GSEA_dotplot.pdf` | Dotplot GSEA KEGG separado por dirección (NES positivo/negativo) |
+| F | `results/figures/pathway_enrichment/03_Reactome_GSEA_dotplot.pdf` | Dotplot GSEA Reactome separado por dirección |
 
 ---
 
@@ -96,44 +100,45 @@ Consulta a Open Targets Platform (GraphQL) para evidencia HNSCC de genes DE.
 
 ## Script 07 — `07_cmap_connectivity.R`
 
-Análisis de conectividad CMap2/LINCS con `signatureSearch` para identificar compuestos que revierten la firma tumoral.
+Análisis de conectividad CMap2/LINCS con `signatureSearch` (EH3224 — cmap_rank) para identificar compuestos que revierten la firma tumoral.
 
 | Tipo | Archivo | Descripción |
 | --- | --- | --- |
 | T | `results/tables/drug_targets/07_cmap_results.tsv` | Todos los compuestos CMap2 evaluados, ordenados por scaled_score (más negativo = mejor reversor) |
 | T | `results/tables/drug_targets/07_cmap_top_reversors.tsv` | Top 200 compuestos reversores (bottom 5% del score de conectividad) |
+| T | `results/tables/drug_targets/07_cmap_dsea_go_bp.tsv` | Drug Set Enrichment Analysis (DSEA) de GO BP sobre top 100 reversores *(generado solo si hay términos significativos BH-FDR < 0.05)* |
 
 ---
 
 ## Script 08 — `08_integrate_drug_targets.R`
 
-Integración de 4 fuentes (DGIdb, ChEMBL, Open Targets, CMap2) en tabla maestra; clasificación A/B/C/D.
+Integración de 4 fuentes (DGIdb, ChEMBL, Open Targets, CMap2) en tabla maestra; clasificación A/B/C/D con separación oncológica/no-oncológica.
 
 | Tipo | Archivo | Descripción |
 | --- | --- | --- |
-| T | `results/tables/drug_targets/08_drug_target_master_table.tsv` | Tabla larga maestra: todas las interacciones de las 4 fuentes con metadatos de genes y fármacos |
-| T | `results/tables/drug_targets/08_drug_summary_per_drug.tsv` | Resumen por fármaco: n_sources, fuentes, max_phase, is_approved, cmap_score, genes diana, clase |
-| T | `results/tables/drug_targets/08_multi_source_candidates.tsv` | Candidatos con soporte en >= 2 fuentes (o clase A/B por criterio clínico) |
-| F | `results/figures/08_drug_class_barplot.pdf` | Barplot horizontal de fármacos por clase (A: HNSCC, B: Phase III+, C: Repurposing, D: Experimental) |
-| F | `results/figures/08_cmap_vs_targets.pdf` | Scatter CMap scaled_score vs número de genes diana (solo candidatos con score CMap) |
+| T | `results/tables/drug_targets/08_drug_target_master_table.tsv` | Tabla larga maestra: todas las interacciones de las 4 fuentes con metadatos de genes y fármacos; incluye columna `has_cancer_indication` (detección por keyword de indicación oncológica) |
+| T | `results/tables/drug_targets/08_drug_summary_per_drug.tsv` | Resumen por fármaco: n_sources, fuentes, max_phase, is_approved, cmap_score, genes diana, clase (A/B/C/D) |
+| T | `results/tables/drug_targets/08_multi_source_candidates.tsv` | Candidatos con soporte en >= 2 fuentes (o clase A/B por criterio clínico); columna `drug_class` con etiqueta descriptiva |
+| F | `results/figures/08_drug_class_barplot.pdf` | Barplot horizontal de fármacos por clase: A (HNSCC), B (Oncología), C (Reposicionamiento), D (Experimental) |
+| F | `results/figures/08_cmap_vs_targets.pdf` | Scatter CMap scaled_score vs número de genes diana DE (solo candidatos con score CMap disponible) |
 
 ---
 
 ## Script 09 — `09_string_network.R`
 
-Red PPI con STRING API v12 + igraph; métricas de centralidad y hubs druggables.
+Red PPI con STRING API v12 + igraph; métricas de centralidad, criterio dual de hubs y visualización minimalista.
 
 | Tipo | Archivo | Descripción |
 | --- | --- | --- |
-| T | `results/tables/network/09_network_edges.tsv` | Aristas de la red PPI (gene_A, gene_B, score STRING) filtradas por score >= 700 |
-| T | `results/tables/network/09_network_node_metrics.tsv` | Métricas por nodo: degree, betweenness normalizado, eigenvector, clustering_coeff, logFC, is_hub |
-| T | `results/tables/network/09_druggable_hubs.tsv` | Hubs (top 10% por grado) con candidatos farmacológicos asociados desde script 08 |
-| T | `results/tables/network/09_network_giant.graphml` | Componente mayor de la red en formato GraphML para importar en Cytoscape |
-| F | `results/figures/09_network_degree_dist.pdf` | Histograma de distribución de grados con umbral de hub marcado |
-| F | `results/figures/09_top25_hubs_degree.pdf` | Barplot horizontal top 25 hubs por grado, coloreado por dirección de expresión |
-| F | `results/figures/09_hub_druggable_scatter.pdf` | Scatter grado vs betweenness de hubs; etiquetados los druggables |
-| F | `results/figures/09_network_full.pdf` | Red completa del componente mayor (ggraph layout FR): nodos por dirección y tamaño por grado |
-| F | `results/figures/09_network_hubs_only.pdf` | Subred de hubs únicamente: diamantes = hubs con candidato farmacológico |
+| T | `results/tables/network/09_network_edges.tsv` | Aristas de la red PPI (gene_A, gene_B, score STRING) filtradas por score >= umbral configurado |
+| T | `results/tables/network/09_network_node_metrics.tsv` | Métricas por nodo: degree, betweenness normalizado, eigenvector, clustering_coeff, hub_score (compuesto), is_hub (criterio dual degree OR betweenness ≥ p90), logFC, dirección |
+| T | `results/tables/network/09_druggable_hubs.tsv` | Hubs (degree OR betweenness ≥ p90) con candidatos farmacológicos de script 08; incluye hub_score, n_drugs, drug_classes, min_class |
+| T | `results/tables/network/09_network_giant.graphml` | Componente mayor con atributos de nodo (degree, is_hub, hub_score, logFC, direction) y arista (score) para Cytoscape |
+| F | `results/figures/09_network_degree_dist.pdf` | Histograma de distribución de grados con línea de umbral hub (p90 por degree) |
+| F | `results/figures/09_top25_hubs_degree.pdf` | Barplot horizontal top 25 hubs por grado, coloreado por dirección de expresión (up/down) |
+| F | `results/figures/09_hub_druggable_scatter.pdf` | Scatter grado vs betweenness de hubs; etiquetas ggrepel en hubs druggables |
+| F | `results/figures/09_network_full.pdf` | Red completa del componente mayor — layout FR minimalista: aristas alpha 0.06, no-hubs pequeños y semitransparentes, hubs como diamantes grandes etiquetados |
+| F | `results/figures/09_network_hubs_only.pdf` | Subred de hubs — layout Kamada-Kawai (≤150 nodos) o FR: nodos dimensionados por hub_score compuesto, alpha de aristas proporcional a STRING score; diamantes = druggables |
 
 ---
 

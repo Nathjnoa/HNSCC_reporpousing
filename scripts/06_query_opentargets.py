@@ -160,7 +160,9 @@ for _, row in sig.iterrows():
             "hnscc_score":  hit["hnscc_score"],
         })
 
-df_matched = pd.DataFrame(matched)
+_matched_cols = ["uniprot_id", "symbol_org", "gene_symbol", "logFC_TVsS",
+                 "adj_pval", "direction", "ensembl_id", "hnscc_score"]
+df_matched = pd.DataFrame(matched, columns=_matched_cols) if matched else pd.DataFrame(columns=_matched_cols)
 log.info(f"Genes DE con evidencia HNSCC en Open Targets: {len(df_matched)} / {len(sig)}")
 
 # Exportar scores HNSCC

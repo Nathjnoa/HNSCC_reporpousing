@@ -226,6 +226,52 @@ gsea_go_bp <- tryCatch({
 })
 
 # =============================================================================
+# BLOQUE 5b: GSEA — KEGG
+# =============================================================================
+cat("\n=== GSEA: KEGG ===\n")
+gsea_kegg <- tryCatch({
+  res <- gseKEGG(
+    geneList     = ranked_list,
+    organism     = "hsa",
+    pAdjustMethod = "BH",
+    pvalueCutoff = pval_cutoff,
+    minGSSize    = min_gs_size,
+    maxGSSize    = max_gs_size,
+    verbose      = FALSE,
+    eps          = 0
+  )
+  res <- setReadable(res, OrgDb = org.Hs.eg.db, keyType = "ENTREZID")
+  cat(sprintf("  GSEA KEGG: %d rutas\n", nrow(as.data.frame(res))))
+  res
+}, error = function(e) {
+  cat(sprintf("  GSEA KEGG ERROR: %s\n", e$message))
+  NULL
+})
+
+# =============================================================================
+# BLOQUE 5c: GSEA — Reactome
+# =============================================================================
+cat("\n=== GSEA: Reactome ===\n")
+gsea_reactome <- tryCatch({
+  res <- gsePathway(
+    geneList     = ranked_list,
+    organism     = "human",
+    pAdjustMethod = "BH",
+    pvalueCutoff = pval_cutoff,
+    minGSSize    = min_gs_size,
+    maxGSSize    = max_gs_size,
+    verbose      = FALSE,
+    eps          = 0
+  )
+  res <- setReadable(res, OrgDb = org.Hs.eg.db, keyType = "ENTREZID")
+  cat(sprintf("  GSEA Reactome: %d rutas\n", nrow(as.data.frame(res))))
+  res
+}, error = function(e) {
+  cat(sprintf("  GSEA Reactome ERROR: %s\n", e$message))
+  NULL
+})
+
+# =============================================================================
 # BLOQUE 6: FIGURAS
 # =============================================================================
 cat("\n=== Generando figuras ===\n")
@@ -295,14 +341,19 @@ if (!is.null(reactome_ora) && nrow(as.data.frame(reactome_ora)) >= 3) {
 }
 
 # --- GO BP emapplot (red de terminos) ---
-if (!is.null(go_bp_simple) && nrow(as.data.frame(go_bp_simple)) >= 5) {
+# Requiere >= 10 terminos para que la red sea interpretable
+n_bp_simple <- if (!is.null(go_bp_simple)) nrow(as.data.frame(go_bp_simple)) else 0
+if (n_bp_simple >= 10) {
   safe_pdf_plot(file.path(dir_figures, "03_GO_BP_emapplot.pdf"), 11, 10, {
     go_bp_sim2 <- pairwise_termsim(go_bp_simple)
-    p <- emapplot(go_bp_sim2, showCategory = 30) +
-      labs(title = "GO BP — Red de similitud semántica") +
+    p <- emapplot(go_bp_sim2, showCategory = min(30, n_bp_simple)) +
+      labs(title = "GO BP — Red de similitud semántica",
+           subtitle = sprintf("%d términos (simplificado)", n_bp_simple)) +
       theme(plot.title = element_text(size = 10))
     print(p)
   })
+} else {
+  cat(sprintf("  emapplot omitido: solo %d terminos (requiere >= 10)\n", n_bp_simple))
 }
 
 # --- GO BP cnetplot (genes por termino) ---
@@ -353,6 +404,30 @@ if (!is.null(gsea_go_bp) && nrow(as.data.frame(gsea_go_bp)) >= 3) {
   })
 }
 
+# --- GSEA KEGG dotplot ---
+if (!is.null(gsea_kegg) && nrow(as.data.frame(gsea_kegg)) >= 3) {
+  safe_pdf_plot(file.path(dir_figures, "03_KEGG_GSEA_dotplot.pdf"), 10, 8, {
+    p <- dotplot(gsea_kegg, showCategory = 20, split = ".sign",
+                 font.size = 9) +
+      facet_grid(. ~ .sign) +
+      labs(title = "KEGG GSEA — TVsS") +
+      theme_bw(base_size = 9)
+    print(p)
+  })
+}
+
+# --- GSEA Reactome dotplot ---
+if (!is.null(gsea_reactome) && nrow(as.data.frame(gsea_reactome)) >= 3) {
+  safe_pdf_plot(file.path(dir_figures, "03_Reactome_GSEA_dotplot.pdf"), 10, 8, {
+    p <- dotplot(gsea_reactome, showCategory = 20, split = ".sign",
+                 font.size = 9) +
+      facet_grid(. ~ .sign) +
+      labs(title = "Reactome GSEA — TVsS") +
+      theme_bw(base_size = 9)
+    print(p)
+  })
+}
+
 # =============================================================================
 # BLOQUE 7: EXPORTAR TABLAS
 # =============================================================================
@@ -381,6 +456,8 @@ save_enrichment_tsv(kegg_ora,       "03_KEGG_ORA.tsv")
 save_enrichment_tsv(reactome_ora,   "03_Reactome_ORA.tsv")
 save_enrichment_tsv(gsea_hallmarks, "03_Hallmarks_GSEA.tsv")
 save_enrichment_tsv(gsea_go_bp,     "03_GO_BP_GSEA.tsv")
+save_enrichment_tsv(gsea_kegg,      "03_KEGG_GSEA.tsv")
+save_enrichment_tsv(gsea_reactome,  "03_Reactome_GSEA.tsv")
 
 # Tabla resumen: top 10 de cada analisis para vista rapida
 make_top10 <- function(obj, source_name) {
@@ -396,13 +473,15 @@ make_top10 <- function(obj, source_name) {
 }
 
 top_list <- list(
-  make_top10(go_bp_simple,   "GO_BP"),
-  make_top10(go_mf,          "GO_MF"),
-  make_top10(go_cc,          "GO_CC"),
-  make_top10(kegg_ora,       "KEGG"),
-  make_top10(reactome_ora,   "Reactome"),
+  make_top10(go_bp_simple,   "GO_BP_ORA"),
+  make_top10(go_mf,          "GO_MF_ORA"),
+  make_top10(go_cc,          "GO_CC_ORA"),
+  make_top10(kegg_ora,       "KEGG_ORA"),
+  make_top10(reactome_ora,   "Reactome_ORA"),
   make_top10(gsea_hallmarks, "Hallmarks_GSEA"),
-  make_top10(gsea_go_bp,     "GO_BP_GSEA")
+  make_top10(gsea_go_bp,     "GO_BP_GSEA"),
+  make_top10(gsea_kegg,      "KEGG_GSEA"),
+  make_top10(gsea_reactome,  "Reactome_GSEA")
 )
 top_list <- Filter(Negate(is.null), top_list)
 
@@ -430,6 +509,8 @@ cat(sprintf("  KEGG ORA:               %d rutas\n",      n_results(kegg_ora)))
 cat(sprintf("  Reactome ORA:           %d rutas\n",      n_results(reactome_ora)))
 cat(sprintf("  Hallmarks GSEA:         %d gene sets\n",  n_results(gsea_hallmarks)))
 cat(sprintf("  GO BP GSEA:             %d terminos\n",   n_results(gsea_go_bp)))
+cat(sprintf("  KEGG GSEA:              %d rutas\n",      n_results(gsea_kegg)))
+cat(sprintf("  Reactome GSEA:          %d rutas\n",      n_results(gsea_reactome)))
 
 cat(sprintf("\nFiguras en:  %s\n", dir_figures))
 cat(sprintf("Tablas en:   %s\n", dir_tables))
