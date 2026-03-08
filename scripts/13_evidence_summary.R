@@ -319,7 +319,7 @@ score_labels <- c(
   s_logfc    = "|logFC|",
   s_sig      = "Significancia",
   s_clinical = "Fase clínica",
-  s_cmap     = "CMap",
+  s_cmap     = "L2S2",
   s_pathway  = "Pathway",
   s_network  = "Red PPI"
 )
@@ -492,7 +492,7 @@ metodo <- data.frame(
     "DGIdb: interacciones gen-fármaco",
     "ChEMBL: fármacos fase ≥ 3",
     "Open Targets: evidencia HNSCC",
-    "CMap2: reversores firma tumoral",
+    "L2S2: reversores firma tumoral",
     "Integración 4 fuentes, clasificación A/B/C/D",
     "Red PPI STRING (score≥700), hubs druggables",
     "Scoring multi-criterio, Top 20 candidatos",
@@ -506,7 +506,7 @@ metodo <- data.frame(
     "2,846 interacciones; 2,252 fármacos",
     "90 pares gen-fármaco fase≥3",
     "354/520 genes con evidencia HNSCC",
-    "174 reversores (bottom 5%)",
+    "1,044 drugs FDA-aprobados",
     "2,421 fármacos; 187 multi-fuente",
     "403 nodos; 2,001 aristas; 41 hubs",
     "187 candidatos; Top 20 de 9 targets",

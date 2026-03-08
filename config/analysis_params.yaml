@@ -23,7 +23,9 @@ pathway:
 chembl:
   min_phase: 3                        # Fase clínica mínima (3=Fase III, 4=Aprobado)
 
-# --- CMap / LINCS L1000 (script 07) ---
+# --- L2S2 / LINCS L1000 (script 07) ---
+# Nota: CMap2 reemplazado por L2S2 (Evangelista et al., NAR 2025).
+# Score: reversal_score en [-1, 0] (mas negativo = mejor reversor).
 cmap:
   connectivity_score_threshold: -90   # Score < -90 = reversor potente
   adj_pval_threshold: 0.05

@@ -3,6 +3,12 @@
 # Script 07: CMap/LINCS Connectivity Analysis
 # HNSCC Drug Repurposing — Fase 3
 # =============================================================================
+# ============================================================
+# DEPRECADO: Este script usa CMap2 (signatureSearch/ExperimentHub).
+# Fue reemplazado por scripts/07_l2s2_connectivity.py que usa
+# L2S2 (LINCS L1000, 248 lineas celulares, API GraphQL, NAR 2025).
+# Conservado como referencia. NO ejecutar en el pipeline actual.
+# ============================================================
 # Objetivo: buscar compuestos que reviertan la firma proteomica tumoral TVsS.
 # Usa signatureSearch + CMap2 via ExperimentHub (descarga ~3.5GB si no esta cacheada).
 #

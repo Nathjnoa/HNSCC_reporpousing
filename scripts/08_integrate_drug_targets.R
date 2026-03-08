@@ -3,12 +3,12 @@
 # Script 08: Integrar fuentes de drug targets
 # HNSCC Drug Repurposing — Fase 3
 # =============================================================================
-# Objetivo: Unificar 4 fuentes (DGIdb, ChEMBL, Open Targets, CMap2) en una
+# Objetivo: Unificar 4 fuentes (DGIdb, ChEMBL, Open Targets, L2S2) en una
 #           tabla maestra. Clasificar farmacos:
 #           A = aprobado + indicacion HNSCC directa
 #           B = aprobado + otra indicacion oncologica (reposicionamiento intra-oncologico)
 #           C = aprobado + indicacion no-oncologica (reposicionamiento clasico)
-#           D = no aprobado (fase 3, experimental o solo CMap)
+#           D = no aprobado (fase 3, experimental)
 #
 # Input:  results/tables/drug_targets/04_dgidb_raw.tsv
 #         results/tables/drug_targets/05_chembl_drugs.tsv
@@ -172,18 +172,17 @@ cat(sprintf("    OpenTargets: %d filas, %d drugs, %d genes\n",
             nrow(ot), n_distinct(ot$drug_name_norm), n_distinct(ot$gene_symbol)))
 
 # ---------------------------------------------------------------------------
-# 1d. CMap2
+# 1d. L2S2
 # ---------------------------------------------------------------------------
-cat("  [CMap2]\n")
-cmap_raw <- read.delim("results/tables/drug_targets/07_cmap_top_reversors.tsv",
+cat("  [L2S2 — LINCS L1000 Signature Search]\n")
+cmap_raw <- read.delim("results/tables/drug_targets/07_l2s2_top_reversors.tsv",
                        stringsAsFactors = FALSE)
 
-# CMap no tiene gene targets directos; usamos como evidencia a nivel de firma
-# Detectar columna de score dinamicamente (misma logica que script 07)
+# L2S2 usa scaled_score (negativo = reversor)
 cmap_score_col <- if ("scaled_score" %in% colnames(cmap_raw)) "scaled_score" else
                   if ("raw_score"    %in% colnames(cmap_raw)) "raw_score"    else
                   colnames(cmap_raw)[which(sapply(cmap_raw, is.numeric))[1]]
-cat(sprintf("    CMap2 score column detectada: %s\n", cmap_score_col))
+cat(sprintf("    L2S2 score column detectada: %s\n", cmap_score_col))
 
 # Solo tomamos los reversores (score < 0)
 cmap <- cmap_raw %>%
@@ -191,10 +190,10 @@ cmap <- cmap_raw %>%
   mutate(
     drug_name_norm      = str_to_upper(str_trim(pert)),
     chembl_id           = NA_character_,
-    gene_symbol         = NA_character_,  # no es gene-drug sino firma-compound
-    source_db           = "CMap2",
+    gene_symbol         = NA_character_,  # evidencia a nivel de firma, no gen-fármaco
+    source_db           = "L2S2",
     max_phase_db        = NA_real_,
-    is_approved_db      = NA,
+    is_approved_db      = TRUE,           # L2S2 filtrò a FDA-approved (filterFda=TRUE)
     cmap_score          = .data[[cmap_score_col]],
     direction           = NA_character_,
     interaction_score   = NA_real_,
@@ -206,7 +205,7 @@ cmap <- cmap_raw %>%
          interaction_score, direction,
          is_hnscc_indication, has_cancer_indication)
 
-cat(sprintf("    CMap2: %d compuestos reversores\n", nrow(cmap)))
+cat(sprintf("    L2S2: %d compuestos reversores\n", nrow(cmap)))
 
 # =============================================================================
 # 2. COMBINAR EN TABLA MAESTRA (long format)
@@ -515,7 +514,7 @@ cat(sprintf("Exportado: 08_multi_source_candidates.tsv (%d candidatos)\n",
 # RESUMEN FINAL
 # =============================================================================
 cat("\n=== RESUMEN ===\n")
-cat(sprintf("  Fuentes integradas:          4 (DGIdb, ChEMBL, OpenTargets, CMap2)\n"))
+cat(sprintf("  Fuentes integradas:          4 (DGIdb, ChEMBL, OpenTargets, L2S2)\n"))
 cat(sprintf("  Farmacos totales:            %d\n", nrow(drug_summary)))
 for (i in seq_len(nrow(class_counts))) {
   cat(sprintf("    Clase %s: %d\n", class_counts$drug_class[i], class_counts$n[i]))

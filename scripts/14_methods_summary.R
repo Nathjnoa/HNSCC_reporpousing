@@ -46,7 +46,7 @@ cfg <- tryCatch(
 )
 
 # ── Versiones de paquetes clave ───────────────────────────────────────────────
-r_packages <- c("limma", "clusterProfiler", "ReactomePA", "signatureSearch",
+r_packages <- c("limma", "clusterProfiler", "ReactomePA",
                  "igraph", "ggraph", "openxlsx", "ComplexHeatmap")
 pkg_versions <- sapply(r_packages, function(p) {
   tryCatch(as.character(packageVersion(p)), error = function(e) "N/A")
@@ -109,8 +109,10 @@ cfg$pathway$max_gs_size %||% 500, ', permutations=1000.
 - **DGIdb**: GraphQL API v5, all 520 DE genes queried.
 - **ChEMBL**: REST API v33, drugs in clinical phase >= 3.
 - **Open Targets**: GraphQL API, HNSCC association (EFO_0000181) + known drugs.
-- **CMap2**: `gess_cmap()` from signatureSearch; query = top 150 up + 150 down proteins
-  by log2FC; reversors = bottom 5% scaled_score (threshold = -0.718).
+- **L2S2 (LINCS L1000 Signature Search)**: API GraphQL publica (l2s2.maayanlab.cloud);
+  enriquecimiento bidireccional: top 150 proteinas UP vs firmas DOWN del farmaco + top 150 DOWN vs firmas UP;
+  filtro filterFda=TRUE; pvalue < 0.001; 248 lineas celulares; 1,044 drugs FDA-aprobados evaluados;
+  reversal_score = -log10(best_p) x mean_log2(OR) x log2(n_sigs+1), normalizado a [-1, 0].
 
 ---
 
@@ -138,7 +140,7 @@ Six-dimension composite score:
 - |log2FC| (w=', cfg$scoring$weight_log2fc %||% 0.20, ')
 - Significance (w=', cfg$scoring$weight_significance %||% 0.15, ')
 - Clinical phase (w=', cfg$scoring$weight_clinical_phase %||% 0.20, ')
-- CMap reversal (w=', cfg$scoring$weight_cmap_connectivity %||% 0.15, ')
+- L2S2 reversal (w=', cfg$scoring$weight_cmap_connectivity %||% 0.15, ')
 - Pathway relevance (w=', cfg$scoring$weight_pathway_relevance %||% 0.15, ')
 - Network centrality (w=', cfg$scoring$weight_network_centrality %||% 0.15, ')
 
@@ -172,7 +174,7 @@ Key R packages:
 Key packages: requests, pandas, numpy, matplotlib
 
 **Databases:** DGIdb v5, ChEMBL v33, Open Targets (Mar 2026),
-CMap2 (EH3223), STRING v12, ClinicalTrials.gov API v2,
+L2S2 LINCS L1000 (l2s2.maayanlab.cloud, Evangelista et al. 2025), STRING v12, ClinicalTrials.gov API v2,
 NCBI PubMed, MSigDB Hallmark, NCG7
 
 **Analysis date:** ', Sys.Date(), '

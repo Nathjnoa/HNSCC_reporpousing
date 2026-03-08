@@ -10,7 +10,7 @@
 #   1. score_logfc         (0.20): magnitud expresion de genes diana
 #   2. score_significance  (0.15): significancia estadistica genes diana
 #   3. score_clinical      (0.20): fase clinica maxima del farmaco
-#   4. score_cmap          (0.15): connectivity score CMap2 (reversal)
+#   4. score_cmap          (0.15): connectivity reversal score L2S2/LINCS (reversal)
 #   5. score_pathway       (0.15): proporcion genes diana en vias enriquecidas
 #   6. score_network       (0.15): centralidad de genes diana en red PPI
 #
@@ -387,7 +387,7 @@ safe_pdf("results/figures/10_top20_barplot.pdf", w = 11, h = 8, {
     coord_flip() +
     expand_limits(y = 1.1) +
     labs(title = sprintf("Top %d drug repurposing candidates — HNSCC", top_n),
-         subtitle = "Multi-criteria composite score (logFC + significance + clinical phase + CMap + pathways + network)",
+         subtitle = "Multi-criteria composite score (logFC + significance + clinical phase + L2S2 + pathways + network)",
          x = NULL, y = "Composite score (0-1)",
          fill = "Classification") +
     theme_bw(base_size = 12) +
@@ -399,7 +399,7 @@ safe_pdf("results/figures/10_top20_barplot.pdf", w = 11, h = 8, {
 # 2. Heatmap de componentes de score (top 20)
 safe_pdf("results/figures/10_scoring_heatmap.pdf", w = 12, h = 8, {
   score_cols <- c("s_logfc", "s_sig", "s_clinical", "s_cmap", "s_pathway", "s_network")
-  col_labels <- c("logFC", "Significance", "Clinical\nPhase", "CMap\nReversal",
+  col_labels <- c("logFC", "Significance", "Clinical\nPhase", "L2S2\nReversal",
                   "Pathway\nRelevance", "Network\nCentrality")
 
   mat_data <- top20 %>%
