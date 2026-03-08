@@ -1,6 +1,15 @@
 # HNSCC Drug Repurposing — Methodological Corrections Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **Para Claude (nueva sesión):** Ejecutar este plan con el approach **Subagent-Driven**:
+> 1. Invocar `superpowers:subagent-driven-development` ANTES de cualquier acción
+> 2. Despachar un subagente por tarea (Task 1, Task 2, etc.)
+> 3. Revisar output del subagente antes de continuar con la siguiente tarea
+> 4. Usar `TodoWrite` para trackear progreso
+>
+> **Directorio de trabajo:** `~/bioinfo/projects/hnscc_drug_repurposing`
+> **Ambiente R:** `omics-R` | **Ambiente Python:** `omics-py`
+> **Plan completo:** este archivo — leerlo completo antes de empezar
+> **Orden de ejecución:** Task 1 → Task 2 → (Tasks 3–7 paralelas) → Task 8 → Task 9 → Task 10 → Task 11
 
 **Goal:** Implement 12 methodological corrections identified in critical review to improve statistical rigor and biological validity of the HNSCC drug repurposing pipeline.
 
