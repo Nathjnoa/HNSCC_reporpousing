@@ -54,6 +54,7 @@ dir.create(log_dir, showWarnings = FALSE)
 log_file <- file.path(log_dir,
   paste0("01_parse_qc_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".log"))
 sink(log_file, split = TRUE)
+on.exit(sink(), add = TRUE)
 cat("=== 01_parse_results_qc.R ===\n")
 cat("Inicio:", format(Sys.time()), "\n\n")
 
@@ -76,6 +77,7 @@ raw <- read.table(
   quote            = ""
 )
 
+stopifnot("Número de columnas inesperado en results_proteomica.tsv (esperado >= 53)" = ncol(raw) >= 53)
 cat("  Dimensiones brutas:", nrow(raw), "proteínas ×", ncol(raw), "columnas\n")
 
 # ── Renombrar columnas por comparación ──────────────────────
@@ -110,7 +112,7 @@ cat("  Columnas de intensidades:", paste(intensity_cols, collapse = ", "), "\n\n
 # ============================================================
 # 2. CARGAR METADATA — incluir patient_id para diseño pareado
 # ============================================================
-meta <- read.csv2(meta_file, stringsAsFactors = FALSE)
+meta <- read.csv(meta_file, stringsAsFactors = FALSE)
 # Extraer patient_id desde nombre de muestra: M1S/M1T -> patient "M1"
 meta <- meta %>%
   mutate(patient_id = sub("[ST]$", "", sample_id))
@@ -131,6 +133,13 @@ meta <- meta[match(intensity_cols, meta$sample_id), ]  # alinear orden
 cat("-- Análisis de missingness por grupo...\n")
 
 expr_raw_preimputation <- as.matrix(raw[, intensity_cols])
+total_na <- sum(is.na(expr_raw_preimputation))
+cat(sprintf("  Total NAs en matriz pre-imputación: %d (de %d valores)\n",
+            total_na, length(expr_raw_preimputation)))
+if (total_na == 0) {
+  cat("  ADVERTENCIA: No se encontraron NAs — los datos parecen ya estar imputados.\n")
+  cat("  El análisis de missingness puede ser no informativo.\n")
+}
 rownames(expr_raw_preimputation) <- raw$gene_symbol
 
 normal_cols  <- meta$sample_id[meta$condition == "NORMAL"]
@@ -176,7 +185,9 @@ patient   <- factor(meta$patient_id)
 
 # Diseño sin intercepto para facilitar makeContrasts
 design <- model.matrix(~ 0 + condition + vph, data = data.frame(condition, vph))
+cat("  Columnas del diseño (antes de renombrar):", paste(colnames(design), collapse = ", "), "\n")
 colnames(design) <- c("NORMAL", "TUMORAL", "VPH_POSITIVE")
+stopifnot("Diseño tiene número inesperado de columnas (esperado: 3)" = ncol(design) == 3)
 cat(sprintf("  Diseño: %d muestras × %d coeficientes\n", nrow(design), ncol(design)))
 cat("  Coeficientes:", paste(colnames(design), collapse = ", "), "\n")
 
@@ -235,7 +246,7 @@ results_all <- results_all %>%
 # Resumen
 n_up   <- sum(results_all$sig.FDR_TVsS ==  1, na.rm = TRUE)
 n_down <- sum(results_all$sig.FDR_TVsS == -1, na.rm = TRUE)
-n_ns   <- nrow(results_all) - n_up - n_down
+n_ns   <- sum(results_all$sig.FDR_TVsS == 0, na.rm = TRUE)
 
 cat("\n=== Resultados limma HPV-ajustado ===\n")
 cat(sprintf("  Total proteínas:    %d\n", nrow(results_all)))
@@ -244,9 +255,13 @@ cat(sprintf("  Downregulated:      %d\n", n_down))
 cat(sprintf("  No significativas:  %d\n", n_ns))
 cat(sprintf("  Criterio: adj.P.Val < %.2f & |logFC| > %.1f (BH)\n", pval_thr, fc_thresh))
 
-sig_fc <- results_all$logFC_TVsS[results_all$sig.FDR_TVsS != 0]
-cat(sprintf("  logFC rango sig: %.2f a %.2f\n\n",
-            min(sig_fc, na.rm = TRUE), max(sig_fc, na.rm = TRUE)))
+sig_fc <- results_all$logFC_TVsS[!is.na(results_all$sig.FDR_TVsS) & results_all$sig.FDR_TVsS != 0]
+if (length(sig_fc) > 0) {
+  cat(sprintf("  logFC rango sig: %.2f a %.2f\n\n",
+              min(sig_fc, na.rm = TRUE), max(sig_fc, na.rm = TRUE)))
+} else {
+  cat("  logFC rango sig: ninguna proteína significativa\n\n")
+}
 
 # ============================================================
 # 5. EXPORTAR TABLAS
