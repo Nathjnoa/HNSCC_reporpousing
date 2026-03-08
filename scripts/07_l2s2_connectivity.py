@@ -48,6 +48,17 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+QUERY_DATE = datetime.now().strftime("%Y-%m-%d")
+log.info(f"L2S2 query date: {QUERY_DATE}")
+log.warning(
+    "METHODOLOGICAL NOTE: L2S2 uses transcriptomic (mRNA) signatures. "
+    "This analysis inputs proteomic fold-changes. The assumption that "
+    "protein and mRNA changes are directionally consistent is valid only "
+    "for ~60-70%% of genes (mRNA-protein r~0.4-0.6 in clinical samples). "
+    "L2S2 score weight has been reduced to 0.10 in the composite score. "
+    "Results should be interpreted as supportive, not primary, evidence."
+)
+
 log.info("=== 07_l2s2_connectivity.py ===")
 log.info(f"Inicio: {datetime.now()}")
 
@@ -326,6 +337,8 @@ log.info(f"  Consistent reversors (ambas dir): "
 # ---------------------------------------------------------------------------
 # 5. Exportar
 # ---------------------------------------------------------------------------
+df_results.insert(0, "query_date", QUERY_DATE)
+
 # Archivo completo
 out_all = "results/tables/drug_targets/07_l2s2_results.tsv"
 df_results.to_csv(out_all, sep="\t", index=False)
