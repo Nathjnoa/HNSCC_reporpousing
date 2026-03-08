@@ -285,6 +285,120 @@ for (i in seq_len(nrow(top20))) {
 }
 
 # =============================================================================
+# PASO 4b: Detección de módulos Louvain + caracterización funcional
+# =============================================================================
+cat("\n--- Paso 4b: Detectando módulos (Louvain) ---\n")
+
+set.seed(42)
+modules_louvain <- cluster_louvain(g, resolution = 1.0)
+n_modules <- length(unique(membership(modules_louvain)))
+cat(sprintf("Módulos Louvain detectados: %d\n", n_modules))
+cat(sprintf("Tamaños: %s\n",
+            paste(sort(table(membership(modules_louvain)), decreasing = TRUE),
+                  collapse = ", ")))
+
+# Asignar módulo a cada nodo
+df_nodes$module_id <- membership(modules_louvain)[
+  match(df_nodes$gene_symbol, names(membership(modules_louvain)))
+]
+
+# Nombrar módulos por el término GO BP más enriquecido
+suppressPackageStartupMessages({
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+})
+
+# Cargar mapeo de IDs (script 02 ya lo hizo)
+id_map <- tryCatch(
+  read.delim("results/tables/de_limma/02_TVsS_significant_with_ids.tsv",
+             stringsAsFactors = FALSE) %>%
+    select(symbol_org, entrez_id) %>%
+    filter(!is.na(entrez_id)) %>%
+    distinct(symbol_org, .keep_all = TRUE),
+  error = function(e) {
+    cat("  WARN: No se pudo cargar mapeo entrez — módulos sin nombre funcional\n")
+    NULL
+  }
+)
+
+universe_entrez <- if (!is.null(id_map)) as.character(id_map$entrez_id) else NULL
+
+module_names <- sapply(seq_len(n_modules), function(m) {
+  m_genes <- df_nodes$gene_symbol[df_nodes$module_id == m & !is.na(df_nodes$module_id)]
+  if (length(m_genes) < 3 || is.null(id_map)) return(paste0("M", m))
+
+  entrez_m <- id_map$entrez_id[id_map$symbol_org %in% m_genes]
+  entrez_m <- as.character(na.omit(entrez_m))
+  if (length(entrez_m) < 3) return(paste0("M", m))
+
+  ora <- tryCatch(
+    enrichGO(gene       = entrez_m,
+             universe   = universe_entrez,
+             OrgDb      = org.Hs.eg.db,
+             keyType    = "ENTREZID",
+             ont        = "BP",
+             pAdjustMethod = "BH",
+             pvalueCutoff  = 0.05,
+             qvalueCutoff  = 0.2,
+             minGSSize     = 5,
+             maxGSSize     = 200,
+             readable      = TRUE),
+    error = function(e) NULL
+  )
+
+  if (is.null(ora) || nrow(ora@result) == 0) return(paste0("M", m, "_uncharacterized"))
+
+  ora_simplified <- tryCatch(
+    simplify(ora, cutoff = 0.70, by = "p.adjust", select_fun = min),
+    error = function(e) ora
+  )
+
+  top_term <- ora_simplified@result$Description[1]
+  sprintf("M%d_%s", m, gsub(" ", "_", substr(top_term, 1, 30)))
+})
+
+cat("Nombres de módulos:\n")
+for (i in seq_along(module_names)) {
+  n_size <- sum(df_nodes$module_id == i, na.rm = TRUE)
+  cat(sprintf("  %s (n=%d)\n", module_names[i], n_size))
+}
+
+# Exportar tabla de módulos
+dir.create("results/tables/network", showWarnings = FALSE, recursive = TRUE)
+df_modules <- df_nodes %>%
+  filter(!is.na(module_id)) %>%
+  mutate(module_name = module_names[module_id]) %>%
+  select(gene_symbol, module_id, module_name, degree,
+         betweenness_norm, direction, logFC_TVsS, is_hub) %>%
+  arrange(module_id, desc(degree))
+
+write.table(df_modules,
+            "results/tables/network/09_modules.tsv",
+            sep = "\t", quote = FALSE, row.names = FALSE)
+cat(sprintf("\nExportado: 09_modules.tsv (%d proteínas en %d módulos)\n",
+            nrow(df_modules), n_modules))
+
+# =============================================================================
+# PASO 4c: Redefinir hubs a nivel de módulo
+#           Hub = proteína en top 10% de betweenness DENTRO de su módulo
+# =============================================================================
+cat("\n--- Paso 4c: Hubs por módulo (betweenness intra-módulo) ---\n")
+
+df_nodes <- df_nodes %>%
+  group_by(module_id) %>%
+  mutate(
+    module_hub_score = betweenness_norm,
+    is_module_hub    = betweenness_norm >= quantile(betweenness_norm,
+                                                     0.90, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+n_module_hubs <- sum(df_nodes$is_module_hub, na.rm = TRUE)
+cat(sprintf("Module hubs (top 10%% betweenness por módulo): %d\n", n_module_hubs))
+
+df_nodes$n_distinct_modules <- 1L
+
+# =============================================================================
 # PASO 5: Hubs druggables
 # =============================================================================
 cat("\n--- Paso 5: Cruzando hubs con candidatos de farmaco ---\n")
@@ -485,6 +599,63 @@ safe_pdf("results/figures/09_network_full.pdf", w = 14, h = 12, {
   print(p)
 })
 
+# 6e. -------- RED COMPLETA COLOREADA POR MÓDULO ----------------------------
+cat("  [ggraph] Red con módulos Louvain coloreados...\n")
+
+module_lookup <- setNames(df_modules$module_name, df_modules$gene_symbol)
+V(g_giant)$module_id_v <- df_nodes$module_id[
+  match(V(g_giant)$name, df_nodes$gene_symbol)
+]
+V(g_giant)$is_module_hub <- df_nodes$is_module_hub[
+  match(V(g_giant)$name, df_nodes$gene_symbol)
+]
+
+n_mod_plot  <- min(n_modules, 12)
+mod_palette <- setNames(
+  c("#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00",
+    "#a65628","#f781bf","#999999","#66c2a5","#fc8d62",
+    "#8da0cb","#e78ac3")[seq_len(n_mod_plot)],
+  as.character(seq_len(n_mod_plot))
+)
+
+safe_pdf("results/figures/09_network_modules.pdf", w = 15, h = 13, {
+  set.seed(42)
+  p_mod <- ggraph(g_giant, layout = "fr") +
+    geom_edge_link(color = "gray70", linewidth = 0.15, alpha = 0.05,
+                   show.legend = FALSE) +
+    geom_node_point(
+      aes(size  = degree,
+          color = factor(V(g_giant)$module_id_v %% n_mod_plot + 1),
+          shape = V(g_giant)$is_module_hub),
+      alpha = 0.75
+    ) +
+    geom_node_text(
+      aes(label = ifelse(V(g_giant)$is_module_hub == TRUE, name, NA_character_)),
+      size = 2.6, repel = TRUE, max.overlaps = 50,
+      fontface = "bold", na.rm = TRUE
+    ) +
+    scale_color_manual(values = mod_palette, name = "Módulo Louvain",
+                       guide  = guide_legend(ncol = 2)) +
+    scale_size_continuous(range = c(0.6, 7), name = "Degree") +
+    scale_shape_manual(values = c("TRUE" = 18, "FALSE" = 16),
+                       labels = c("TRUE" = "Hub (top 10% betweenness)",
+                                  "FALSE" = "Proteína"),
+                       name = "") +
+    labs(
+      title    = "STRING PPI network — DE proteins coloreadas por módulo Louvain",
+      subtitle = sprintf(
+        "Componente gigante: %d nodos, %d aristas | %d módulos | diamantes = hubs por módulo",
+        vcount(g_giant), ecount(g_giant), n_modules)
+    ) +
+    theme_graph(base_family = "sans") +
+    theme(legend.position   = "right",
+          plot.title        = element_text(size = 13, face = "bold"),
+          plot.subtitle     = element_text(size = 9),
+          plot.background   = element_rect(fill = "white", color = NA),
+          panel.background  = element_rect(fill = "white", color = NA))
+  print(p_mod)
+})
+
 # Plot 2: Subred de hubs solamente — layout KK para grafos medianos (~50-150 nodos)
 cat("  [ggraph] Subred de hubs...\n")
 hub_names <- df_nodes$gene_symbol[df_nodes$is_hub]
@@ -579,8 +750,14 @@ tryCatch({
 # EXPORTAR
 # =============================================================================
 cat("\n--- Exportando ---\n")
-write.table(df_nodes,
+df_nodes_export <- df_nodes %>%
+  left_join(df_modules %>% select(gene_symbol, module_name), by = "gene_symbol")
+
+write.table(df_nodes_export,
             "results/tables/network/09_network_node_metrics.tsv",
+            sep = "\t", quote = FALSE, row.names = FALSE)
+write.table(df_modules,
+            "results/tables/network/09_modules.tsv",
             sep = "\t", quote = FALSE, row.names = FALSE)
 write.table(df_druggable,
             "results/tables/network/09_druggable_hubs.tsv",
