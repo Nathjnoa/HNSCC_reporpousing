@@ -75,16 +75,23 @@ universe_entrez <- all_prot %>%
 cat(sprintf("Entrez IDs para ORA:      %d / %d con universo=%d\n\n",
             length(sig_entrez), nrow(sig), length(universe_entrez)))
 
-# Lista rankeada para GSEA (logFC, ordenada descendente, sin NA)
+# GSEA ranked list: pi-statistic (magnitud × significancia)
+# pi = sign(logFC) × |logFC| × -log10(adj.P.Val)
+# Captura tanto el efecto biológico como la confianza estadística
 ranked_df <- all_prot %>%
-  filter(!is.na(entrez_id), !is.na(logFC_TVsS)) %>%
-  arrange(desc(logFC_TVsS))
-ranked_list <- ranked_df$logFC_TVsS
+  filter(!is.na(entrez_id), !is.na(logFC_TVsS), !is.na(adj.P.Val_TVsS)) %>%
+  mutate(
+    pi_stat = sign(logFC_TVsS) * abs(logFC_TVsS) * (-log10(adj.P.Val_TVsS + 1e-300))
+  ) %>%
+  arrange(desc(pi_stat))
+
+ranked_list <- ranked_df$pi_stat
 names(ranked_list) <- as.character(ranked_df$entrez_id)
-# En caso de duplicados, conservar el primero (mayor |logFC|)
 ranked_list <- ranked_list[!duplicated(names(ranked_list))]
-cat(sprintf("Ranked list para GSEA: %d genes (rango logFC: %.2f a %.2f)\n\n",
-            length(ranked_list), min(ranked_list), max(ranked_list)))
+
+cat(sprintf("Ranked list para GSEA (pi-stat): %d genes\n", length(ranked_list)))
+cat(sprintf("  pi_stat rango: %.2f a %.2f\n\n",
+            min(ranked_list), max(ranked_list)))
 
 # =============================================================================
 # BLOQUE 1: ORA — Gene Ontology
@@ -276,6 +283,29 @@ gsea_reactome <- tryCatch({
 # =============================================================================
 cat("\n=== Generando figuras ===\n")
 
+# Helper: dotplot GSEA balanceado (top n_each por p.adjust por dirección NES)
+# Garantiza representación simétrica de términos activados y suprimidos.
+gsea_balanced_dotplot <- function(gsea_res, n_each = 10, title = "",
+                                   label_wrap = NULL, base_size = 18) {
+  df <- as.data.frame(gsea_res)
+  top_act  <- df %>% filter(NES > 0) %>% arrange(p.adjust) %>% slice_head(n = n_each)
+  top_supp <- df %>% filter(NES < 0) %>% arrange(p.adjust) %>% slice_head(n = n_each)
+  plot_df  <- bind_rows(top_act, top_supp) %>% arrange(NES)
+  if (!is.null(label_wrap))
+    plot_df$Description <- stringr::str_wrap(plot_df$Description, width = label_wrap)
+  plot_df$Description <- factor(plot_df$Description, levels = plot_df$Description)
+  ggplot(plot_df, aes(x = NES, y = Description,
+                      size = setSize, color = p.adjust)) +
+    geom_point() +
+    geom_vline(xintercept = 0, linewidth = 0.4, color = "grey50", linetype = "dashed") +
+    scale_color_gradient(low = "#D55E00", high = "#56B4E9", name = "p.adjust",
+                         trans = "log10",
+                         guide = guide_colorbar(reverse = TRUE)) +
+    scale_size_continuous(name = "Set size", range = c(2, 8)) +
+    labs(title = title, x = "Normalized Enrichment Score (NES)", y = NULL) +
+    theme_bw(base_size = base_size)
+}
+
 safe_pdf_plot <- function(file, width, height, expr) {
   tryCatch({
     pdf(file, width = width, height = height)
@@ -290,52 +320,52 @@ safe_pdf_plot <- function(file, width, height, expr) {
 
 # --- GO BP dotplot ---
 if (!is.null(go_bp_simple) && nrow(as.data.frame(go_bp_simple)) >= 5) {
-  safe_pdf_plot(file.path(dir_figures, "03_GO_BP_dotplot.pdf"), 10, 8, {
-    p <- dotplot(go_bp_simple, showCategory = 20, font.size = 9) +
+  safe_pdf_plot(file.path(dir_figures, "03_GO_BP_dotplot.pdf"), 12, 10, {
+    p <- dotplot(go_bp_simple, showCategory = 20, font.size = 18) +
       labs(title = "GO Biological Process ORA — TVsS",
            subtitle = sprintf("Simplificado (cutoff=%.2f) | %d términos", simplify_co,
                               nrow(as.data.frame(go_bp_simple)))) +
-      theme_bw(base_size = 9)
+      theme_bw(base_size = 18)
     print(p)
   })
 }
 
 # --- GO MF dotplot ---
 if (!is.null(go_mf) && nrow(as.data.frame(go_mf)) >= 3) {
-  safe_pdf_plot(file.path(dir_figures, "03_GO_MF_dotplot.pdf"), 10, 7, {
-    p <- dotplot(go_mf, showCategory = 15, font.size = 9) +
+  safe_pdf_plot(file.path(dir_figures, "03_GO_MF_dotplot.pdf"), 12, 9, {
+    p <- dotplot(go_mf, showCategory = 20, font.size = 18) +
       labs(title = "GO Molecular Function ORA — TVsS") +
-      theme_bw(base_size = 9)
+      theme_bw(base_size = 18)
     print(p)
   })
 }
 
 # --- GO CC dotplot ---
 if (!is.null(go_cc) && nrow(as.data.frame(go_cc)) >= 3) {
-  safe_pdf_plot(file.path(dir_figures, "03_GO_CC_dotplot.pdf"), 10, 7, {
-    p <- dotplot(go_cc, showCategory = 15, font.size = 9) +
+  safe_pdf_plot(file.path(dir_figures, "03_GO_CC_dotplot.pdf"), 12, 9, {
+    p <- dotplot(go_cc, showCategory = 20, font.size = 18) +
       labs(title = "GO Cellular Component ORA — TVsS") +
-      theme_bw(base_size = 9)
+      theme_bw(base_size = 18)
     print(p)
   })
 }
 
 # --- KEGG barplot ---
 if (!is.null(kegg_ora) && nrow(as.data.frame(kegg_ora)) >= 3) {
-  safe_pdf_plot(file.path(dir_figures, "03_KEGG_barplot.pdf"), 10, 7, {
-    p <- barplot(kegg_ora, showCategory = 15, font.size = 9) +
+  safe_pdf_plot(file.path(dir_figures, "03_KEGG_barplot.pdf"), 12, 9, {
+    p <- barplot(kegg_ora, showCategory = 20, font.size = 18) +
       labs(title = "KEGG Pathway ORA — TVsS") +
-      theme_bw(base_size = 9)
+      theme_bw(base_size = 18)
     print(p)
   })
 }
 
 # --- Reactome dotplot ---
 if (!is.null(reactome_ora) && nrow(as.data.frame(reactome_ora)) >= 3) {
-  safe_pdf_plot(file.path(dir_figures, "03_Reactome_dotplot.pdf"), 10, 7, {
-    p <- dotplot(reactome_ora, showCategory = 15, font.size = 9) +
+  safe_pdf_plot(file.path(dir_figures, "03_Reactome_dotplot.pdf"), 12, 9, {
+    p <- dotplot(reactome_ora, showCategory = 20, font.size = 18) +
       labs(title = "Reactome Pathway ORA — TVsS") +
-      theme_bw(base_size = 9)
+      theme_bw(base_size = 18)
     print(p)
   })
 }
@@ -375,55 +405,43 @@ if (!is.null(go_bp_simple) && nrow(as.data.frame(go_bp_simple)) >= 3) {
 
 # --- Hallmarks GSEA dotplot ---
 if (!is.null(gsea_hallmarks) && nrow(as.data.frame(gsea_hallmarks)) >= 3) {
-  safe_pdf_plot(file.path(dir_figures, "03_Hallmarks_GSEA_dotplot.pdf"), 10, 8, {
-    p <- dotplot(gsea_hallmarks, showCategory = 20, split = ".sign",
-                 font.size = 9) +
-      facet_grid(. ~ .sign) +
-      labs(title = "MSigDB Hallmarks GSEA — TVsS") +
-      theme_bw(base_size = 9)
+  safe_pdf_plot(file.path(dir_figures, "03_Hallmarks_GSEA_dotplot.pdf"), 12, 10, {
+    p <- gsea_balanced_dotplot(gsea_hallmarks, n_each = 10,
+                               title = "MSigDB Hallmarks GSEA — TVsS", base_size = 18)
     print(p)
   })
   # Ridge plot de distribuciones
-  safe_pdf_plot(file.path(dir_figures, "03_Hallmarks_GSEA_ridgeplot.pdf"), 9, 10, {
+  safe_pdf_plot(file.path(dir_figures, "03_Hallmarks_GSEA_ridgeplot.pdf"), 11, 12, {
     p <- ridgeplot(gsea_hallmarks, showCategory = 20, fill = "p.adjust") +
       labs(title = "Hallmarks GSEA — distribución de ranks") +
-      theme_bw(base_size = 9)
+      theme_bw(base_size = 18)
     print(p)
   })
 }
 
 # --- GSEA GO BP dotplot ---
 if (!is.null(gsea_go_bp) && nrow(as.data.frame(gsea_go_bp)) >= 3) {
-  safe_pdf_plot(file.path(dir_figures, "03_GO_BP_GSEA_dotplot.pdf"), 10, 8, {
-    p <- dotplot(gsea_go_bp, showCategory = 20, split = ".sign",
-                 font.size = 9) +
-      facet_grid(. ~ .sign) +
-      labs(title = "GO BP GSEA — TVsS") +
-      theme_bw(base_size = 9)
+  safe_pdf_plot(file.path(dir_figures, "03_GO_BP_GSEA_dotplot.pdf"), 12, 14, {
+    p <- gsea_balanced_dotplot(gsea_go_bp, n_each = 10, label_wrap = 35,
+                               title = "GO BP GSEA — TVsS", base_size = 18)
     print(p)
   })
 }
 
 # --- GSEA KEGG dotplot ---
 if (!is.null(gsea_kegg) && nrow(as.data.frame(gsea_kegg)) >= 3) {
-  safe_pdf_plot(file.path(dir_figures, "03_KEGG_GSEA_dotplot.pdf"), 10, 8, {
-    p <- dotplot(gsea_kegg, showCategory = 20, split = ".sign",
-                 font.size = 9) +
-      facet_grid(. ~ .sign) +
-      labs(title = "KEGG GSEA — TVsS") +
-      theme_bw(base_size = 9)
+  safe_pdf_plot(file.path(dir_figures, "03_KEGG_GSEA_dotplot.pdf"), 12, 10, {
+    p <- gsea_balanced_dotplot(gsea_kegg, n_each = 10,
+                               title = "KEGG GSEA — TVsS", base_size = 18)
     print(p)
   })
 }
 
 # --- GSEA Reactome dotplot ---
 if (!is.null(gsea_reactome) && nrow(as.data.frame(gsea_reactome)) >= 3) {
-  safe_pdf_plot(file.path(dir_figures, "03_Reactome_GSEA_dotplot.pdf"), 10, 8, {
-    p <- dotplot(gsea_reactome, showCategory = 20, split = ".sign",
-                 font.size = 9) +
-      facet_grid(. ~ .sign) +
-      labs(title = "Reactome GSEA — TVsS") +
-      theme_bw(base_size = 9)
+  safe_pdf_plot(file.path(dir_figures, "03_Reactome_GSEA_dotplot.pdf"), 12, 10, {
+    p <- gsea_balanced_dotplot(gsea_reactome, n_each = 10,
+                               title = "Reactome GSEA — TVsS", base_size = 18)
     print(p)
   })
 }
