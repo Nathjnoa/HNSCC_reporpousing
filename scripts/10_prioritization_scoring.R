@@ -7,12 +7,12 @@
 #           6 dimensiones independientes. Seleccionar top 20 para validacion.
 #
 # Dimensiones de scoring (pesos en config/analysis_params.yaml):
-#   1. score_logfc         (0.20): magnitud expresion de genes diana
-#   2. score_significance  (0.15): significancia estadistica genes diana
-#   3. score_clinical      (0.20): fase clinica maxima del farmaco
-#   4. score_cmap          (0.15): connectivity reversal score L2S2/LINCS (reversal)
-#   5. score_pathway       (0.15): proporcion genes diana en vias enriquecidas
-#   6. score_network       (0.15): centralidad de genes diana en red PPI
+#   1. score_pi_stat       (0.25): pi-stat = sign(logFC)*|logFC|*(-log10 adj.P)
+#   2. score_clinical      (0.20): fase clinica maxima del farmaco
+#   3. score_cmap          (0.10): connectivity reversal score L2S2/LINCS (reversal)
+#   4. score_pathway       (0.15): proporcion genes diana en vias enriquecidas
+#   5. score_network       (0.15): centralidad + diversidad de modulos en red PPI
+#   6. score_evidence      (0.15): evidencia clinica pre-calculada (trials + PubMed)
 #
 # Input:  results/tables/drug_targets/08_drug_summary_per_drug.tsv
 #         results/tables/drug_targets/08_multi_source_candidates.tsv
@@ -67,12 +67,12 @@ cat("Inicio:", format(Sys.time()), "\n\n")
 # --- Parametros --------------------------------------------------------------
 params <- yaml::read_yaml("config/analysis_params.yaml")
 
-w_logfc   <- params$scoring$weight_log2fc
-w_sig     <- params$scoring$weight_significance
+w_pistat  <- params$scoring$weight_pi_stat           # reemplaza logFC + sig
 w_clin    <- params$scoring$weight_clinical_phase
-w_cmap    <- params$scoring$weight_cmap_connectivity
+w_cmap    <- params$scoring$weight_cmap_connectivity  # reducido a 0.10
 w_path    <- params$scoring$weight_pathway_relevance
 w_net     <- params$scoring$weight_network_centrality
+w_evid    <- params$scoring$weight_evidence           # nuevo
 top_n     <- params$candidates$top_n
 
 phase_scores <- setNames(
@@ -80,9 +80,9 @@ phase_scores <- setNames(
   names(params$clinical_phase_scores)
 )
 
-cat(sprintf("Pesos: logFC=%.2f | sig=%.2f | clinical=%.2f | cmap=%.2f | pathway=%.2f | network=%.2f\n",
-            w_logfc, w_sig, w_clin, w_cmap, w_path, w_net))
-weight_sum <- w_logfc + w_sig + w_clin + w_cmap + w_path + w_net
+cat(sprintf("Pesos: pi_stat=%.2f | clinical=%.2f | cmap=%.2f | pathway=%.2f | network=%.2f | evidence=%.2f\n",
+            w_pistat, w_clin, w_cmap, w_path, w_net, w_evid))
+weight_sum <- w_pistat + w_clin + w_cmap + w_path + w_net + w_evid
 cat(sprintf("Sum pesos: %.4f\n", weight_sum))
 if (abs(weight_sum - 1.0) > 0.001)
   stop(sprintf("FATAL: pesos suman %.4f, deben sumar exactamente 1.0", weight_sum))
@@ -181,30 +181,24 @@ get_target_genes <- function(gene_str) {
 }
 
 # =============================================================================
-# DIMENSION 1: score_logfc — media |logFC| de genes diana, normalizado 0-1
+# DIMENSION 1 (nueva): score_pi_stat — combina magnitud y significancia
+#             pi = sign(logFC) × |logFC| × -log10(adj.P.Val)
+#             Normalizado 0-1 sobre el máximo del dataset.
 # =============================================================================
 cat("\n--- Calculando scores ---\n")
 
-# Referencia: max posible = max |logFC| en el dataset
-max_logfc <- max(abs(gene_de$logFC_TVsS), na.rm = TRUE)
+gene_de <- gene_de %>%
+  mutate(
+    pi_stat = sign(logFC_TVsS) * abs(logFC_TVsS) *
+              (-log10(adj.P.Val_TVsS + 1e-300))
+  )
+max_pi <- max(abs(gene_de$pi_stat), na.rm = TRUE)
 
-score_logfc_fn <- function(gene_str) {
-  genes <- get_target_genes(gene_str)
-  lfc   <- abs(gene_de$logFC_TVsS[gene_de$symbol_org %in% genes])
-  if (length(lfc) == 0) return(0)
-  mean(lfc, na.rm = TRUE) / max_logfc
-}
-
-# =============================================================================
-# DIMENSION 2: score_significance — media -log10(adj.P.Val), normalizado 0-1
-# =============================================================================
-max_neglog_p <- max(-log10(gene_de$adj.P.Val_TVsS + 1e-300), na.rm = TRUE)
-
-score_sig_fn <- function(gene_str) {
-  genes  <- get_target_genes(gene_str)
-  pvals  <- gene_de$adj.P.Val_TVsS[gene_de$symbol_org %in% genes]
-  if (length(pvals) == 0) return(0)
-  mean(-log10(pvals + 1e-300), na.rm = TRUE) / max_neglog_p
+score_pistat_fn <- function(gene_str) {
+  genes   <- get_target_genes(gene_str)
+  pi_vals <- abs(gene_de$pi_stat[gene_de$symbol_org %in% genes])
+  if (length(pi_vals) == 0) return(0)
+  mean(pi_vals, na.rm = TRUE) / max_pi
 }
 
 # =============================================================================
@@ -239,19 +233,63 @@ score_pathway_fn <- function(gene_str) {
 }
 
 # =============================================================================
-# DIMENSION 6: score_network — centralidad media de genes diana en red PPI
-#              usa combinacion degree + betweenness normalizada
+# DIMENSION 5 (red): score_network — centralidad + diversidad de módulos
+#              usa combinacion degree + betweenness normalizada + module diversity
 # =============================================================================
 max_degree <- max(net_metrics$degree, na.rm = TRUE)
+
+# Cargar tabla de módulos (generada por script 09)
+modules_tbl <- tryCatch(
+  read.delim("results/tables/network/09_modules.tsv", stringsAsFactors = FALSE) %>%
+    select(gene_symbol, module_id) %>%
+    distinct(),
+  error = function(e) {
+    cat("  WARN: 09_modules.tsv no encontrado — se usa centralidad sin módulos\n")
+    NULL
+  }
+)
 
 score_network_fn <- function(gene_str) {
   genes <- get_target_genes(gene_str)
   nm    <- net_metrics %>% filter(gene_symbol %in% genes)
   if (nrow(nm) == 0) return(0)
+
   deg_norm  <- mean(nm$degree / max_degree, na.rm = TRUE)
-  betw_norm <- mean(nm$betweenness_norm,    na.rm = TRUE)  # ya normalizado en script 09
-  # Combinacion: 60% degree, 40% betweenness (degree refleja conectividad global)
-  0.6 * deg_norm + 0.4 * betw_norm
+  betw_norm <- mean(nm$betweenness_norm,    na.rm = TRUE)
+  centrality_score <- 0.6 * deg_norm + 0.4 * betw_norm
+
+  if (!is.null(modules_tbl)) {
+    n_modules_hit <- modules_tbl %>%
+      filter(gene_symbol %in% genes) %>%
+      pull(module_id) %>%
+      n_distinct()
+    module_diversity <- min(n_modules_hit / 3, 1.0)
+    return(0.7 * centrality_score + 0.3 * module_diversity)
+  }
+  centrality_score
+}
+
+# =============================================================================
+# DIMENSION 6 (nueva): score_evidence — evidencia clínica pre-calculada
+# =============================================================================
+evidence_tbl <- tryCatch(
+  read.delim("results/tables/evidence/11_clinical_evidence.tsv",
+             stringsAsFactors = FALSE) %>%
+    mutate(drug_name_norm_ev = toupper(trimws(drug_name))) %>%
+    select(drug_name_norm_ev, evidence_score),
+  error = function(e) {
+    cat("  INFO: 11_clinical_evidence.tsv no encontrado — score_evidence = 0\n")
+    NULL
+  }
+)
+
+score_evidence_fn <- function(drug_name) {
+  if (is.null(evidence_tbl)) return(0)
+  hit <- evidence_tbl$evidence_score[
+    toupper(trimws(drug_name)) == evidence_tbl$drug_name_norm_ev
+  ]
+  if (length(hit) == 0 || all(is.na(hit))) return(0)
+  max(hit, na.rm = TRUE)
 }
 
 # =============================================================================
@@ -262,21 +300,21 @@ cat("Calculando scores para todos los candidatos...\n")
 scored <- candidates %>%
   rowwise() %>%
   mutate(
-    s_logfc    = score_logfc_fn(de_genes),
-    s_sig      = score_sig_fn(de_genes),
+    s_pi_stat  = score_pistat_fn(de_genes),
     s_clinical = score_clinical_fn(max_phase),
     s_cmap     = score_cmap_fn(cmap_score),
     s_pathway  = score_pathway_fn(de_genes),
-    s_network  = score_network_fn(de_genes)
+    s_network  = score_network_fn(de_genes),
+    s_evidence = score_evidence_fn(drug_name_norm)
   ) %>%
   ungroup() %>%
   mutate(
-    composite_score = w_logfc  * s_logfc +
-                      w_sig    * s_sig   +
-                      w_clin   * s_clinical +
-                      w_cmap   * s_cmap  +
-                      w_path   * s_pathway +
-                      w_net    * s_network,
+    composite_score = w_pistat * s_pi_stat   +
+                      w_clin   * s_clinical  +
+                      w_cmap   * s_cmap      +
+                      w_path   * s_pathway   +
+                      w_net    * s_network   +
+                      w_evid   * s_evidence,
     # Bonus: clase A (HNSCC direct) o candidatos con CMap + gene-target
     bonus = case_when(
       drug_class == "A"              ~ 0.05,
@@ -366,14 +404,14 @@ for (i in seq_len(nrow(top20))) {
 
 # Score components breakdown para top 20
 cat(sprintf("\n--- Desglose de scores (top %d) ---\n", top_n))
-cat(sprintf("  %-30s  %5s  %5s  %5s  %5s  %5s  %5s  %5s\n",
-            "Drug", "logFC", "Sig", "Clin", "CMap", "Path", "Net", "FINAL"))
+cat(sprintf("  %-30s  %6s  %5s  %5s  %5s  %5s  %5s  %5s\n",
+            "Drug", "PI-stat", "Clin", "CMap", "Path", "Net", "Evid", "FINAL"))
 for (i in seq_len(nrow(top20))) {
   r <- top20[i, ]
-  cat(sprintf("  %-30s  %5.3f  %5.3f  %5.3f  %5.3f  %5.3f  %5.3f  %5.3f\n",
+  cat(sprintf("  %-30s  %6.3f  %5.3f  %5.3f  %5.3f  %5.3f  %5.3f  %5.3f\n",
               substr(r$drug_name_norm, 1, 30),
-              r$s_logfc, r$s_sig, r$s_clinical,
-              r$s_cmap, r$s_pathway, r$s_network,
+              r$s_pi_stat, r$s_clinical,
+              r$s_cmap, r$s_pathway, r$s_network, r$s_evidence,
               r$final_score))
 }
 
@@ -414,7 +452,7 @@ safe_pdf("results/figures/10_top20_barplot.pdf", w = 11, h = 8, {
     coord_flip() +
     expand_limits(y = 1.1) +
     labs(title = sprintf("Top %d drug repurposing candidates — HNSCC", top_n),
-         subtitle = "Multi-criteria composite score (logFC + significance + clinical phase + L2S2 + pathways + network)",
+         subtitle = "Multi-criteria composite score (pi-stat + clinical phase + L2S2 + pathways + network modules + clinical evidence)",
          x = NULL, y = "Composite score (0-1)",
          fill = "Classification") +
     theme_bw(base_size = 12) +
@@ -425,9 +463,10 @@ safe_pdf("results/figures/10_top20_barplot.pdf", w = 11, h = 8, {
 
 # 2. Heatmap de componentes de score (top 20)
 safe_pdf("results/figures/10_scoring_heatmap.pdf", w = 12, h = 8, {
-  score_cols <- c("s_logfc", "s_sig", "s_clinical", "s_cmap", "s_pathway", "s_network")
-  col_labels <- c("logFC", "Significance", "Clinical\nPhase", "L2S2\nReversal",
-                  "Pathway\nRelevance", "Network\nCentrality")
+  score_cols <- c("s_pi_stat", "s_clinical", "s_cmap", "s_pathway", "s_network", "s_evidence")
+  col_labels <- c("PI-stat\n(logFC×sig)", "Clinical\nPhase",
+                  "L2S2\nReversal", "Pathway\nRelevance",
+                  "Network\n(modules)", "Clinical\nEvidence")
 
   mat_data <- top20 %>%
     mutate(drug_label = sprintf("%d. %s", seq_len(n()),
@@ -492,7 +531,7 @@ out_cols <- c("drug_name_norm", "chembl_id", "drug_class", "drug_class_label",
               "n_sources", "sources", "max_phase", "is_approved", "hnscc_indication",
               "cmap_score", "n_de_genes", "n_up_genes", "n_down_genes", "de_genes",
               "primary_target",
-              "s_logfc", "s_sig", "s_clinical", "s_cmap", "s_pathway", "s_network",
+              "s_pi_stat", "s_clinical", "s_cmap", "s_pathway", "s_network", "s_evidence",
               "composite_score", "bonus", "final_score")
 out_cols_avail <- intersect(out_cols, colnames(scored))
 
