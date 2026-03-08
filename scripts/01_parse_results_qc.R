@@ -207,15 +207,14 @@ annot_cols <- raw %>% select(gene_symbol, uniprot_id, entry_name)
 results_all <- results_all %>%
   left_join(annot_cols, by = "gene_symbol") %>%
   # Renombrar columnas para compatibilidad downstream
+  # Nota: topTable() no devuelve CI.L / CI.R — se omiten
   rename(
-    logFC_TVsS        = logFC,
-    CI.L_TVsS         = CI.L,
-    CI.R_TVsS         = CI.R,
+    logFC_TVsS         = logFC,
     avg_intensity_TVsS = AveExpr,
-    t_stat_TVsS       = t,
-    B_stat_TVsS       = B,
-    P.Value_TVsS      = P.Value,
-    adj.P.Val_TVsS    = adj.P.Val
+    t_stat_TVsS        = t,
+    B_stat_TVsS        = B,
+    P.Value_TVsS       = P.Value,
+    adj.P.Val_TVsS     = adj.P.Val
   ) %>%
   mutate(
     sig.FDR_TVsS = case_when(
@@ -225,7 +224,7 @@ results_all <- results_all %>%
     )
   ) %>%
   select(gene_symbol, uniprot_id, entry_name,
-         logFC_TVsS, CI.L_TVsS, CI.R_TVsS, avg_intensity_TVsS,
+         logFC_TVsS, avg_intensity_TVsS,
          t_stat_TVsS, B_stat_TVsS, P.Value_TVsS, adj.P.Val_TVsS,
          sig.FDR_TVsS)
 
@@ -255,7 +254,7 @@ cat(sprintf("  logFC rango sig: %.2f a %.2f\n\n",
 cat("-- Exportando tablas...\n")
 
 out_cols <- c("gene_symbol", "uniprot_id", "entry_name",
-              "logFC_TVsS", "CI.L_TVsS", "CI.R_TVsS", "avg_intensity_TVsS",
+              "logFC_TVsS", "avg_intensity_TVsS",
               "t_stat_TVsS", "B_stat_TVsS", "P.Value_TVsS", "adj.P.Val_TVsS",
               "sig.FDR_TVsS", intensity_cols)
 
