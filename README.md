@@ -102,8 +102,9 @@ realizado en el laboratorio con proteoDA. Los resultados estan en
 | `04_query_dgidb.py` | 3 | COMPLETADO | Consultar DGIdb GraphQL API v5. 226/520 genes con interacciones. 2,252 farmacos unicos, 2,846 interacciones. Output: `results/tables/drug_targets/04_dgidb_raw.tsv` |
 | `05_query_chembl.py` | 3 | COMPLETADO | Consultar ChEMBL REST API. 309/520 proteinas con target ChEMBL. 90 pares gen-farmaco fase>=3. 55 aprobados + 34 Fase III. Output: `results/tables/drug_targets/05_chembl_drugs.tsv` |
 | `06_query_opentargets.py` | 3 | COMPLETADO | Consultar Open Targets GraphQL. 354/520 genes con evidencia HNSCC. 84 genes con drugs. 66 candidatos reposicionamiento novel (aprobados no-HNSCC). Top: Metformin (16 genes). Output: `results/tables/drug_targets/06_opentargets_gene_drugs.tsv` |
-| `07_cmap_connectivity.R` | 3 | COMPLETADO | gess_cmap() con CMap2 (370MB, cacheado). 3,478 compuestos evaluados. 174 reversores (scaled_score<=-0.718). Top: latamoxef, progesterone, harmine, deferoxamine. Output: `results/tables/drug_targets/07_cmap_results.tsv` |
-| `08_integrate_drug_targets.R` | 3 | COMPLETADO | Unificar 4 fuentes (DGIdb+ChEMBL+OpenTargets+CMap). Clasificar farmacos: A=aprobado HNSCC, B=otro cancer, C=no-cancer, D=experimental. 2,421 farmacos unicos; 187 candidatos multi-fuente. Output: `results/tables/drug_targets/08_drug_target_master_table.tsv` |
+| `07_l2s2_connectivity.py` | 3 | COMPLETADO | L2S2 GraphQL API (l2s2.maayanlab.cloud, NAR 2025). Enriquecimiento bidireccional, filterFda=TRUE, pvalue<0.001. 1,044 drugs FDA-aprobados, 248 líneas celulares. Top: bortezomib (-1.0), calcitriol (-0.858), dasatinib (-0.855). Output: `results/tables/drug_targets/07_l2s2_results.tsv` |
+| `07_cmap_connectivity_DEPRECATED.R` | — | DEPRECADO | Reemplazado por `07_l2s2_connectivity.py`. Conservado como referencia. |
+| `08_integrate_drug_targets.R` | 3 | COMPLETADO | Unificar 4 fuentes (DGIdb+ChEMBL+OpenTargets+L2S2). Clasificar farmacos: A=aprobado HNSCC, B=otro cancer, C=no-cancer, D=experimental. 2,421 farmacos unicos; 187 candidatos multi-fuente. Output: `results/tables/drug_targets/08_drug_target_master_table.tsv` |
 | `09_string_network.R` | 4 | COMPLETADO | Red PPI via STRING REST API v12 (score>=700). 403 nodos, 2,001 aristas. 41 hubs (top 10%), todos subunidades de Complejo I mitocondrial. 16 druggable hubs (Metformin). Export GraphML para Cytoscape. Output: `results/tables/network/09_network_node_metrics.tsv` |
 | `10_prioritization_scoring.R` | 4 | COMPLETADO | Scoring multi-criterio (6 dimensiones) + filtro de exclusion de farmacos no-antitumorales. 177 candidatos evaluados (10 excluidos por nombre, 10 por target unico). Top 20 refinado. Output: `results/tables/10_top20_candidates.tsv` |
 | `11_clinicaltrials_pubmed.py` | 5 | COMPLETADO | Para top 20: buscar en ClinicalTrials.gov API v2 (drug+HNSCC) y contar papers PubMed. 11/20 con trials HNSCC, 8 activos. Output: `results/tables/evidence/11_clinical_evidence.tsv` |
@@ -119,7 +120,7 @@ realizado en el laboratorio con proteoDA. Los resultados estan en
 Score = 0.20 x |log2FC| normalizado
       + 0.15 x significancia (-log10 adj.P)
       + 0.20 x fase clinica (aprobado=1, fase3=0.75, fase2=0.5, fase1=0.25)
-      + 0.15 x connectivity score CMap (normalizado, mas negativo = mejor)
+      + 0.15 x L2S2 reversal score (normalizado, mas negativo = mejor)
       + 0.15 x relevancia de ruta (target en pathway enriquecido?)
       + 0.15 x centralidad en red (betweenness normalizado)
 ```
@@ -130,7 +131,7 @@ Pesos ajustables en `config/analysis_params.yaml`.
 
 - **Nivel 1**: Aprobado para HNSCC
 - **Nivel 2**: Aprobado otro cancer + trials HNSCC + gen COSMIC
-- **Nivel 3**: Aprobado no-cancer + pathway enriquecido + hub + CMap reversor
+- **Nivel 3**: Aprobado no-cancer + pathway enriquecido + hub + L2S2 reversor
 - **Nivel 4**: Experimental + >=2 bases de datos de soporte
 
 ### Dependencias
@@ -138,7 +139,7 @@ Pesos ajustables en `config/analysis_params.yaml`.
 ```text
 01 -> 02 -> 03
          -> 04, 05, 06 (paralelos)
-         -> 07 (CMap)
+         -> 07 (L2S2)
                -> 08 -> 09 -> 10 -> 11, 12 (paralelos) -> 13 -> 14
 ```
 
@@ -182,7 +183,7 @@ Instalar en `omics-R` antes de ejecutar scripts posteriores:
 ```r
 # STRINGdb NO disponible (dependencia chron falla en compilacion)
 # Script 09 usa STRING REST API v12 directamente con httr2 + jsonlite
-BiocManager::install(c("ReactomePA", "signatureSearch", "ExperimentHub"))
+BiocManager::install(c("ReactomePA"))
 install.packages(c("igraph", "ggraph", "tidygraph", "yaml", "httr2", "jsonlite"))
 ```
 
@@ -413,38 +414,41 @@ Top candidatos: Metformin (16 genes DE, AMPK/OXPHOS), Ocriplasmin (10 genes, pro
 
 ---
 
-### `scripts/07_cmap_connectivity.R` (COMPLETADO - 2026-03-04)
+### `scripts/07_l2s2_connectivity.py` (COMPLETADO - 2026-03-08)
 
-**Metodo**: gess_cmap() usando CMap2 (EH3223, 370MB, 3,478 compuestos x 12,403 genes). Firma query: top 150 up + top 150 down por logFC (Entrez IDs). Overlap con CMap2: 132/150 up, 134/150 down.
+**Metodo**: L2S2 GraphQL API (l2s2.maayanlab.cloud, Evangelista et al., NAR 2025). Enriquecimiento bidireccional con Fisher's exact test. Firma query: top 150 proteinas UP + top 150 DOWN por logFC. Filtro: `filterFda=TRUE`, `pvalue < 0.001`. Paginacion: 500 nodos/request.
 
-**Nota tecnica**: CMap2 usa Entrez IDs (no gene symbols). Se usa `scaled_score` (-1 a +1). Solo `type == "trt_cp"` (small molecules). DSEA requiere signatureSearchData (no instalado, no bloquea resultados).
+**Score**: `reversal_score = -log10(best_p) × mean_log2(OR) × log2(n_sigs+1)`, normalizado a [-1, 0]. Bonus ×1.5 para reversores bidireccionales.
 
 **Resultados clave**:
 
 | Metrica | Valor |
 | ------- | ----- |
-| Compuestos evaluados | 3,478 |
-| Reversores (bottom 5%, trt_cp) | 174 |
-| scaled_score threshold (5%) | -0.718 |
-| Mejor reversor | latamoxef (score=-1.0) |
-| Top reversores bioactivos | progesterone (-0.977), harmine (-0.970), deferoxamine (-0.950), nimesulide (-0.909), mifepristone (-0.907) |
+| Drugs FDA-aprobados evaluados | 1,044 |
+| Lineas celulares cubiertas | 248 |
+| Con reversión bidireccional consistente | 931 (89%) |
+| Mejor reversor | bortezomib (score=-1.0) |
+| Top 5 | bortezomib (-1.0), calcitriol (-0.858), dasatinib (-0.855), olaparib (-0.822), vorinostat (-0.766) |
+| EGFR inhibidores en top 20 | gefitinib (#7), erlotinib (#14), afatinib (#17) |
 
 **Outputs**:
 
-- `results/tables/drug_targets/07_cmap_results.tsv` — 3,478 compuestos con scaled_score
-- `results/tables/drug_targets/07_cmap_top_reversors.tsv` — top 200 reversores
+- `results/tables/drug_targets/07_l2s2_results.tsv` — 1,044 drugs con reversal_score
+- `results/tables/drug_targets/07_l2s2_top_reversors.tsv` — drugs con scaled_score < 0
+
+> `scripts/07_cmap_connectivity_DEPRECATED.R` — Script CMap2 original, conservado como referencia. NO ejecutar.
 
 ---
 
-Ultima actualizacion: 2026-03-04 | Pipeline: 14/14 COMPLETADO
+Ultima actualizacion: 2026-03-08 | Pipeline: 14/14 COMPLETADO
 
 ---
 
 ### `scripts/08_integrate_drug_targets.R` (COMPLETADO - 2026-03-04)
 
-**Proposito**: Unificar las 4 fuentes de farmacos (DGIdb, ChEMBL, Open Targets, CMap2) en una tabla maestra normalizada. Clasificar cada farmaco en categorias de reposicionamiento. Identificar candidatos multi-fuente.
+**Proposito**: Unificar las 4 fuentes de farmacos (DGIdb, ChEMBL, Open Targets, L2S2) en una tabla maestra normalizada. Clasificar cada farmaco en categorias de reposicionamiento. Identificar candidatos multi-fuente.
 
-**Inputs**: `04_dgidb_raw.tsv`, `05_chembl_drugs.tsv`, `06_opentargets_gene_drugs.tsv`, `07_cmap_results.tsv`
+**Inputs**: `04_dgidb_raw.tsv`, `05_chembl_drugs.tsv`, `06_opentargets_gene_drugs.tsv`, `07_l2s2_top_reversors.tsv`
 
 **Clasificacion de farmacos**:
 
@@ -453,7 +457,7 @@ Ultima actualizacion: 2026-03-04 | Pipeline: 14/14 COMPLETADO
 | A | Aprobado con indicacion directa HNSCC | Cedazuridine |
 | B | Aprobado para otro cancer | Bortezomib, Lapatinib |
 | C | Aprobado para indicacion no-oncologica | Metformin, Valproic acid |
-| D | Experimental / en investigacion | latamoxef, harmine |
+| D | Experimental / en investigacion | Compuestos experimentales no-aprobados |
 
 **Resultados**:
 
@@ -550,7 +554,7 @@ Rscript scripts/09_string_network.R
 composite = 0.20 x |logFC| normalizado (0-1)
           + 0.15 x significancia (-log10 adj.P normalizado)
           + 0.20 x fase clinica (aprobado=1, fase3=0.75, fase2=0.5, fase1=0.25, exp=0)
-          + 0.15 x CMap score (negativo invertido, normalizado)
+          + 0.15 x L2S2 reversal score (negativo invertido, normalizado)
           + 0.15 x pathway relevance (target en pathway enriquecido)
           + 0.15 x centralidad red (betweenness normalizado)
 ```

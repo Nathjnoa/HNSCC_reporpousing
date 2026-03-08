@@ -83,10 +83,10 @@
 
 - Ochoa D et al. (2021) Open Targets Platform: supporting systematic drug–target identification and prioritisation. *Nucleic Acids Research* 49:D1302–D1310. [PMID 33634751](https://pubmed.ncbi.nlm.nih.gov/33634751/) — Describe la integración de evidencia multi-fuente en Open Targets y su uso para priorización de targets, incluyendo la asociación a indicaciones oncológicas.
 
-**CMap / signatureSearch (Script 07):**
+**L2S2 / LINCS L1000 (Script 07):**
 
-- Lamb J et al. (2006) The Connectivity Map: using gene-expression signatures to connect small molecules, genes, and disease. *Science* 313:1929–1935. [PMID 17008526](https://pubmed.ncbi.nlm.nih.gov/17008526/) — Artículo fundacional de CMap; introduce el concepto de reversión de firma transcriptómica como estrategia de reposicionamiento.
-- Duan Y et al. (2022) signatureSearch: environment for gene expression signature searching and functional interpretation. *Nucleic Acids Research* 50:e49. [PMID 35089344](https://pubmed.ncbi.nlm.nih.gov/35089344/) — Describe el paquete R signatureSearch utilizado para el análisis CMap2, incluyendo la función `gess_cmap()`.
+- Evangelista JE et al. (2025) L2S2: chemical perturbation and CRISPR KO LINCS L1000 signature search engine. *Nucleic Acids Research* 53:W338–W344. [doi:10.1093/nar/gkae1059](https://doi.org/10.1093/nar/gkae1059) — Plataforma L2S2 usada para análisis de conectividad; indexa 1.67M firmas en 248 líneas celulares con acceso vía GraphQL API.
+- Lamb J et al. (2006) The Connectivity Map: using gene-expression signatures to connect small molecules, genes, and disease. *Science* 313:1929–1935. [PMID 17008526](https://pubmed.ncbi.nlm.nih.gov/17008526/) — Artículo fundacional del concepto de reversión de firma transcriptómica como estrategia de reposicionamiento (contexto histórico).
 
 ---
 

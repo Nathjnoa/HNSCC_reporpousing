@@ -80,7 +80,7 @@ El pipeline computacional (scripts 01-15) está completo. Lo que sigue son anál
 
 Puntos a incluir en la discusión del manuscrito:
 
-1. **Proteómica vs transcriptómica**: CMap2 usa firmas transcriptómicas de líneas celulares. La correlación proteoma-transcriptoma es ~0.6 en promedio; los resultados de CMap son sugestivos pero no concluyentes.
+1. **Proteómica vs transcriptómica**: L2S2 (LINCS L1000) usa firmas transcriptómicas de líneas celulares. La correlación proteoma-transcriptoma es ~0.6 en promedio; los resultados de reversión transcriptómica son sugestivos pero no concluyentes a nivel proteómico.
 
 2. **Tamaño de muestra**: n=10 pares pareados es estadísticamente robusto para detectar logFC>1 con FDR<5%, pero la generalización requiere validación en cohortes más grandes.
 

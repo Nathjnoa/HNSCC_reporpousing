@@ -10,14 +10,14 @@ Guia paso a paso para reproducir el analisis completo (16 scripts: 01–15 + 17)
 
 | Ambiente | Scripts | Proposito |
 | -------- | ------- | --------- |
-| `omics-R` | 01, 02, 03, 07, 08, 09, 10, 13, 14, 15, 17 | Analisis proteomica, enriquecimiento, red, scoring, figuras pub |
-| `omics-py` | 04, 05, 06, 11, 12 | Consultas a bases de datos de farmacos |
+| `omics-R` | 01, 02, 03, 08, 09, 10, 13, 14, 15, 17 | Analisis proteomica, enriquecimiento, red, scoring, figuras pub |
+| `omics-py` | 04, 05, 06, 07, 11, 12 | Consultas a bases de datos de farmacos (incluye L2S2) |
 
 ### Paquetes adicionales (instalar una sola vez)
 
 ```r
 # En omics-R
-BiocManager::install(c("ReactomePA", "signatureSearch", "ExperimentHub"))
+BiocManager::install(c("ReactomePA"))
 install.packages(c("igraph", "ggraph", "tidygraph", "yaml", "httr2", "jsonlite",
                     "openxlsx", "fs", "patchwork", "ggrepel"))
 ```
@@ -95,11 +95,16 @@ python scripts/06_query_opentargets.py
 ```
 
 ```bash
-conda activate omics-R
+conda activate omics-py
 
-# 07 - CMap2 connectivity analysis (requiere ~370MB de cache la primera vez)
-Rscript scripts/07_cmap_connectivity.R
-# Output: results/tables/drug_targets/07_cmap_*.tsv
+# 07 - L2S2 connectivity analysis (~2 min, requiere internet)
+python scripts/07_l2s2_connectivity.py
+# Output: results/tables/drug_targets/07_l2s2_results.tsv
+#         results/tables/drug_targets/07_l2s2_top_reversors.tsv
+```
+
+```bash
+conda activate omics-R
 
 # 08 - Integrar 4 fuentes en tabla maestra
 Rscript scripts/08_integrate_drug_targets.R
@@ -175,7 +180,7 @@ Rscript scripts/17_pub_figures.R
 ```text
 01 → 02 → 03
         → 04, 05, 06 (paralelos)
-        → 07 (CMap)
+        → 07 (L2S2)
               → 08 → 09 → 10 → 11, 12 (paralelos) → 13 → 14
                               ↓
                              15 (sensibilidad; requiere columna `bonus` de 10)
@@ -205,7 +210,7 @@ Los scripts solo pueden ejecutarse si sus dependencias estan completas. Respetar
 | Problema | Solucion |
 | -------- | -------- |
 | `conda: command not found` | `source ~/.bashrc` o usar ruta completa: `~/anaconda3/bin/conda` |
-| Script 07 lento la primera vez | CMap2 (EH3224 — cmap_rank) descarga ~370MB de ExperimentHub. Solo ocurre una vez (se cachea). |
+| Script 07 lento o sin resultados | L2S2 requiere conexión a internet (l2s2.maayanlab.cloud). No descarga datos localmente; cada ejecución consulta la API (~2 min). |
 | Script 09 timeout en STRING API | Reintentar. STRING tiene rate limits; el script hace pausa entre batches. Si score >= 700 no retorna aristas, el script reintenta automáticamente con score = 400 y actualiza el umbral en consecuencia. |
 | Scripts 11-12 sin resultados de internet | Verificar conexion a internet. Las APIs de ClinicalTrials.gov y PubMed requieren acceso HTTPS. |
 | Script 11: advertencia de email NCBI | El script usa `NCBI_EMAIL` como identificador en PubMed E-utilities. Por defecto usa `jcarvajal@fucsalud.edu.co`. Para sobreescribir: `export NCBI_EMAIL="tu@email.com"` antes de ejecutar. |

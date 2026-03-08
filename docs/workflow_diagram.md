@@ -32,8 +32,8 @@ flowchart TD
     DB3[("Open Targets
     66 candidatos")]
 
-    DB4[("CMap2
-    174 reversores")]
+    DB4[("L2S2
+    1,044 drugs FDA")]
 
     INT["💊 Fase 3 — Integración de fármacos
     4 bases de datos consultadas en paralelo
@@ -45,7 +45,7 @@ flowchart TD
 
     SCO["Fase 4B — Puntuación multi-criterio
     6 criterios · 177 candidatos evaluados
-    Expresión · Clínica · CMap · Red · Rutas"]
+    Expresión · Clínica · L2S2 · Red · Rutas"]
 
     VAL["🏥 Fase 5 — Validación clínica
     11/20 candidatos con ensayos activos en HNSCC

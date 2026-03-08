@@ -148,34 +148,37 @@ Esta es la fase central del reposicionamiento. La estrategia es consultar múlti
 
 *Hallazgo más llamativo:* **Metformin** target **16 genes DE** simultáneamente. La metformina (antidiabético, inhibidor de complejo I mitocondrial/AMPK) tiene evidencia epidemiológica de efecto protector en varios cánceres. Que 16 de nuestras proteínas DE sean targets conocidos de metformina sugiere una perturbación del metabolismo oxidativo en el HNSCC.
 
-### Script 07: CMap — Compuestos que revierten la firma tumoral
+### Script 07: L2S2 — Compuestos que revierten la firma tumoral
 
-**¿Qué es CMap?** The Connectivity Map (Broad Institute). Mide las firmas transcriptómicas de miles de compuestos en líneas celulares. La idea central es: si un tumor sobreexpresa genes X,Y,Z y un fármaco los subregula, ese fármaco podría revertir el fenotipo tumoral.
+**¿Qué es L2S2?** LINCS L1000 Signature Search (Evangelista et al., NAR 2025). Plataforma que indexa 1.67 millones de firmas transcriptómicas de 248 líneas celulares tratadas con 33,621 compuestos + 7,508 KO CRISPR. Accesible vía GraphQL API pública sin descarga local. Reemplazó a CMap2 (signatureSearch) que solo cubría 3,478 compuestos en 4 líneas celulares.
 
-**Método usado:** `gess_cmap()` del paquete Bioconductor `signatureSearch`.
-- **Base de datos:** CMap2 (EH3223, 370MB, 3,478 compuestos × 12,403 genes, en Entrez IDs)
-- **Query signature:** top 150 proteínas más up-reguladas + top 150 más down-reguladas por logFC
-- **Overlap con CMap2:** 132/150 up, 134/150 down — excelente cobertura
-- **Score:** `scaled_score` (-1 a +1). **Negativo = reversal** (el compuesto produce el efecto opuesto a nuestro tumor)
+**Método:**
+
+- **Query A:** top 150 proteínas UP en tumor → busca firmas DOWN de fármacos (Fisher's exact test, OR + pvalue)
+- **Query B:** top 150 proteínas DOWN en tumor → busca firmas UP de fármacos
+- **Filtros:** `filterFda=TRUE` (solo drugs FDA-aprobados), `pvalue < 0.001`
+- **Score:** `reversal_score = -log10(best_p) × mean_log2(OR) × log2(n_sigs+1)`, normalizado a [-1, 0]
+- **Reversión consistente:** drug tiene hits en AMBAS queries (UP→DOWN y DOWN→UP)
 
 **Resultados:**
-- 3,478 compuestos evaluados en ~27 segundos
-- **174 reversores potentes** (bottom 5%, solo small molecules `trt_cp`)
-- Score mínimo (mejor reversor): -1.0
 
-*Top reversores con relevancia clínica/biológica:*
+- **1,044 drugs FDA-aprobados** evaluados (6× más que CMap2)
+- **248 líneas celulares** (62× más que CMap2)
+- **931/1,044 (89%)** con reversión bidireccional consistente
+
+*Top 5 reversores:*
 
 | Compuesto | Score | Relevancia |
 |-----------|-------|------------|
-| Progesterone | -0.977 | Hormona esteroidea; relevante en HNSCC HPV+ (eje hormonal) |
-| Harmine | -0.970 | Inhibidor DYRK1A/MAO; actividad antitumoral publicada |
-| Deferoxamine | -0.950 | Quelante de hierro; altera metabolismo de hierro tumoral |
-| Nimesulide | -0.909 | NSAID inhibidor COX-2; COX-2 sobre-expresada en HNSCC |
-| Mifepristone | -0.907 | Antiprogestágeno; actividad antitumoral en varios estudios |
-| Atropine | -0.914 | Anticolinérgico; nervios colinérgicos promueven tumors HNSCC |
-| Menadione | -0.924 | Vitamina K3; genera estrés oxidativo selectivo en células tumorales |
+| Bortezomib | -1.000 | Inhibidor proteasoma; aprobado mieloma/linfoma; actividad en HNSCC publicada |
+| Calcitriol | -0.858 | Vitamina D activa; receptor VDR presente en células HNSCC |
+| Dasatinib | -0.855 | Inhibidor BCR-ABL/Src; Src kinase relevante en invasión HNSCC |
+| Olaparib | -0.822 | Inhibidor PARP; señal de reparación de DNA en tumor |
+| Vorinostat | -0.766 | Inhibidor HDAC; efecto epigenético en células HNSCC documentado |
 
-*Nota técnica importante:* CMap usa firmas transcriptómicas; nosotros usamos proteómica. La proteómica correlaciona bien con la transcriptómica en muchos casos, pero no perfectamente. Los resultados de CMap deben considerarse como evidencia adicional, no como verdad absoluta.
+*Inhibidores EGFR en top 20:* gefitinib (#7), erlotinib (#14), afatinib (#17) — validación de consistencia con análisis previos.
+
+*Nota técnica:* L2S2 usa firmas transcriptómicas; nosotros usamos proteómica. La correlación transcriptómica-proteómica es imperfecta (~0.4-0.6 en general), por lo que los reversores deben considerarse como evidencia de soporte funcional, no absoluta. La cobertura de 1,044 drugs y 248 líneas celulares de L2S2 vs 3,478/4 de CMap2 aumenta sustancialmente la potencia estadística.
 
 ---
 
@@ -199,7 +202,7 @@ Esta es la fase central del reposicionamiento. La estrategia es consultar múlti
   04_query_dgidb.py        ✅  → 2,252 fármacos, 226 genes con interacciones
   05_query_chembl.py       ✅  → 89 fármacos fase≥3, 21 genes druggable
   06_query_opentargets.py  ✅  → 66 candidatos reposicionamiento novel
-  07_cmap_connectivity.R   ✅  → 174 reversores de firma tumoral
+  07_l2s2_connectivity.py  ✅  → 1,044 drugs FDA-aprobados, top: bortezomib (-1.000)
        |
        v
 [FASE 3: INTEGRACIÓN]
@@ -236,7 +239,7 @@ Unificamos los 4 listados independientes de fármacos en una sola tabla maestra 
 | A | Aprobado con indicación directa HNSCC | 1 | Cedazuridine |
 | B | Aprobado para otro cáncer | 51 | Bortezomib, Lapatinib, Decitabine |
 | C | Aprobado para indicación no-oncológica | 80 | Metformin, Valproic acid, Deferoxamine |
-| D | Experimental / investigación | 2,289 | Latamoxef, harmine, menadione |
+| D | Experimental / investigación | 2,289 | Compuestos no aprobados por FDA |
 
 **Hallazgo de integración:** 187 fármacos aparecen en ≥2 fuentes independientes. Esta convergencia multi-base-de-datos es el criterio más importante para priorizar, porque reduce drásticamente el riesgo de falsos positivos inherente en cualquier fuente individual.
 
@@ -296,7 +299,7 @@ Con 187 candidatos multi-fuente, necesitamos una forma objetiva de ordenarlos. E
 1. **|log2FC| del target** (peso 20%): cuánto cambia la proteína en tumor. Mayor cambio = mayor relevancia funcional.
 2. **Significancia estadística** (peso 15%): -log10(adj.P.Val). Protege contra ruido estadístico.
 3. **Fase clínica** (peso 20%): aprobado=1.0, fase3=0.75, fase2=0.5, fase1=0.25, experimental=0. Mayor peso porque determina la viabilidad translacional inmediata.
-4. **CMap score** (peso 15%): qué tan bien revierte la firma tumoral. Basado en evidencia funcional, no solo asociativa.
+4. **L2S2 reversal score** (peso 15%): qué tan bien revierte la firma tumoral. Basado en evidencia funcional (enriquecimiento bidireccional Fisher), no solo asociativa.
 5. **Pathway relevance** (peso 15%): si el target está en alguno de los pathways enriquecidos (ORA/GSEA significativos). Conexión con la biología alterada.
 6. **Centralidad en red** (peso 15%): betweenness normalizado. Hubs son candidatos de mayor impacto sistémico.
 
@@ -304,20 +307,20 @@ Con 187 candidatos multi-fuente, necesitamos una forma objetiva de ordenarlos. E
 
 Se excluyeron 27 fármacos no-antitumorales: gabapentinoides (CACNA2D1), anticoagulantes (F2), anti-amiloides Alzheimer (APP), y antídotos (ADH1B). Estos aparecían en trials HNSCC para manejo sintomático, no como terapia antitumoral.
 
-| Rank | Fármaco | Score | Target principal | Clase | Indicación actual |
-| ---- | ------- | ----- | ---------------- | ----- | ----------------- |
-| 1 | **Mavacamten** | 0.637 | MYH7 | C | Cardiomiopatía obstructiva |
-| 2 | Erlotinib HCl | 0.607 | EGFR | C | NSCLC, páncreas |
-| 3 | Lapatinib | 0.607 | EGFR | C | Cáncer de mama HER2+ |
-| 4 | Cetuximab | 0.607 | EGFR | C | **HNSCC** (control positivo) |
-| 5 | **Metformin HCl** | 0.600 | NDUFA/NDUFB/NDUFS | C | Diabetes tipo 2 |
-| 6 | Omecamtiv Mecarbil | 0.577 | MYH7 | B | Insuficiencia cardíaca |
-| 7 | Collagenase C.h. | 0.542 | COL/MMP8 | C | Contractura Dupuytren |
-| 8 | **Cedazuridine** | 0.541 | CDA | A | HNSCC (único clase A) |
-| 9 | Ocriplasmin | 0.536 | COL/LAM | C | Tracción vitreomacular |
-| 10 | Danicamtiv | 0.527 | MYH7 | D | Experimental (cardíaco) |
+| Rank | Fármaco | Score | L2S2 score | Clase | Indicación actual |
+| ---- | ------- | ----- | ---------- | ----- | ----------------- |
+| 1 | **Gefitinib** | 0.686 | -0.74 | B | NSCLC (EGFR mut) |
+| 2 | **Metformin** | 0.685 | -0.45 | C | Diabetes tipo 2 |
+| 3 | Vandetanib | 0.661 | -0.57 | B | Cáncer de tiroides |
+| 4 | Mavacamten | 0.635 | — | C | Cardiomiopatía obstructiva |
+| 5 | Tranylcypromine | 0.604 | -0.60 | C | Depresión (MAOI) |
+| 6 | Metformin HCl | 0.598 | — | C | Diabetes tipo 2 |
+| 7 | Azacitidine | 0.536 | -0.51 | B | MDS/AML |
+| 8 | **Cedazuridine** | 0.541 | — | A | HNSCC (único clase A) |
+| 9 | Doxycycline | 0.552 | -0.22 | C | Antibiótico |
+| 10 | Pargyline | 0.563 | -0.46 | C | Antihipertensivo (MAOI) |
 
-**Validación interna:** Cetuximab y Erlotinib (aprobados para HNSCC) en posiciones 2-4. Cedazuridine (clase A, HNSCC directo) en #8.
+**Validación interna:** Gefitinib (anti-EGFR) en #1 con L2S2 score -0.74. Cedazuridine (clase A, HNSCC directo) presente. Metformin (Complejo I mitocondrial) sigue en top 3.
 
 **Candidatos de reposicionamiento más interesantes:**
 
@@ -370,11 +373,11 @@ Esto reordena los candidatos: Mavacamten (#1 por scoring) baja porque no tiene t
 
 | Rank | Fármaco | Combined score |
 | ---- | ------- | -------------- |
-| 1 | Erlotinib | 0.764 |
-| 2 | Cetuximab | 0.764 |
-| 3 | Metformin | 0.760 |
-| 4 | Lapatinib | 0.724 |
-| 5 | Doxycycline | 0.638 |
+| 1 | Gefitinib | 0.731 |
+| 2 | Metformin | 0.811 (final: 0.685) |
+| 3 | Vandetanib | 0.565 |
+| 4 | Doxycycline | 0.470 |
+| 5 | Metformin HCl | 0.759 |
 
 El output principal es `13_FINAL_drug_candidates.xlsx` con 5 hojas: Top20_Final, Todos_Candidatos, Evidencia_Matriz, Ensayos_Clinicos, Metodologia.
 
@@ -396,11 +399,11 @@ El pipeline completo converge en una historia biológica coherente:
 
 4. **Doxycycline como candidato emergente**: Antibiótico tetraciclina con actividad anti-MMP bien documentada. 10 trials HNSCC, 41 papers. Bajo costo, perfil de seguridad conocido, y mecanismo biológicamente plausible.
 
-5. **Eje hormonal y CMap**: Progesterone y Mifepristone como top reversores CMap. En un contexto donde 60% de pacientes son HPV+, la alteración de señalización hormonal por el virus es biológicamente coherente.
+5. **Señal proteosómica y epigenética (L2S2)**: Bortezomib (inhibidor proteasoma, #1 L2S2), vorinostat (inhibidor HDAC, #5 L2S2) y calcitriol (vitamina D, #2 L2S2) como top reversores. El proteasoma es una diana emergente en HNSCC con evidencia experimental publicada.
 
-6. **Inflamación**: Nimesulide (COX-2) como reversor CMap. COX-2 está frecuentemente sobre-expresada en HNSCC y su inhibición tiene precedente experimental.
+6. **Inhibidores EGFR validados por L2S2**: Gefitinib (#7), erlotinib (#14) y afatinib (#17) entre los top 20 reversores L2S2, confirmando la relevancia de EGFR desde tres análisis independientes (expresión, ClinicalTrials, y firma transcriptómica).
 
-**Conclusión**: El pipeline identifica consistentemente 3 ejes terapéuticos principales en HNSCC: señalización EGFR (ya explotado clínicamente), metabolismo mitocondrial (Metformin, oportunidad de reposicionamiento), y remodelación de ECM (Doxycycline, oportunidad de reposicionamiento).
+**Conclusión**: El pipeline identifica consistentemente 3 ejes terapéuticos principales en HNSCC: señalización EGFR (gefitinib, vandetanib, erlotinib — ya explotado clínicamente), metabolismo mitocondrial (Metformin, oportunidad de reposicionamiento con 29 trials activos), y remodelación de ECM (Doxycycline, oportunidad de reposicionamiento). La integración de L2S2 añade evidencia funcional de reversión transcriptómica que refuerza los candidatos identificados por expresión proteómica.
 
 ---
 

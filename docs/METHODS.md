@@ -1,6 +1,6 @@
 # Methods — HNSCC Drug Repurposing Pipeline
 
-*Generated automatically by 14_methods_summary.R on 2026-03-07*
+*Generated automatically by 14_methods_summary.R on 2026-03-08*
 
 ---
 
@@ -45,8 +45,10 @@ Parameters: minGSSize=10, maxGSSize=500, permutations=1000.
 - **DGIdb**: GraphQL API v5, all 520 DE genes queried.
 - **ChEMBL**: REST API v33, drugs in clinical phase >= 3.
 - **Open Targets**: GraphQL API, HNSCC association (EFO_0000181) + known drugs.
-- **CMap2**: `gess_cmap()` from signatureSearch; query = top 150 up + 150 down proteins
-  by log2FC; reversors = bottom 5% scaled_score (threshold = -0.718).
+- **L2S2 (LINCS L1000 Signature Search)**: API GraphQL publica (l2s2.maayanlab.cloud);
+  enriquecimiento bidireccional: top 150 proteinas UP vs firmas DOWN del farmaco + top 150 DOWN vs firmas UP;
+  filtro filterFda=TRUE; pvalue < 0.001; 248 lineas celulares; 1,044 drugs FDA-aprobados evaluados;
+  reversal_score = -log10(best_p) x mean_log2(OR) x log2(n_sigs+1), normalizado a [-1, 0].
 
 ---
 
@@ -71,7 +73,7 @@ Six-dimension composite score:
 - |log2FC| (w=0.2)
 - Significance (w=0.15)
 - Clinical phase (w=0.2)
-- CMap reversal (w=0.15)
+- L2S2 reversal (w=0.15)
 - Pathway relevance (w=0.15)
 - Network centrality (w=0.15)
 
@@ -102,7 +104,6 @@ Key R packages:
 - limma v3.62.2
 - clusterProfiler v4.14.6
 - ReactomePA v1.50.0
-- signatureSearch v1.20.0
 - igraph v2.2.1
 - ggraph v2.2.2
 - openxlsx v4.2.8.1
@@ -112,10 +113,10 @@ Key R packages:
 Key packages: requests, pandas, numpy, matplotlib
 
 **Databases:** DGIdb v5, ChEMBL v33, Open Targets (Mar 2026),
-CMap2 cmap_rank (EH3225, signatureSearch), STRING v12, ClinicalTrials.gov API v2,
+L2S2 LINCS L1000 (l2s2.maayanlab.cloud, Evangelista et al. 2025), STRING v12, ClinicalTrials.gov API v2,
 NCBI PubMed, MSigDB Hallmark, NCG7
 
-**Analysis date:** 2026-03-07
+**Analysis date:** 2026-03-08
 
 **Reproducibility:** Parameters in `config/analysis_params.yaml`;
 scripts 01-14 in `scripts/`; execution order in `docs/RUNBOOK.md`.
