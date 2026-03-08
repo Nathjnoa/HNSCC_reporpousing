@@ -115,6 +115,33 @@ candidates <- candidates_raw %>%
 
 cat(sprintf("Candidatos tras dedup por ChEMBL ID: %d\n", nrow(candidates)))
 
+# Deduplicar por nombre base (eliminar sufijos de sal/formulacion).
+# Algunos compuestos tienen ChEMBL IDs distintos para la sal y la base (ej.
+# METFORMIN CHEMBL1431 vs METFORMIN HYDROCHLORIDE CHEMBL1703). Se colapsan
+# por nombre base, conservando la entrada con mayor n_sources.
+SALT_SUFFIXES <- paste0(
+  "(\\s+(hydrochloride|hydrobromide|hydroiodide|",
+  "hcl|hbr|hcloride|",
+  "calcium|sodium|potassium|magnesium|zinc|",
+  "hyclate|monohydrate|dihydrate|trihydrate|anhydrous|",
+  "phosphate|sulfate|sulphate|acetate|tartrate|maleate|",
+  "fumarate|mesylate|besylate|citrate|bromide|chloride|",
+  "lactate|succinate|gluconate|malate|nitrate|oxalate|",
+  "tosylate|pamoate|xinafoate|edisylate))+$"
+)
+
+candidates <- candidates %>%
+  mutate(drug_name_base = str_trim(str_remove(drug_name_norm,
+                                               regex(SALT_SUFFIXES, ignore_case = TRUE)))) %>%
+  group_by(drug_name_base) %>%
+  # Usar el nombre base para display; conservar el maximo n_sources del grupo
+  mutate(n_sources = max(n_sources)) %>%
+  slice_min(nchar(drug_name_norm), n = 1, with_ties = FALSE) %>%
+  mutate(drug_name_norm = drug_name_base) %>%
+  ungroup()
+
+cat(sprintf("Candidatos tras dedup por nombre base (sales): %d\n", nrow(candidates)))
+
 # Tabla DE (script 02) — logFC y p-valor por gen
 sig <- read.delim("results/tables/de_limma/02_TVsS_significant_with_ids.tsv",
                   stringsAsFactors = FALSE)
