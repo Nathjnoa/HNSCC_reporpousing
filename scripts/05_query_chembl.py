@@ -45,6 +45,10 @@ log = logging.getLogger(__name__)
 log.info("=== 05_query_chembl.py (REST, sin libreria) ===")
 log.info(f"Inicio: {datetime.now()}")
 
+QUERY_DATE = datetime.now().strftime("%Y-%m-%d")
+log.info(f"ChEMBL API query date: {QUERY_DATE}")
+log.info("ChEMBL version: v33 REST API (https://www.ebi.ac.uk/chembl/api/data/)")
+
 # ---------------------------------------------------------------------------
 # Parametros desde config
 # ---------------------------------------------------------------------------
@@ -288,6 +292,7 @@ for _, r in summary.head(10).iterrows():
     )
 
 # Exportar
+df_out.insert(0, "query_date", QUERY_DATE)
 df_out.to_csv( "results/tables/drug_targets/05_chembl_drugs.tsv",   sep="\t", index=False)
 summary.to_csv("results/tables/drug_targets/05_chembl_summary.tsv", sep="\t", index=False)
 

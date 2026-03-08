@@ -37,6 +37,10 @@ log = logging.getLogger(__name__)
 log.info("=== 04_query_dgidb.py ===")
 log.info(f"Inicio: {datetime.now()}")
 
+QUERY_DATE = datetime.now().strftime("%Y-%m-%d")
+log.info(f"DGIdb API query date: {QUERY_DATE}")
+log.info("DGIdb version: v5 GraphQL (https://www.dgidb.org/api/graphql)")
+
 # ---------------------------------------------------------------------------
 # Parametros
 # ---------------------------------------------------------------------------
@@ -261,6 +265,7 @@ out_raw     = "results/tables/drug_targets/04_dgidb_raw.tsv"
 out_summary = "results/tables/drug_targets/04_dgidb_summary.tsv"
 out_empty   = "results/tables/drug_targets/04_dgidb_no_interactions.txt"
 
+df_dedup.insert(0, "query_date", QUERY_DATE)
 df_dedup.to_csv(out_raw,     sep="\t", index=False)
 summary.to_csv(out_summary,  sep="\t", index=False)
 with open(out_empty, "w") as f:
