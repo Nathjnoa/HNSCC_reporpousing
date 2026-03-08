@@ -19,6 +19,7 @@ import logging
 import os
 from datetime import datetime
 
+import yaml
 import requests
 import pandas as pd
 
@@ -41,6 +42,15 @@ log = logging.getLogger(__name__)
 
 log.info("=== 06_query_opentargets.py ===")
 log.info(f"Inicio: {datetime.now()}")
+
+# Read minimum HNSCC score from config
+with open("config/analysis_params.yaml") as _f:
+    _cfg = yaml.safe_load(_f)
+MIN_HNSCC_SCORE = _cfg.get("opentargets", {}).get("min_hnscc_score", 0.2)
+
+QUERY_DATE = datetime.now().strftime("%Y-%m-%d")
+log.info(f"Open Targets API query date: {QUERY_DATE}")
+log.info(f"Min HNSCC association score: {MIN_HNSCC_SCORE}")
 
 # ---------------------------------------------------------------------------
 # Parametros
@@ -126,11 +136,14 @@ for page in range(n_pages):
         continue
     rows = data["disease"]["associatedTargets"]["rows"]
     for r in rows:
+        score = r["score"]
+        if score < MIN_HNSCC_SCORE:
+            continue
         sym = r["target"]["approvedSymbol"].upper()
         hnscc_target_map[sym] = {
             "ensembl_id":   r["target"]["id"],
             "symbol":       r["target"]["approvedSymbol"],
-            "hnscc_score":  r["score"],
+            "hnscc_score":  score,
         }
     if (page + 1) % 5 == 0:
         log.info(f"  Pagina {page+1}/{n_pages} | targets en mapa: {len(hnscc_target_map)}")
@@ -387,6 +400,7 @@ for _, r in top_drugs.iterrows():
 
 # Exportar
 out_drugs = "results/tables/drug_targets/06_opentargets_gene_drugs.tsv"
+df_dedup.insert(0, "query_date", QUERY_DATE)
 df_dedup.to_csv(out_drugs, sep="\t", index=False)
 log.info(f"\nExportado: {out_drugs}  ({len(df_dedup)} filas)")
 log.info(f"\nSiguiente: scripts/07_cmap_connectivity.R")
