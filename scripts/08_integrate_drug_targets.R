@@ -325,6 +325,47 @@ for (i in seq_len(nrow(class_counts))) {
               class_counts$drug_class_label[i], class_counts$n[i]))
 }
 
+# ---------------------------------------------------------------------------
+# 4b. Corrección manual: drogas aprobadas para HNSCC con indicación conocida
+#     que pueden no estar correctamente clasificadas por EFO matching.
+# ---------------------------------------------------------------------------
+HNSCC_APPROVED_OVERRIDE <- c(
+  "CETUXIMAB",      # FDA/EMA: SCCHNeck + colorectal; EFO mismatch frecuente
+  "PEMBROLIZUMAB",  # FDA: HNSCC R/M (2nd line)
+  "NIVOLUMAB"       # FDA: HNSCC R/M
+)
+
+n_overridden <- sum(
+  toupper(drug_summary$drug_name_norm) %in% HNSCC_APPROVED_OVERRIDE &
+    drug_summary$drug_class != "A"
+)
+if (n_overridden > 0) {
+  cat(sprintf("\n  Corrigiendo %d drogas a Clase A (HNSCC override manual):\n",
+              n_overridden))
+  drug_summary <- drug_summary %>%
+    mutate(
+      drug_class = ifelse(
+        toupper(drug_name_norm) %in% HNSCC_APPROVED_OVERRIDE,
+        "A", drug_class
+      ),
+      drug_class_label = case_when(
+        drug_class == "A" ~ "A: Approved + HNSCC evidence",
+        drug_class == "B" ~ "B: Approved other cancer",
+        drug_class == "C" ~ "C: Approved non-oncology",
+        drug_class == "D" ~ "D: Not approved / Experimental"
+      ),
+      hnscc_indication = ifelse(
+        toupper(drug_name_norm) %in% HNSCC_APPROVED_OVERRIDE,
+        TRUE, hnscc_indication
+      )
+    )
+  cat(paste(
+    drug_summary$drug_name_norm[toupper(drug_summary$drug_name_norm) %in%
+                                   HNSCC_APPROVED_OVERRIDE],
+    collapse = ", "
+  ), "\n")
+}
+
 # =============================================================================
 # 5. FILTRAR CANDIDATOS CON SOPORTE EN >= min_db FUENTES
 # =============================================================================
@@ -485,6 +526,12 @@ if (nrow(cmap_cands) >= 3) {
     print(p)
   })
 }
+
+cat("\nVerificación clasificación Clase A:\n")
+drug_summary %>%
+  filter(drug_class == "A") %>%
+  select(drug_name_norm, drug_class, hnscc_indication) %>%
+  print()
 
 # =============================================================================
 # 8. EXPORTAR
