@@ -1,36 +1,40 @@
 # ============================================================
 # Script: 01_parse_results_qc.R
 # Proyecto: HNSCC Drug Repurposing
-# Propósito: Parsear resultados de proteómica (proteoDA/limma),
-#            generar QC plots y exportar proteínas DE del
-#            contraste TVsS (Tumor vs Sano) para análisis
-#            downstream.
+# Propósito: Reanalizar proteómica con modelo limma HPV-ajustado
+#            (TVsS con HPV como covariable).
+#
+# Modelo: ~ condición (Tumor/Normal) + estado_VPH
+#         bloqueo intra-paciente vía duplicateCorrelation()
 #
 # Input:
-#   data/raw/results_proteomica.tsv    — output de write_limma_tables()
-#   data/raw/metadata.csv             — metadatos de muestras (condition, vph)
+#   data/raw/results_proteomica.tsv    — matrix procesada (log2, MinProb, median-norm)
+#   data/raw/metadata.csv             — metadatos (sample_id, condition, vph)
 #
 # Output:
 #   results/tables/de_limma/
-#     01_TVsS_all_proteins.tsv         — todas las proteínas con estadísticos TVsS
-#     01_TVsS_significant.tsv          — sig.FDR != 0 (up + down)
-#     01_TVsS_upregulated.tsv          — sig.FDR == 1
-#     01_TVsS_downregulated.tsv        — sig.FDR == -1
+#     01_TVsS_all_proteins.tsv         — todas las proteínas con estadísticos
+#     01_TVsS_significant.tsv          — adj.P.Val < 0.05 & |logFC| > 1
+#     01_TVsS_upregulated.tsv
+#     01_TVsS_downregulated.tsv
+#     01_missingness_analysis.tsv      — % missing por proteína/grupo (bias check)
 #   results/figures/qc/
-#     01_boxplot_intensidades.pdf      — distribución log2 por muestra
-#     01_PCA_muestras.pdf              — PCA coloreado por condición y VPH
-#     01_volcano_TVsS.pdf              — volcano plot mejorado
-#     01_resumen_DE.pdf                — conteos up/down
+#     01_boxplot_intensidades.pdf
+#     01_PCA_muestras.pdf
+#     01_volcano_TVsS.pdf
+#     01_resumen_DE.pdf
+#     01_missingness_vs_direction.pdf  — NUEVO: sesgo MinProb imputation
 #
 # Ambiente: omics-R
 # ============================================================
 
 suppressPackageStartupMessages({
   library(tidyverse)
+  library(limma)
   library(ggrepel)
   library(patchwork)
-  library(pheatmap)
   library(viridis)
+  library(yaml)
 })
 
 # ── Rutas ────────────────────────────────────────────────────
@@ -101,84 +105,178 @@ intensity_cols <- colnames(raw)[4:23]   # M1S, M1T, ..., M10S, M10T
 # Convertir intensidades a numérico (pueden quedar como character)
 raw[, intensity_cols] <- lapply(raw[, intensity_cols], as.numeric)
 
-# Convertir estadísticos TVsS a numérico
-raw[, paste0(stat_cols, "_TVsS")] <-
-  lapply(raw[, paste0(stat_cols, "_TVsS")], function(x) as.numeric(as.character(x)))
-
 cat("  Columnas de intensidades:", paste(intensity_cols, collapse = ", "), "\n\n")
 
 # ============================================================
-# 2. CARGAR METADATA
+# 2. CARGAR METADATA — incluir patient_id para diseño pareado
 # ============================================================
 meta <- read.csv2(meta_file, stringsAsFactors = FALSE)
-# meta tiene: sample_id, condition, vph, group
+# Extraer patient_id desde nombre de muestra: M1S/M1T -> patient "M1"
+meta <- meta %>%
+  mutate(patient_id = sub("[ST]$", "", sample_id))
+
 cat("-- Metadata:\n")
 print(table(meta$condition, meta$vph))
-cat("\n")
+cat("\nPacientes únicos:", n_distinct(meta$patient_id), "\n")
+cat("(esperado: 10 pacientes, 2 muestras c/u = 20 total)\n\n")
+
+# Verificar alineación muestra-columna
+stopifnot("Muestras en metadata no coinciden con columnas de intensidades" =
+          all(intensity_cols %in% meta$sample_id))
+meta <- meta[match(intensity_cols, meta$sample_id), ]  # alinear orden
 
 # ============================================================
-# 3. RESUMEN DE PROTEÍNAS SIGNIFICATIVAS (TVsS)
+# 3. ANÁLISIS DE MISSINGNESS — verificar sesgo de imputación MinProb
 # ============================================================
-cat("-- Resumen TVsS (Tumor vs Sano):\n")
-cat("  Total proteínas cuantificadas:", nrow(raw), "\n")
+cat("-- Análisis de missingness por grupo...\n")
 
-# Nota: proteoDA puede producir valores no enteros (ej. 0.73, 1.71) en sig.FDR
-# para proteínas borderline. Solo incluimos valores exactos 1 y -1.
-n_up   <- sum(raw$sig.FDR_TVsS ==  1, na.rm = TRUE)
-n_down <- sum(raw$sig.FDR_TVsS == -1, na.rm = TRUE)
-n_ns   <- nrow(raw) - n_up - n_down   # resto = NS (incluye NA y borderline)
+expr_raw_preimputation <- as.matrix(raw[, intensity_cols])
+rownames(expr_raw_preimputation) <- raw$gene_symbol
 
-cat("  Upregulated   (sig.FDR = 1) :", n_up, "\n")
-cat("  Downregulated (sig.FDR = -1):", n_down, "\n")
-cat("  No significativas           :", n_ns, "\n")
-cat("  Total significativas        :", n_up + n_down, "\n\n")
+normal_cols  <- meta$sample_id[meta$condition == "NORMAL"]
+tumor_cols   <- meta$sample_id[meta$condition == "TUMORAL"]
 
-# Rango de logFC en significativas
-sig_fc <- raw$logFC_TVsS[raw$sig.FDR_TVsS != 0]
-cat(sprintf("  logFC rango: %.2f a %.2f\n\n",
+missing_df <- data.frame(
+  gene_symbol   = raw$gene_symbol,
+  pct_missing_normal = rowMeans(is.na(expr_raw_preimputation[, normal_cols])) * 100,
+  pct_missing_tumor  = rowMeans(is.na(expr_raw_preimputation[, tumor_cols]))  * 100
+) %>%
+  mutate(
+    missing_diff = pct_missing_tumor - pct_missing_normal,
+    bias_flag    = abs(missing_diff) > 30  # diferencia >30% entre grupos = sospechoso
+  )
+
+n_biased <- sum(missing_df$bias_flag, na.rm = TRUE)
+cat(sprintf("  Proteínas con diferencial missingness >30%% entre grupos: %d / %d\n",
+            n_biased, nrow(missing_df)))
+
+write.table(missing_df,
+  file.path(out_tables, "01_missingness_analysis.tsv"),
+  sep = "\t", row.names = FALSE, quote = FALSE)
+
+# ============================================================
+# 4. MODELO LIMMA HPV-AJUSTADO
+#    ~ condition + vph_status
+#    bloqueo intra-paciente (duplicateCorrelation)
+# ============================================================
+cat("-- Construyendo modelo limma con covariable VPH...\n")
+
+params <- yaml::read_yaml(file.path(proj_dir, "config/analysis_params.yaml"))
+fc_thresh  <- params$de$log2fc_threshold      # 1.0
+pval_thr   <- params$de$adj_pval_threshold    # 0.05
+
+# Matriz de expresión: proteínas × muestras (ya log2, imputado, normalizado)
+expr_mat <- as.matrix(raw[, intensity_cols])
+rownames(expr_mat) <- raw$gene_symbol
+
+# Factores del diseño
+condition <- factor(meta$condition, levels = c("NORMAL", "TUMORAL"))
+vph       <- factor(meta$vph,       levels = c("NEGATIVE", "POSITIVE"))
+patient   <- factor(meta$patient_id)
+
+# Diseño sin intercepto para facilitar makeContrasts
+design <- model.matrix(~ 0 + condition + vph, data = data.frame(condition, vph))
+colnames(design) <- c("NORMAL", "TUMORAL", "VPH_POSITIVE")
+cat(sprintf("  Diseño: %d muestras × %d coeficientes\n", nrow(design), ncol(design)))
+cat("  Coeficientes:", paste(colnames(design), collapse = ", "), "\n")
+
+# Correlación inter-paciente (diseño pareado)
+cat("  Estimando correlación inter-paciente (duplicateCorrelation)...\n")
+corfit <- duplicateCorrelation(expr_mat, design, block = patient)
+cat(sprintf("  Correlación intra-paciente (consensus): %.3f\n",
+            corfit$consensus.correlation))
+
+# Ajuste del modelo con bloqueo por paciente
+fit <- lmFit(expr_mat, design,
+             block       = patient,
+             correlation = corfit$consensus.correlation)
+
+# Contraste: Tumoral vs Normal (ajustado por VPH)
+contrasts <- makeContrasts(TumoralVsNormal = TUMORAL - NORMAL, levels = design)
+fit2      <- contrasts.fit(fit, contrasts)
+fit2      <- eBayes(fit2, trend = TRUE)  # trend=TRUE para proteómica (heterocedasticidad)
+
+# Extraer resultados completos
+results_all <- topTable(fit2, coef = "TumoralVsNormal",
+                        n = Inf, adjust.method = "BH",
+                        sort.by = "none")
+results_all$gene_symbol <- rownames(results_all)
+
+# Unir con anotaciones originales (uniprot_id, entry_name)
+annot_cols <- raw %>% select(gene_symbol, uniprot_id, entry_name)
+results_all <- results_all %>%
+  left_join(annot_cols, by = "gene_symbol") %>%
+  # Renombrar columnas para compatibilidad downstream
+  rename(
+    logFC_TVsS        = logFC,
+    CI.L_TVsS         = CI.L,
+    CI.R_TVsS         = CI.R,
+    avg_intensity_TVsS = AveExpr,
+    t_stat_TVsS       = t,
+    B_stat_TVsS       = B,
+    P.Value_TVsS      = P.Value,
+    adj.P.Val_TVsS    = adj.P.Val
+  ) %>%
+  mutate(
+    sig.FDR_TVsS = case_when(
+      adj.P.Val_TVsS < pval_thr & logFC_TVsS >  fc_thresh ~  1L,
+      adj.P.Val_TVsS < pval_thr & logFC_TVsS < -fc_thresh ~ -1L,
+      TRUE                                                ~  0L
+    )
+  ) %>%
+  select(gene_symbol, uniprot_id, entry_name,
+         logFC_TVsS, CI.L_TVsS, CI.R_TVsS, avg_intensity_TVsS,
+         t_stat_TVsS, B_stat_TVsS, P.Value_TVsS, adj.P.Val_TVsS,
+         sig.FDR_TVsS)
+
+# Añadir columnas de intensidades para downstream (script 02 las espera)
+results_all <- results_all %>%
+  left_join(raw %>% select(gene_symbol, all_of(intensity_cols)), by = "gene_symbol")
+
+# Resumen
+n_up   <- sum(results_all$sig.FDR_TVsS ==  1, na.rm = TRUE)
+n_down <- sum(results_all$sig.FDR_TVsS == -1, na.rm = TRUE)
+n_ns   <- nrow(results_all) - n_up - n_down
+
+cat("\n=== Resultados limma HPV-ajustado ===\n")
+cat(sprintf("  Total proteínas:    %d\n", nrow(results_all)))
+cat(sprintf("  Upregulated:        %d\n", n_up))
+cat(sprintf("  Downregulated:      %d\n", n_down))
+cat(sprintf("  No significativas:  %d\n", n_ns))
+cat(sprintf("  Criterio: adj.P.Val < %.2f & |logFC| > %.1f (BH)\n", pval_thr, fc_thresh))
+
+sig_fc <- results_all$logFC_TVsS[results_all$sig.FDR_TVsS != 0]
+cat(sprintf("  logFC rango sig: %.2f a %.2f\n\n",
             min(sig_fc, na.rm = TRUE), max(sig_fc, na.rm = TRUE)))
 
 # ============================================================
-# 4. EXPORTAR TABLAS DE PROTEÍNAS DE
+# 5. EXPORTAR TABLAS
 # ============================================================
 cat("-- Exportando tablas...\n")
 
-# Columnas a incluir en los outputs
-tvs_stat_cols <- paste0(stat_cols, "_TVsS")
 out_cols <- c("gene_symbol", "uniprot_id", "entry_name",
-              tvs_stat_cols, intensity_cols)
+              "logFC_TVsS", "CI.L_TVsS", "CI.R_TVsS", "avg_intensity_TVsS",
+              "t_stat_TVsS", "B_stat_TVsS", "P.Value_TVsS", "adj.P.Val_TVsS",
+              "sig.FDR_TVsS", intensity_cols)
 
-# Todas las proteínas con estadísticos TVsS
-df_all <- raw[, out_cols]
-write.table(df_all,
-  file.path(out_tables, "01_TVsS_all_proteins.tsv"),
-  sep = "\t", row.names = FALSE, quote = FALSE)
+df_all  <- results_all
+df_sig  <- results_all %>% filter(sig.FDR_TVsS %in% c(1L, -1L))
+df_up   <- results_all %>% filter(sig.FDR_TVsS ==  1L)
+df_down <- results_all %>% filter(sig.FDR_TVsS == -1L)
 
-# Significativas (up + down) — filtro estricto: solo 1 o -1
-df_sig <- raw[!is.na(raw$sig.FDR_TVsS) & raw$sig.FDR_TVsS %in% c(1, -1), out_cols]
-write.table(df_sig,
-  file.path(out_tables, "01_TVsS_significant.tsv"),
-  sep = "\t", row.names = FALSE, quote = FALSE)
-
-# Solo upreguladas
-df_up <- raw[!is.na(raw$sig.FDR_TVsS) & raw$sig.FDR_TVsS == 1, out_cols]
-write.table(df_up,
-  file.path(out_tables, "01_TVsS_upregulated.tsv"),
-  sep = "\t", row.names = FALSE, quote = FALSE)
-
-# Solo downreguladas
-df_down <- raw[!is.na(raw$sig.FDR_TVsS) & raw$sig.FDR_TVsS == -1, out_cols]
-write.table(df_down,
-  file.path(out_tables, "01_TVsS_downregulated.tsv"),
-  sep = "\t", row.names = FALSE, quote = FALSE)
-
-cat(sprintf("  01_TVsS_all_proteins.tsv   : %d proteínas\n", nrow(df_all)))
-cat(sprintf("  01_TVsS_significant.tsv    : %d proteínas\n", nrow(df_sig)))
-cat(sprintf("  01_TVsS_upregulated.tsv    : %d proteínas\n", nrow(df_up)))
-cat(sprintf("  01_TVsS_downregulated.tsv  : %d proteínas\n\n", nrow(df_down)))
+for (pair in list(
+  list(df_all,  "01_TVsS_all_proteins.tsv"),
+  list(df_sig,  "01_TVsS_significant.tsv"),
+  list(df_up,   "01_TVsS_upregulated.tsv"),
+  list(df_down, "01_TVsS_downregulated.tsv")
+)) {
+  write.table(pair[[1]], file.path(out_tables, pair[[2]]),
+              sep = "\t", row.names = FALSE, quote = FALSE)
+  cat(sprintf("  %s: %d proteínas\n", pair[[2]], nrow(pair[[1]])))
+}
 
 # ============================================================
-# 5. FIGURA QC-1: BOXPLOT DE INTENSIDADES POR MUESTRA
+# 6. FIGURA QC-1: BOXPLOT DE INTENSIDADES POR MUESTRA
 # ============================================================
 cat("-- Generando figura QC-1: boxplot de intensidades...\n")
 
@@ -211,7 +309,7 @@ ggsave(file.path(out_figures, "01_boxplot_intensidades.pdf"),
 cat("  Guardado: 01_boxplot_intensidades.pdf\n")
 
 # ============================================================
-# 6. FIGURA QC-2: PCA DE MUESTRAS
+# 7. FIGURA QC-2: PCA DE MUESTRAS
 # ============================================================
 cat("-- Generando figura QC-2: PCA...\n")
 
@@ -255,12 +353,12 @@ ggsave(file.path(out_figures, "01_PCA_muestras.pdf"),
 cat("  Guardado: 01_PCA_muestras.pdf\n")
 
 # ============================================================
-# 7. FIGURA QC-3: VOLCANO PLOT TVsS
+# 8. FIGURA QC-3: VOLCANO PLOT TVsS
 # ============================================================
 cat("-- Generando figura QC-3: volcano plot TVsS...\n")
 
 # Preparar dataframe de volcáno con categoría DE
-df_volc <- raw %>%
+df_volc <- results_all %>%
   select(gene_symbol, logFC_TVsS, adj.P.Val_TVsS, sig.FDR_TVsS) %>%
   filter(!is.na(logFC_TVsS), !is.na(adj.P.Val_TVsS)) %>%
   mutate(
@@ -279,7 +377,6 @@ df_volc <- raw %>%
   )
 
 # Umbrales para líneas guía
-fc_thresh  <- 1.0
 pv_thresh  <- -log10(0.05)
 
 p_volc <- ggplot(df_volc,
@@ -318,7 +415,7 @@ ggsave(file.path(out_figures, "01_volcano_TVsS.pdf"),
 cat("  Guardado: 01_volcano_TVsS.pdf\n")
 
 # ============================================================
-# 8. FIGURA QC-4: RESUMEN CONTEOS DE/BARRAS
+# 9. FIGURA QC-4: RESUMEN CONTEOS DE/BARRAS
 # ============================================================
 cat("-- Generando figura QC-4: resumen conteos DE...\n")
 
@@ -347,10 +444,49 @@ ggsave(file.path(out_figures, "01_resumen_DE.pdf"),
 cat("  Guardado: 01_resumen_DE.pdf\n\n")
 
 # ============================================================
-# 9. RESUMEN FINAL
+# FIGURA QC-5: Missingness vs dirección DE (sesgo MinProb)
+# ============================================================
+cat("-- Generando figura QC-5: missingness vs dirección DE...\n")
+
+miss_de <- missing_df %>%
+  left_join(results_all %>% select(gene_symbol, logFC_TVsS, sig.FDR_TVsS),
+            by = "gene_symbol") %>%
+  mutate(
+    DE_status = case_when(
+      sig.FDR_TVsS ==  1 ~ "Up",
+      sig.FDR_TVsS == -1 ~ "Down",
+      TRUE               ~ "NS"
+    )
+  )
+
+p_miss <- ggplot(miss_de,
+                 aes(x = pct_missing_tumor, y = pct_missing_normal,
+                     color = DE_status, alpha = DE_status)) +
+  geom_point(size = 0.8) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed",
+              color = "black", linewidth = 0.5) +
+  scale_color_manual(values = c("Up" = "#D6604D", "Down" = "#4393C3", "NS" = "grey60")) +
+  scale_alpha_manual(values = c("Up" = 0.9, "Down" = 0.9, "NS" = 0.2)) +
+  labs(
+    title    = "Missingness por grupo — verificación sesgo MinProb",
+    subtitle = "Puntos sobre la diagonal = más missing en tumor (posible artefacto down-regulation)",
+    x = "% Missing en TUMORAL", y = "% Missing en NORMAL",
+    color = "DE status"
+  ) +
+  theme_classic(base_size = 11) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, size = 9)) +
+  guides(alpha = "none")
+
+ggsave(file.path(out_figures, "01_missingness_vs_direction.pdf"),
+       p_miss, width = 6.5, height = 6)
+cat("  Guardado: 01_missingness_vs_direction.pdf\n")
+
+# ============================================================
+# 10. RESUMEN FINAL
 # ============================================================
 cat("=== RESUMEN FINAL ===\n")
-cat("Proteínas totales cuantificadas :", nrow(raw), "\n")
+cat("Proteínas totales cuantificadas :", nrow(results_all), "\n")
 cat("Proteínas DE significativas     :", n_up + n_down, "\n")
 cat("  Upregulated                  :", n_up, "\n")
 cat("  Downregulated                :", n_down, "\n")
