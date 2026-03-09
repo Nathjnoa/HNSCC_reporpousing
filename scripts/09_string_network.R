@@ -95,7 +95,7 @@ cat("\n--- Cargando datos ---\n")
 sig <- read.delim("results/tables/de_limma/02_TVsS_significant_with_ids.tsv",
                   stringsAsFactors = FALSE)
 gene_meta <- sig %>%
-  select(symbol_org, uniprot_id, logFC_TVsS, adj.P.Val_TVsS) %>%
+  dplyr::select(symbol_org, uniprot_id, logFC_TVsS, adj.P.Val_TVsS) %>%
   mutate(direction = ifelse(logFC_TVsS > 0, "up", "down")) %>%
   distinct(symbol_org, .keep_all = TRUE)
 
@@ -192,7 +192,7 @@ if (score_max > 1) {
       score  = as.numeric(.data[[score_col]])
     ) %>%
     filter(score >= score_thr) %>%
-    select(gene_A, gene_B, score) %>%
+    dplyr::select(gene_A, gene_B, score) %>%
     distinct()
 } else {
   # Score en escala 0-1 (API v12)
@@ -203,7 +203,7 @@ if (score_max > 1) {
       score  = as.numeric(.data[[score_col]])
     ) %>%
     filter(score >= score_thr / 1000) %>%
-    select(gene_A, gene_B, score) %>%
+    dplyr::select(gene_A, gene_B, score) %>%
     distinct()
 }
 
@@ -312,7 +312,7 @@ suppressPackageStartupMessages({
 id_map <- tryCatch(
   read.delim("results/tables/de_limma/02_TVsS_significant_with_ids.tsv",
              stringsAsFactors = FALSE) %>%
-    select(symbol_org, entrez_id) %>%
+    dplyr::select(symbol_org, entrez_id) %>%
     filter(!is.na(entrez_id)) %>%
     distinct(symbol_org, .keep_all = TRUE),
   error = function(e) {
@@ -368,7 +368,7 @@ dir.create("results/tables/network", showWarnings = FALSE, recursive = TRUE)
 df_modules <- df_nodes %>%
   filter(!is.na(module_id)) %>%
   mutate(module_name = module_names[module_id]) %>%
-  select(gene_symbol, module_id, module_name, degree,
+  dplyr::select(gene_symbol, module_id, module_name, degree,
          betweenness_norm, direction, logFC_TVsS, is_hub) %>%
   arrange(module_id, desc(degree))
 
@@ -533,7 +533,7 @@ g_giant     <- induced_subgraph(g, vids = giant_nodes)
 # Atributos de nodos para ggraph
 node_attrs <- df_nodes %>%
   filter(gene_symbol %in% V(g_giant)$name) %>%
-  select(gene_symbol, degree, betweenness_norm, direction,
+  dplyr::select(gene_symbol, degree, betweenness_norm, direction,
          logFC_TVsS, is_hub, hub_score) %>%
   mutate(direction = coalesce(direction, "unknown"))
 
@@ -751,7 +751,7 @@ tryCatch({
 # =============================================================================
 cat("\n--- Exportando ---\n")
 df_nodes_export <- df_nodes %>%
-  left_join(df_modules %>% select(gene_symbol, module_name), by = "gene_symbol")
+  left_join(df_modules %>% dplyr::select(gene_symbol, module_name), by = "gene_symbol")
 
 write.table(df_nodes_export,
             "results/tables/network/09_network_node_metrics.tsv",
