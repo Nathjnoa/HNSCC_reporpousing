@@ -112,7 +112,7 @@ cat("  Columnas de intensidades:", paste(intensity_cols, collapse = ", "), "\n\n
 # ============================================================
 # 2. CARGAR METADATA — incluir patient_id para diseño pareado
 # ============================================================
-meta <- read.csv(meta_file, stringsAsFactors = FALSE)
+meta <- read.csv2(meta_file, stringsAsFactors = FALSE)  # separador ";" (formato real del archivo)
 # Extraer patient_id desde nombre de muestra: M1S/M1T -> patient "M1"
 meta <- meta %>%
   mutate(patient_id = sub("[ST]$", "", sample_id))
