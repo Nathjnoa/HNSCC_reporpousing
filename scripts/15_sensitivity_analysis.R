@@ -386,6 +386,142 @@ safe_pdf("results/figures/15_score_distribution.pdf", w = 12, h = 7, {
 # =============================================================================
 cat("\n--- Exportando ---\n")
 
+# =============================================================================
+# ANÁLISIS 2: Drop-one-database (leave-one-out por fuente)
+# =============================================================================
+cat("\n=== ANÁLISIS 2: Drop-one-database ===\n")
+
+min_db         <- params$candidates$min_databases   # 2 por defecto según config
+sources_to_drop <- c("DGIdb", "ChEMBL", "OpenTargets", "L2S2")
+
+lod_results <- lapply(sources_to_drop, function(drop_src) {
+  cat(sprintf("  Excluyendo fuente: %s\n", drop_src))
+
+  # Eliminar la fuente del string de fuentes y recontarlas
+  cands_filtered <- all_scored %>%
+    mutate(
+      sources_adj   = str_remove_all(sources, drop_src),
+      # Limpiar pipes dobles o iniciales/finales que puedan quedar tras la eliminación
+      sources_adj   = str_replace_all(sources_adj, "\\|{2,}", "|"),
+      sources_adj   = str_remove_all(sources_adj, "^\\||\\|$"),
+      # Contar fuentes restantes: si vacío = 0, si no vacío contar separadores + 1
+      n_sources_adj = ifelse(sources_adj == "", 0L,
+                             str_count(sources_adj, "\\|") + 1L)
+    ) %>%
+    filter(n_sources_adj >= min_db | drug_class %in% c("A", "B"))
+
+  if (nrow(cands_filtered) == 0) return(NULL)
+
+  scored_lod <- all_scored %>%
+    filter(drug_name_norm %in% cands_filtered$drug_name_norm) %>%
+    arrange(desc(final_score)) %>%
+    slice_head(n = top_n)
+
+  data.frame(
+    drug_name_norm = scored_lod$drug_name_norm,
+    rank_lod       = seq_len(nrow(scored_lod)),
+    drop_source    = drop_src,
+    stringsAsFactors = FALSE
+  )
+})
+
+df_lod <- bind_rows(lod_results)
+
+lod_stability <- df_lod %>%
+  group_by(drug_name_norm) %>%
+  summarise(n_lod_topN = n(), .groups = "drop") %>%
+  mutate(lod_stable = n_lod_topN == length(sources_to_drop))
+
+cat(sprintf("Drugs estables en top %d con cualquier fuente excluida: %d\n",
+            top_n, sum(lod_stability$lod_stable)))
+
+# =============================================================================
+# ANÁLISIS 3: Permutation test (distribución nula del composite score)
+# =============================================================================
+cat("\n=== ANÁLISIS 3: Permutation test (n=1000) ===\n")
+
+# Cargar tabla DE (proteómica) para obtener pi_stat por proteína
+de_file <- "results/tables/de_limma/02_TVsS_all_proteins_with_ids.tsv"
+if (!file.exists(de_file)) {
+  cat("WARN: archivo DE no encontrado:", de_file, "— omitiendo permutation test\n")
+} else {
+  gene_de <- read.delim(de_file, stringsAsFactors = FALSE)
+
+  # Calcular pi_stat si no existe
+  if (!"pi_stat" %in% colnames(gene_de)) {
+    gene_de <- gene_de %>%
+      mutate(pi_stat = sign(logFC_TVsS) * abs(logFC_TVsS) *
+               (-log10(adj.P.Val_TVsS + 1e-300)))
+  }
+
+  max_pi_real <- max(abs(gene_de$pi_stat), na.rm = TRUE)
+
+  # Pesos del scoring — usar config baseline del script 15
+  w_base <- weight_configs[["baseline"]]
+  # Baseline: logfc=0.20, sig=0.15, clinical=0.20, cmap=0.15, pathway=0.15, network=0.15
+  # Para el permutation test colapsamos logfc+sig en la componente molecular (pi_stat)
+  w_molec <- w_base["logfc"] + w_base["sig"]   # 0.35 combinado
+  w_clin  <- w_base["clinical"]                # 0.20
+  w_cmap  <- w_base["cmap"]                   # 0.15
+  w_path  <- w_base["pathway"]                # 0.15
+  w_net   <- w_base["network"]               # 0.15
+  # Renormalizar para que sumen 1 (ya suman 1 por construcción)
+
+  set.seed(2026)
+  n_perm <- 1000
+
+  perm_score_fn <- function() {
+    gene_de_perm <- gene_de %>%
+      mutate(pi_stat_perm = sample(pi_stat))
+    max_pi_perm <- max(abs(gene_de_perm$pi_stat_perm), na.rm = TRUE)
+    if (max_pi_perm == 0) max_pi_perm <- 1  # evitar division por cero
+
+    # Calcular s_pi_perm por candidato a partir de sus genes diana
+    s_pi_vec <- sapply(all_scored$de_genes, function(g) {
+      genes   <- if (is.na(g) || g == "") character(0) else
+                 strsplit(g, "\\|")[[1]]
+      pi_vals <- abs(gene_de_perm$pi_stat_perm[gene_de_perm$symbol_org %in% genes])
+      if (length(pi_vals) == 0) 0 else mean(pi_vals, na.rm = TRUE) / max_pi_perm
+    })
+
+    # Composite score permutado (estructura análoga a baseline)
+    s_comp_perm <- w_molec * s_pi_vec +
+                   w_clin  * all_scored$s_clinical +
+                   w_cmap  * all_scored$s_cmap +
+                   w_path  * all_scored$s_pathway +
+                   w_net   * all_scored$s_network
+
+    max(s_comp_perm, na.rm = TRUE)
+  }
+
+  perm_null       <- replicate(n_perm, perm_score_fn())
+  true_top_score  <- max(all_scored$composite_score, na.rm = TRUE)
+  perm_pval       <- mean(perm_null >= true_top_score)
+
+  cat(sprintf("Score real top-1 (composite_score): %.4f\n", true_top_score))
+  cat(sprintf("Permutation p-value (top score):     %.4f\n", perm_pval))
+  cat(sprintf("Distribucion nula: media=%.4f, SD=%.4f, p95=%.4f\n",
+              mean(perm_null), sd(perm_null), quantile(perm_null, 0.95)))
+
+  # Exportar resultados adicionales
+  write.table(lod_stability,
+              "results/tables/15_lod_stability.tsv",
+              sep = "\t", quote = FALSE, row.names = FALSE)
+
+  write.table(data.frame(
+    analysis       = "permutation_null",
+    n_permutations = n_perm,
+    true_top_score = true_top_score,
+    perm_pval      = perm_pval,
+    perm_mean      = mean(perm_null),
+    perm_sd        = sd(perm_null),
+    perm_95pct     = as.numeric(quantile(perm_null, 0.95))
+  ), "results/tables/15_permutation_test.tsv",
+  sep = "\t", quote = FALSE, row.names = FALSE)
+
+  cat("Exportados: 15_lod_stability.tsv y 15_permutation_test.tsv\n")
+}
+
 write.table(rank_wide_filtered,
             "results/tables/15_sensitivity_ranks.tsv",
             sep = "\t", quote = FALSE, row.names = FALSE)
