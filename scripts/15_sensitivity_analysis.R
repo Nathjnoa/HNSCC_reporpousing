@@ -52,20 +52,21 @@ cat("Inicio:", format(Sys.time()), "\n\n")
 # =============================================================================
 # CONFIGURACIONES DE PESOS
 # =============================================================================
+# NOTA: s_logfc + s_sig reemplazados por s_pi_stat (script 10 actualizado)
 weight_configs <- list(
-  baseline       = c(logfc=0.20, sig=0.15, clinical=0.20, cmap=0.15, pathway=0.15, network=0.15),
-  clinical_heavy = c(logfc=0.10, sig=0.10, clinical=0.45, cmap=0.10, pathway=0.15, network=0.10),
-  molecular_heavy= c(logfc=0.35, sig=0.25, clinical=0.15, cmap=0.10, pathway=0.10, network=0.05),
-  network_heavy  = c(logfc=0.15, sig=0.10, clinical=0.20, cmap=0.10, pathway=0.10, network=0.35),
-  pathway_heavy  = c(logfc=0.15, sig=0.10, clinical=0.20, cmap=0.10, pathway=0.35, network=0.10),
-  equal_weights  = c(logfc=1/6,  sig=1/6,  clinical=1/6,  cmap=1/6,  pathway=1/6,  network=1/6)
+  baseline       = c(pi_stat=0.35, clinical=0.20, cmap=0.15, pathway=0.15, network=0.15),
+  clinical_heavy = c(pi_stat=0.20, clinical=0.45, cmap=0.10, pathway=0.15, network=0.10),
+  molecular_heavy= c(pi_stat=0.60, clinical=0.15, cmap=0.10, pathway=0.10, network=0.05),
+  network_heavy  = c(pi_stat=0.25, clinical=0.20, cmap=0.10, pathway=0.10, network=0.35),
+  pathway_heavy  = c(pi_stat=0.25, clinical=0.20, cmap=0.10, pathway=0.35, network=0.10),
+  equal_weights  = c(pi_stat=0.20, clinical=0.20, cmap=0.20, pathway=0.20, network=0.20)
 )
 
 cat("Configuraciones de pesos:\n")
 for (nm in names(weight_configs)) {
   w <- weight_configs[[nm]]
-  cat(sprintf("  %-15s: logFC=%.2f sig=%.2f clin=%.2f cmap=%.2f path=%.2f net=%.2f (sum=%.2f)\n",
-              nm, w["logfc"], w["sig"], w["clinical"], w["cmap"], w["pathway"], w["network"],
+  cat(sprintf("  %-15s: pi_stat=%.2f clin=%.2f cmap=%.2f path=%.2f net=%.2f (sum=%.2f)\n",
+              nm, w["pi_stat"], w["clinical"], w["cmap"], w["pathway"], w["network"],
               sum(w)))
 }
 
@@ -127,7 +128,7 @@ get_top_diverse <- function(df, score_col, n = top_n) {
 # =============================================================================
 cat("\n--- Calculando rankings para 6 configuraciones ---\n")
 
-score_cols <- c("s_logfc", "s_sig", "s_clinical", "s_cmap", "s_pathway", "s_network")
+score_cols <- c("s_pi_stat", "s_clinical", "s_cmap", "s_pathway", "s_network")
 
 rank_list <- list()
 
@@ -136,8 +137,7 @@ for (config_name in names(weight_configs)) {
 
   scored_cfg <- all_scored %>%
     mutate(
-      composite_score_cfg = w["logfc"]   * s_logfc   +
-                            w["sig"]     * s_sig     +
+      composite_score_cfg = w["pi_stat"]  * s_pi_stat  +
                             w["clinical"]* s_clinical +
                             w["cmap"]    * s_cmap    +
                             w["pathway"] * s_pathway +
@@ -342,8 +342,7 @@ safe_pdf("results/figures/15_score_distribution.pdf", w = 12, h = 7, {
       filter(drug_name_norm %in% robust_names) %>%
       mutate(
         final_score_cfg = pmin(
-          w["logfc"]    * s_logfc   +
-          w["sig"]      * s_sig     +
+          w["pi_stat"]  * s_pi_stat  +
           w["clinical"] * s_clinical +
           w["cmap"]     * s_cmap    +
           w["pathway"]  * s_pathway +

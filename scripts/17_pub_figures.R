@@ -14,7 +14,7 @@
 #     A1_volcano          — Volcano plot mejorado (top labels ggrepel)
 #     A2_MA_plot          — MA plot (logFC vs intensidad media)
 #     A3_PCA              — PCA biplot con líneas de pares
-#     A4_heatmap_topDE    — Heatmap top 30 proteínas DE × 20 muestras
+#     A4_heatmap_topDE    — Heatmap top 40 proteínas DE × 20 muestras (20 up + 20 down)
 #   SECCIÓN B — Enriquecimiento funcional
 #     B1_hallmarks_barplot — Hallmarks GSEA horizontal por NES
 #   SECCIÓN C — Bases de datos de fármacos
@@ -29,12 +29,6 @@
 #   SECCIÓN F — Análisis de sensibilidad
 #     F1_bump_chart        — Bump chart estabilidad de ranks
 #     F2_stability_bar     — Barplot de robustez mejorado
-#   FIGURAS MULTIPANEL (para manuscrito)
-#     FIG1_QC_DE          — Volcano + MA
-#     FIG2_pathways       — Hallmarks
-#     FIG3_scoring        — Lollipop + Dot matrix
-#     FIG4_network        — Scatter logFC vs grado
-#     FIG5_sensitivity    — Bump chart + Stability bar
 #
 # Ambiente: omics-R
 # Ejecución:
@@ -367,9 +361,9 @@ cat("  A3: PCA — OK\n")
 
 # ── A4: Heatmap top 30 proteínas DE ──────────────────────────────────────────
 top_up   <- de %>% filter(direction == "up")   %>%
-  slice_max(logFC_TVsS, n = 15) %>% pull(gene_symbol)
+  slice_max(logFC_TVsS, n = 20) %>% pull(gene_symbol)
 top_down <- de %>% filter(direction == "down") %>%
-  slice_min(logFC_TVsS, n = 15) %>% pull(gene_symbol)
+  slice_min(logFC_TVsS, n = 20) %>% pull(gene_symbol)
 top_genes <- c(top_up, top_down)
 
 heat_mat <- expr_mat[top_genes[top_genes %in% rownames(expr_mat)], , drop = FALSE]
@@ -411,7 +405,7 @@ ht_de <- Heatmap(
   column_names_gp    = gpar(fontsize = 5.5),
   row_names_gp       = gpar(fontsize = 6.5),
   row_title_gp       = gpar(fontsize = 8, fontface = "bold"),
-  column_title       = "Top 30 differentially expressed proteins — Tumor vs. Adjacent Normal",
+  column_title       = "Top 40 differentially expressed proteins — Tumor vs. Adjacent Normal",
   column_title_gp    = gpar(fontsize = 8, fontface = "bold"),
   rect_gp            = gpar(col = "grey90", lwd = 0.4),
   heatmap_legend_param = list(
@@ -592,8 +586,8 @@ save_pub(p_deg_fc, "D1_degree_vs_logFC")
 cat("  D1: Degree vs logFC scatter — OK\n")
 
 # ── D2: Dot matrix de componentes de score ────────────────────────────────────
-score_cols   <- c("s_logfc","s_sig","s_clinical","s_cmap","s_pathway","s_network")
-score_labels <- c("Proteomics\n(logFC)","Proteomics\n(FDR)","Clinical\nphase",
+score_cols   <- c("s_pi_stat","s_clinical","s_cmap","s_pathway","s_network")
+score_labels <- c("Proteomics\n(pi-stat)","Clinical\nphase",
                   "CMap\nconn.","Pathway\nrelevance","Network\nhub")
 
 scores_long <- top20 %>%
@@ -852,43 +846,6 @@ p_stab <- ggplot(stab_df, aes(x = n_configs_top20, y = drug_label,
 
 save_pub(p_stab, "F2_stability_bar", "double_col", h_add = 70)
 cat("  F2: Stability bar — OK\n")
-
-# =============================================================================
-# FIGURAS MULTIPANEL (para manuscrito)
-# =============================================================================
-cat("\n--- Figuras multipanel para manuscrito ---\n")
-
-tag_theme <- theme(plot.tag = element_text(size = 10, face = "bold"))
-
-# FIG1: QC/DE — Volcano + MA
-p_fig1 <- (p_volcano | p_ma) +
-  plot_annotation(tag_levels = "A", theme = tag_theme)
-save_pub(p_fig1, "FIG1_QC_DE", "double_col")
-cat("  FIG1: Volcano + MA — OK\n")
-
-# FIG2: Pathways — Hallmarks
-p_fig2 <- p_hall +
-  plot_annotation(tag_levels = "A", theme = tag_theme)
-save_pub(p_fig2, "FIG2_pathways", "double_col", h_add = 50)
-cat("  FIG2: Pathways — OK\n")
-
-# FIG3: Scoring — Lollipop + Dot matrix
-p_fig3 <- (p_lollipop | p_dot_matrix) +
-  plot_annotation(tag_levels = "A", theme = tag_theme)
-save_pub(p_fig3, "FIG3_scoring", "double_col", h_add = 60)
-cat("  FIG3: Scoring — OK\n")
-
-# FIG4: Network — Degree vs logFC
-p_fig4 <- p_deg_fc +
-  plot_annotation(tag_levels = "A", theme = tag_theme)
-save_pub(p_fig4, "FIG4_network", "double_col")
-cat("  FIG4: Network — OK\n")
-
-# FIG5: Sensibilidad — Bump + Stability
-p_fig5 <- (p_bump | p_stab) +
-  plot_annotation(tag_levels = "A", theme = tag_theme)
-save_pub(p_fig5, "FIG5_sensitivity", "double_col", w_add = 20, h_add = 70)
-cat("  FIG5: Sensibilidad — OK\n")
 
 # =============================================================================
 # RESUMEN FINAL
