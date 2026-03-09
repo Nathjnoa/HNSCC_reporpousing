@@ -121,3 +121,49 @@ NCBI PubMed, MSigDB Hallmark, NCG7
 **Reproducibility:** Parameters in `config/analysis_params.yaml`;
 scripts 01-14 in `scripts/`; execution order in `docs/RUNBOOK.md`.
 
+---
+
+## Limitaciones Metodológicas
+
+### 1. Asunción transcriptómica en L2S2
+El análisis de conectividad de firmas (L2S2/LINCS L1000) se basa en respuestas
+transcriptómicas (mRNA) de líneas celulares tratadas. Los inputs al análisis
+(top 150 proteínas UP/DOWN por logFC proteómico) asumen que los cambios
+proteómicos tienen correspondencia directa con cambios en mRNA. La correlación
+mRNA-proteína en tumores sólidos es típicamente r ≈ 0.40–0.60 [PMID: 34425047].
+El peso de esta dimensión se redujo a 0.10 (vs. 0.15 original) para reflejar
+esta limitación. Los resultados de L2S2 deben interpretarse como evidencia
+de soporte, no primaria.
+
+### 2. Sesgo de imputación MinProb
+Los datos proteómicos fueron imputados con el método MinProb (valores
+ausentes → distribución en percentil 2.5). Este método asume que los valores
+ausentes son "below detection threshold" (MAR). Si las proteínas mitocondriales
+tienen más valores faltantes en tumor que en normal por razones biológicas reales
+(downregulation genuina), MinProb amplificará esta señal. El archivo
+`results/figures/qc/01_missingness_vs_direction.pdf` y
+`results/tables/de_limma/01_missingness_analysis.tsv` documentan el diferencial
+de missingness para cada proteína.
+
+### 3. Confounding HPV en el diseño
+Los 10 pares tumor/normal incluyen 6 pacientes HPV+ y 4 HPV-. HPV+ y HPV-
+tienen perfiles moleculares distintos (vías E6/E7, inmuno-infiltración,
+pronóstico diferencial). El modelo limma incluye HPV como covariable aditiva
+(~ condición + vph_status), absorbiendo la varianza HPV-dependiente. Sin
+embargo, la potencia estadística para detectar efectos de interacción
+(proteínas DE específicamente en HPV+ o HPV-) es limitada con n=6/4 por grupo.
+Los candidatos del pipeline representan biología compartida entre ambos subtipos.
+
+### 4. Tamaño muestral
+n=10 pares tumor/normal es adecuado para efectos de gran magnitud (|logFC| > 1)
+pero subóptimo para efectos moderados (0.5–1.0). Ver análisis de potencia en
+`docs/FUTURE_WORK.md`.
+
+### 5. Hubs de red: complejos multi-subunidad
+La definición de hubs por betweenness centrality (percentil 90 por módulo)
+puede identificar múltiples subunidades del mismo complejo físico (e.g., NADH
+dehydrogenase Complex I: NDUFA*, NDUFB*, NDUFS*) como hubs independientes.
+El script 09 usa detección de módulos Louvain y redefine hubs a nivel de
+módulo (intra-módulo betweenness top 10%) para mitigar este efecto. El score
+de red en script 10 incluye `module_diversity` (número de módulos distintos
+targetados) para penalizar fármacos que solo actúan sobre un complejo.
