@@ -2,6 +2,8 @@
 
 Guia paso a paso para reproducir el analisis completo (16 scripts: 01–15 + 17).
 
+*Última actualización: 2026-03-08 — Correcciones metodológicas aplicadas (HPV-adjusted model, pi-statistic GSEA, Louvain modules, scoring recalibrado)*
+
 ---
 
 ## Requisitos previos
@@ -52,14 +54,29 @@ Todos los scripts esperan ejecutarse desde la raiz del proyecto:
 cd ~/bioinfo/projects/hnscc_drug_repurposing
 ```
 
+### Nota sobre conda
+
+Si `conda` no está en el PATH, usar la ruta completa:
+
+```bash
+# En lugar de: conda activate omics-R
+/home/jcarvajalv/anaconda3/bin/conda run -n omics-R Rscript scripts/01_parse_results_qc.R
+
+# O activar primero:
+source ~/.bashrc && conda activate omics-R
+```
+
 ### Fase 1: Preparar datos (R)
 
 ```bash
 conda activate omics-R
 
-# 01 - Parsear TSV, QC plots, exportar tablas DE limpias
+# 01 - Modelo limma HPV-ajustado + duplicateCorrelation (diseño pareado)
+#      Exporta tablas DE + análisis de missingness
 Rscript scripts/01_parse_results_qc.R
-# Output: results/tables/de_limma/01_TVsS_*.tsv, results/figures/qc/01_*.pdf
+# Output: results/tables/de_limma/01_TVsS_*.tsv (666 sig: 329 up, 337 down)
+#         results/tables/de_limma/01_missingness_analysis.tsv
+#         results/figures/qc/01_*.pdf
 
 # 02 - Mapear UniProt → Entrez/Symbol
 Rscript scripts/02_id_mapping.R
@@ -69,7 +86,7 @@ Rscript scripts/02_id_mapping.R
 ### Fase 2: Enriquecimiento funcional (R)
 
 ```bash
-# 03 - ORA (GO/KEGG/Reactome) + GSEA (Hallmarks, GO BP, KEGG, Reactome)
+# 03 - ORA (GO/KEGG/Reactome) + GSEA con ranking π-estadístico (Hallmarks, GO BP, KEGG, Reactome)
 Rscript scripts/03_pathway_enrichment.R
 # Output: results/tables/pathway_enrichment/03_*.tsv, results/figures/pathway_enrichment/03_*.pdf
 ```
@@ -89,7 +106,7 @@ python scripts/04_query_dgidb.py
 python scripts/05_query_chembl.py
 # Output: results/tables/drug_targets/05_chembl_drugs.tsv
 
-# 06 - Open Targets GraphQL
+# 06 - Open Targets GraphQL (filtra por score HNSCC >= 0.2, ver config/analysis_params.yaml)
 python scripts/06_query_opentargets.py
 # Output: results/tables/drug_targets/06_opentargets_*.tsv
 ```
@@ -116,13 +133,14 @@ Rscript scripts/08_integrate_drug_targets.R
 ```bash
 conda activate omics-R
 
-# 09 - Red STRING + metricas de centralidad
+# 09 - Red STRING + Louvain modules + hubs por módulo (top 10% betweenness intra-módulo)
 Rscript scripts/09_string_network.R
-# Output: results/tables/network/09_*.tsv, results/figures/09_*.pdf
+# Output: results/tables/network/09_*.tsv (incluye 09_modules.tsv), results/figures/09_*.pdf
 
-# 10 - Scoring multi-criterio + Top 20 (aplica exclusiones de config)
+# 10 - Scoring multi-criterio recalibrado (pi-stat + diversidad de módulos + evidencia)
 Rscript scripts/10_prioritization_scoring.R
 # Output: results/tables/10_top20_candidates.tsv, results/tables/10_all_candidates_scored.tsv
+# Pesos actuales: pi_stat=0.25, clinical=0.20, pathway=0.15, network=0.15, evidence=0.15, cmap=0.10
 ```
 
 ### Fase 5: Validacion in silico (Python)
@@ -158,9 +176,11 @@ Rscript scripts/14_methods_summary.R
 ```bash
 conda activate omics-R
 
-# 15 - Analisis de sensibilidad de pesos (6 configuraciones)
+# 15 - Análisis de sensibilidad: 6 configs de pesos + drop-one-database + permutation test (n=1000)
 Rscript scripts/15_sensitivity_analysis.R
-# Output: results/tables/15_sensitivity_ranks.tsv, results/figures/15_score_distribution.pdf
+# Output: results/tables/15_sensitivity_ranks.tsv
+#         results/tables/15_lod_stability.tsv
+#         results/tables/15_permutation_test.tsv
 ```
 
 ### Fase 8: Figuras de publicacion (R)
@@ -198,7 +218,7 @@ Los scripts solo pueden ejecutarse si sus dependencias estan completas. Respetar
 | ------- | ----------- |
 | `results/tables/13_FINAL_drug_candidates.xlsx` | **Excel final** con Top 20, todos los candidatos, matriz de evidencia |
 | `results/tables/10_top20_candidates.tsv` | Top 20 candidatos con scores desglosados |
-| `results/tables/10_all_candidates_scored.tsv` | 177 candidatos con scoring completo |
+| `results/tables/10_all_candidates_scored.tsv` | Candidatos con scoring completo (s_pi_stat, s_clinical, s_cmap, s_pathway, s_network) |
 | `results/tables/network/09_network_giant.graphml` | Red PPI para visualizar en Cytoscape |
 | `docs/METHODS.md` | Seccion de metodos para manuscrito |
 | `docs/OUTPUTS.md` | Catalogo de todos los archivos generados |

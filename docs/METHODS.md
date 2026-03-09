@@ -1,6 +1,6 @@
 # Methods — HNSCC Drug Repurposing Pipeline
 
-*Generated automatically by 14_methods_summary.R on 2026-03-08*
+*Última actualización: 2026-03-08 (correcciones metodológicas aplicadas)*
 
 ---
 
@@ -9,18 +9,29 @@
 Quantitative proteomics data (Data-Independent Acquisition, DIA) from 10 paired
 tumor/normal tissue samples from head and neck squamous cell carcinoma (HNSCC)
 patients (n=20 total; 6 HPV-positive, 4 HPV-negative pairs) were processed
-with MaxQuant and differential expression analysis performed using proteoDA
-(a limma wrapper). The primary comparison was Tumor vs. Adjacent Normal (TVsS), averaging
-over HPV status (TVsS = Tumor vs. Sano/Adjacent Normal, column suffix in all
-output files). Proteins were considered significantly differentially expressed
-at |log2FC| > 1 and adjusted P-value
-(Benjamini-Hochberg) < 0.05.
+with MaxQuant. A total of 3,352 proteins were quantified across all samples.
 
 ---
 
-## Phase 1: Data Preparation
+## Phase 1: Differential Expression Analysis (Script 01)
 
-### Identifier mapping (Script 02)
+Differential expression was performed using **limma** with a HPV-adjusted model
+to account for the paired patient design and HPV status as a confounding variable.
+
+Model: `~ 0 + condition + vph`
+
+Within-patient correlation for paired samples (tumor/normal from the same patient)
+was estimated using `duplicateCorrelation()` with `patient_id` as blocking factor,
+then incorporated into `lmFit()`. Contrast: Tumor − Adjacent Normal (TVsS).
+Moderated t-statistics were computed with `eBayes(trend=TRUE)`.
+
+Proteins were considered significantly differentially expressed at |log2FC| > 1
+and adjusted P-value (Benjamini-Hochberg) < 0.05. Result: **3,352 proteins
+quantified; 666 significant (329 up, 337 down)**.
+
+---
+
+## Phase 1: Identifier Mapping (Script 02)
 
 UniProt IDs were mapped to Entrez gene IDs and HGNC gene symbols using
 `org.Hs.eg.db` via `bitr()` in the clusterProfiler package.
@@ -30,58 +41,95 @@ UniProt IDs were mapped to Entrez gene IDs and HGNC gene symbols using
 ## Phase 2: Functional Enrichment Analysis (Script 03)
 
 Over-representation analysis (ORA) was performed using `clusterProfiler`
-(v4.14.6) for Gene Ontology (BP, MF, CC),
-KEGG pathways, and Reactome pathways (ReactomePA). Background: all quantified
-proteins with Entrez IDs (n=3,262). Significance thresholds: P-adjusted < 0.05, Q-value < 0.2.
-GO BP terms were simplified using `simplify()` (semantic similarity cutoff=0.7).
+(v4.14.6) for Gene Ontology (BP, MF, CC), KEGG pathways, and Reactome pathways
+(ReactomePA). Background: all quantified proteins with Entrez IDs (n=3,262).
+Significance thresholds: P-adjusted < 0.05, Q-value < 0.2. GO BP terms were
+simplified using `simplify()` (semantic similarity cutoff=0.7).
 
-GSEA was performed against GO BP terms and MSigDB Hallmark gene sets.
-Parameters: minGSSize=10, maxGSSize=500, permutations=1000.
+GSEA was performed against GO BP terms and MSigDB Hallmark gene sets using a
+**pi-statistic ranked list**: `π = sign(logFC) × |logFC| × −log10(adj.P.Val + 1e-300)`.
+This combined effect size and significance into a single ranking metric, avoiding
+loss of information from using logFC alone. Parameters: minGSSize=10,
+maxGSSize=500, permutations=1000.
 
 ---
 
-## Phase 3: Drug-Target Database Queries (Scripts 04-07)
+## Phase 3: Drug-Target Database Queries (Scripts 04–07)
 
-- **DGIdb**: GraphQL API v5, all 520 DE genes queried.
-- **ChEMBL**: REST API v33, drugs in clinical phase >= 3.
-- **Open Targets**: GraphQL API, HNSCC association (EFO_0000181) + known drugs.
-- **L2S2 (LINCS L1000 Signature Search)**: API GraphQL publica (l2s2.maayanlab.cloud);
-  enriquecimiento bidireccional: top 150 proteinas UP vs firmas DOWN del farmaco + top 150 DOWN vs firmas UP;
-  filtro filterFda=TRUE; pvalue < 0.001; 248 lineas celulares; 1,044 drugs FDA-aprobados evaluados;
-  reversal_score = -log10(best_p) x mean_log2(OR) x log2(n_sigs+1), normalizado a [-1, 0].
+All queries include a `query_date` column recording the date of data retrieval
+to enable reproducibility assessment over time.
+
+- **DGIdb**: GraphQL API v5, all 666 DE proteins queried. Result: 3,542 interactions,
+  2,697 unique drugs.
+- **ChEMBL**: REST API v33, drugs in clinical phase ≥ 3. Result: 113 unique drugs,
+  74 approved + 39 Phase III.
+- **Open Targets**: GraphQL API, HNSCC association (EFO_0000181) with
+  `min_hnscc_score ≥ 0.2` filter applied. Known drugs queried per DE gene.
+  Result: 1,165 gene-drug pairs, 173 unique drugs.
+- **L2S2 (LINCS L1000 Signature Search)**: Public GraphQL API
+  (l2s2.maayanlab.cloud); bidirectional enrichment: top 150 UP proteins vs.
+  drug DOWN signatures + top 150 DOWN vs. drug UP signatures; filterFda=TRUE;
+  p-value < 0.001; 248 cell lines; 1,044 FDA-approved drugs evaluated.
+  `reversal_score = −log10(best_p) × mean_log2(OR) × log2(n_sigs+1)`,
+  normalized to [−1, 0]. **Limitation:** L2S2 uses transcriptomic (mRNA)
+  signatures; this analysis uses proteomics data. Connectivity scores reflect
+  mRNA-level perturbation similarity, which may not fully capture
+  protein-level effects.
 
 ---
 
 ## Phase 3: Drug Integration (Script 08)
 
-Four sources unified; drugs classified A (HNSCC-approved), B (other cancer),
-C (non-oncology), D (experimental). Multi-source candidates (>= 2 databases)
-prioritized for scoring.
+Four sources unified into a master drug-target table. Drugs classified:
+- **Class A**: HNSCC-approved (cetuximab, pembrolizumab, nivolumab included
+  via HNSCC-approved override regardless of source annotation)
+- **Class B**: Approved for other cancers
+- **Class C**: Approved for non-oncology indications
+- **Class D**: Experimental/investigational
+
+Multi-source candidates (≥ 2 databases) prioritized for scoring.
 
 ---
 
-## Phase 4: PPI Network (Script 09)
+## Phase 4: PPI Network Analysis (Script 09)
 
-STRING v12 REST API queried for DE proteins; combined_score >= 700 (high confidence).
-Metrics: degree, betweenness, eigenvector centrality (igraph v2.2.1). Hubs: top 10% by degree.
+STRING v12 REST API queried for DE proteins; combined_score ≥ 700 (high confidence).
+Network constructed with igraph v2.2.1.
+
+**Community detection**: Louvain algorithm (`cluster_louvain()`) applied to the
+giant component to identify functional protein modules. 22 modules detected;
+17 annotated with GO BP terms via ORA (clusterProfiler).
+
+**Hub definition**: Within each Louvain module, proteins in the top 10%
+by betweenness centrality (normalized) were classified as module hubs. This
+module-level definition avoids bias toward globally central proteins (e.g.,
+ribosomal proteins) that may not be druggable targets.
+Result: 74 module hubs across 22 modules; 498 nodes, 2,698 edges in giant component.
+
+Standard centrality metrics (degree, betweenness, eigenvector) computed for
+all nodes.
 
 ---
 
 ## Phase 4: Multi-Criteria Scoring (Script 10)
 
-Six-dimension composite score:
-- |log2FC| (w=0.2)
-- Significance (w=0.15)
-- Clinical phase (w=0.2)
-- L2S2 reversal (w=0.15)
-- Pathway relevance (w=0.15)
-- Network centrality (w=0.15)
+Six-dimension composite score (weights sum to 1.00):
+
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| π-statistic (proteomics) | 0.25 | `sign(logFC) × |logFC| × −log10(adj.P.Val + ε)`; replaces separate logFC (0.20) + significance (0.15) |
+| Clinical phase | 0.20 | Normalized max development phase across databases |
+| Pathway relevance | 0.15 | Overlap of drug targets with enriched GO/Hallmark pathways |
+| Network centrality | 0.15 | Module diversity: penalizes drugs targeting proteins in a single complex |
+| Evidence (trials + literature) | 0.15 | ClinicalTrials.gov + PubMed evidence score |
+| L2S2 connectivity | 0.10 | Transcriptomic reversal score (reduced weight due to data-type mismatch) |
 
 Top 20 selected with diversity filter (max 3 per primary target gene).
+Scores normalized [0, 1] per dimension before weighting.
 
 ---
 
-## Phase 5: Evidence Validation (Scripts 11-12)
+## Phase 5: Evidence Validation (Scripts 11–12)
 
 - **ClinicalTrials.gov API v2**: drug + HNSCC keyword search per candidate.
 - **PubMed E-utilities**: drug name (salt-simplified) + HNSCC MeSH query.
@@ -91,8 +139,26 @@ Top 20 selected with diversity filter (max 3 per primary target gene).
 
 ## Phase 5: Final Integration (Script 13)
 
-Combined rank score = 0.60 x multi-criteria score + 0.40 x clinical evidence score.
-Evidence levels 1-4 based on drug approval status and HNSCC indication.
+Combined rank score = 0.60 × multi-criteria score + 0.40 × clinical evidence score.
+Evidence levels 1–4 based on drug approval status and HNSCC indication.
+
+---
+
+## Phase 6: Sensitivity Analysis (Script 15)
+
+Robustness evaluated through three complementary analyses:
+
+1. **Weight sensitivity**: 6 alternative weight configurations (clinical-heavy,
+   molecular-heavy, network-heavy, pathway-heavy, equal weights) applied to
+   assess rank stability.
+2. **Drop-one-database**: Each of the 4 drug databases excluded in turn;
+   candidates stable in top 20 across all exclusions reported.
+3. **Permutation test** (n=1,000): Drug labels randomly shuffled; empirical
+   p-value computed for top-1 composite score.
+
+Result: 9 candidates highly stable (present in top 20 across all 6 weight
+configurations): GEFITINIB, METFORMIN, MAVACAMTEN, VANDETANIB, DIGOXIN,
+TRANYLCYPROMINE, DECITABINE, DIGITOXIN, CEDAZURIDINE.
 
 ---
 
@@ -109,61 +175,14 @@ Key R packages:
 - openxlsx v4.2.8.1
 - ComplexHeatmap v2.22.0
 
-**Python 3** (scripts 04, 05, 06, 11, 12)
+**Python 3** (scripts 04, 05, 06, 07, 11, 12)
 Key packages: requests, pandas, numpy, matplotlib
 
 **Databases:** DGIdb v5, ChEMBL v33, Open Targets (Mar 2026),
-L2S2 LINCS L1000 (l2s2.maayanlab.cloud, Evangelista et al. 2025), STRING v12, ClinicalTrials.gov API v2,
-NCBI PubMed, MSigDB Hallmark, NCG7
+L2S2 LINCS L1000 (l2s2.maayanlab.cloud, Evangelista et al. 2025), STRING v12,
+ClinicalTrials.gov API v2, NCBI PubMed, MSigDB Hallmark, NCG7
 
 **Analysis date:** 2026-03-08
 
 **Reproducibility:** Parameters in `config/analysis_params.yaml`;
-scripts 01-14 in `scripts/`; execution order in `docs/RUNBOOK.md`.
-
----
-
-## Limitaciones Metodológicas
-
-### 1. Asunción transcriptómica en L2S2
-El análisis de conectividad de firmas (L2S2/LINCS L1000) se basa en respuestas
-transcriptómicas (mRNA) de líneas celulares tratadas. Los inputs al análisis
-(top 150 proteínas UP/DOWN por logFC proteómico) asumen que los cambios
-proteómicos tienen correspondencia directa con cambios en mRNA. La correlación
-mRNA-proteína en tumores sólidos es típicamente r ≈ 0.40–0.60 [PMID: 34425047].
-El peso de esta dimensión se redujo a 0.10 (vs. 0.15 original) para reflejar
-esta limitación. Los resultados de L2S2 deben interpretarse como evidencia
-de soporte, no primaria.
-
-### 2. Sesgo de imputación MinProb
-Los datos proteómicos fueron imputados con el método MinProb (valores
-ausentes → distribución en percentil 2.5). Este método asume que los valores
-ausentes son "below detection threshold" (MAR). Si las proteínas mitocondriales
-tienen más valores faltantes en tumor que en normal por razones biológicas reales
-(downregulation genuina), MinProb amplificará esta señal. El archivo
-`results/figures/qc/01_missingness_vs_direction.pdf` y
-`results/tables/de_limma/01_missingness_analysis.tsv` documentan el diferencial
-de missingness para cada proteína.
-
-### 3. Confounding HPV en el diseño
-Los 10 pares tumor/normal incluyen 6 pacientes HPV+ y 4 HPV-. HPV+ y HPV-
-tienen perfiles moleculares distintos (vías E6/E7, inmuno-infiltración,
-pronóstico diferencial). El modelo limma incluye HPV como covariable aditiva
-(~ condición + vph_status), absorbiendo la varianza HPV-dependiente. Sin
-embargo, la potencia estadística para detectar efectos de interacción
-(proteínas DE específicamente en HPV+ o HPV-) es limitada con n=6/4 por grupo.
-Los candidatos del pipeline representan biología compartida entre ambos subtipos.
-
-### 4. Tamaño muestral
-n=10 pares tumor/normal es adecuado para efectos de gran magnitud (|logFC| > 1)
-pero subóptimo para efectos moderados (0.5–1.0). Ver análisis de potencia en
-`docs/FUTURE_WORK.md`.
-
-### 5. Hubs de red: complejos multi-subunidad
-La definición de hubs por betweenness centrality (percentil 90 por módulo)
-puede identificar múltiples subunidades del mismo complejo físico (e.g., NADH
-dehydrogenase Complex I: NDUFA*, NDUFB*, NDUFS*) como hubs independientes.
-El script 09 usa detección de módulos Louvain y redefine hubs a nivel de
-módulo (intra-módulo betweenness top 10%) para mitigar este efecto. El score
-de red en script 10 incluye `module_diversity` (número de módulos distintos
-targetados) para penalizar fármacos que solo actúan sobre un complejo.
+scripts 01–17 in `scripts/`; execution order in `docs/RUNBOOK.md`.
