@@ -1,0 +1,2 @@
+analysis	n_permutations	true_top_score	perm_pval	perm_mean	perm_sd	perm_95pct
+permutation_null	1000	0.534520697082612	0	-Inf	NA	-Inf

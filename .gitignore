@@ -1,7 +1,27 @@
-# Data and results (reproducible from scripts)
+# Data and logs (reproducible from scripts)
 data/
-results/
 logs/
+
+# Intermediate and QC results (not tracked)
+results/figures/qc/
+results/figures/pathway_enrichment/
+results/figures/evidence/
+results/figures/08_*.pdf
+results/figures/09_*.pdf
+results/figures/10_*.pdf
+results/tables/de_limma/01_TVsS_downregulated.tsv
+results/tables/de_limma/01_TVsS_upregulated.tsv
+results/tables/de_limma/01_missingness_analysis.tsv
+results/tables/de_limma/02_*.tsv
+results/tables/drug_targets/04_*
+results/tables/drug_targets/05_*.tsv
+results/tables/drug_targets/06_*.tsv
+results/tables/drug_targets/07_*.tsv
+results/tables/drug_targets/08_drug_summary_per_drug.tsv
+results/tables/evidence/11_trials_detail.tsv
+results/tables/evidence/12_cancer_drivers_annot.tsv
+results/tables/network/
+results/tables/pathway_enrichment/
 
 # R / RStudio
 .Rhistory
