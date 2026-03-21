@@ -22,6 +22,7 @@ from datetime import datetime
 import yaml
 import requests
 import pandas as pd
+from typing import Optional, Dict, List, Any
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -64,7 +65,7 @@ TIMEOUT     = 60
 # ---------------------------------------------------------------------------
 # Helper de consulta
 # ---------------------------------------------------------------------------
-def gql(query: str, variables: dict = None) -> dict | None:
+def gql(query: str, variables: Optional[Dict] = None) -> Optional[Dict]:
     payload = {"query": query}
     if variables:
         payload["variables"] = variables
@@ -126,7 +127,7 @@ total = data0["disease"]["associatedTargets"]["count"]
 n_pages = (total // PAGE_SIZE) + 1
 log.info(f"Total targets HNSCC: {total} | paginas: {n_pages}")
 
-hnscc_target_map: dict[str, dict] = {}  # symbol_upper -> {ensembl_id, score}
+hnscc_target_map: Dict[str, Dict] = {}  # symbol_upper -> {ensembl_id, score}
 
 for page in range(n_pages):
     data = gql(QUERY_ASSOC, {"efo": HNSCC_EFO, "page": page, "size": PAGE_SIZE})
@@ -156,7 +157,7 @@ log.info(f"Targets HNSCC en mapa: {len(hnscc_target_map)}")
 # ---------------------------------------------------------------------------
 log.info("\n--- Paso 2: Interseccion con genes DE ---")
 
-matched: list[dict] = []
+matched: List[Dict] = []
 for _, row in sig.iterrows():
     sym_up = str(row["symbol_org"]).upper() if pd.notna(row["symbol_org"]) else ""
     sym_up2 = str(row["gene_symbol"]).upper() if pd.notna(row["gene_symbol"]) else ""
@@ -208,7 +209,7 @@ query SearchGene($q: String!) {
 """
 
 # Construir mapa completo symbol -> ensembl_id (matched + search para no-matched)
-full_ensembl_map: dict[str, str] = {
+full_ensembl_map: Dict[str, str] = {
     r["symbol_org"]: r["ensembl_id"] for _, r in df_matched.iterrows()
     if pd.notna(r.get("symbol_org"))
 }
@@ -276,7 +277,7 @@ query TargetDrugs($ensembl: String!) {
 }
 """
 
-all_drug_rows: list[dict] = []
+all_drug_rows: List[Dict] = []
 genes_with_drugs = 0
 genes_no_drugs = 0
 

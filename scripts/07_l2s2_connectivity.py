@@ -66,11 +66,11 @@ log.info(f"Inicio: {datetime.now()}")
 # Parámetros
 # ---------------------------------------------------------------------------
 L2S2_URL      = "https://l2s2.maayanlab.cloud/graphql"
-TOP_N_GENES   = 150       # genes up y down por logFC para la firma query
-PVALUE_LE     = 0.001     # umbral de pvalue para nodos L2S2 (estricto para eficiencia)
+TOP_N_GENES   = 150       # genes per direction (up/down) sent to L2S2 query
+PVALUE_LE     = 0.001     # leading-edge p-value filter for L2S2 results
 BATCH_SIZE    = 500       # nodos por request de paginación
-MAX_NODES     = 50_000    # máximo nodos a recuperar por query (safety cap)
-SLEEP_SEC     = 0.3       # pausa entre requests
+MAX_NODES     = 50_000    # safety cap to avoid memory issues on large graphs
+SLEEP_SEC     = 0.3       # delay between L2S2 API requests (rate limit)
 TIMEOUT       = 90        # segundos timeout por request
 
 # ---------------------------------------------------------------------------
@@ -135,7 +135,7 @@ def parse_drug_term(term):
 
     # Buscar índice de concentración (último elemento que parece concentración)
     conc_idx = None
-    for i in range(len(parts) - 1, 3, -1):
+    for i in range(len(parts) - 1, 3, -1):  # minimum parts to consider a valid drug name token
         if CONC_RE.match(parts[i]):
             conc_idx = i
             break
@@ -298,7 +298,7 @@ for drug in all_drugs:
     log10p = -math.log10(best_pvalue) if best_pvalue > 0 else 30.0
     reversal_raw = log10p * max(mean_log2OR, 0) * math.log2(n_total + 1)
     if consistent:
-        reversal_raw *= 1.5
+        reversal_raw *= 1.5  # bonus multiplier for consistent directional reversal across datasets
 
     records.append({
         "drug_name":       drug,

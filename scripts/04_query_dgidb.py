@@ -16,6 +16,7 @@ from datetime import datetime
 
 import requests
 import pandas as pd
+from typing import Optional, List, Dict, Any
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -45,9 +46,10 @@ log.info("DGIdb version: v5 GraphQL (https://www.dgidb.org/api/graphql)")
 # Parametros
 # ---------------------------------------------------------------------------
 DGIDB_GRAPHQL = "https://dgidb.org/api/graphql"
-BATCH_SIZE    = 50   # genes por query (GraphQL)
+BATCH_SIZE    = 50   # GraphQL batch size — keep ≤50 to avoid DGIdb timeout
 SLEEP_SEC     = 1.0
-TIMEOUT       = 60
+TIMEOUT       = 60   # seconds; DGIdb can be slow on large gene sets
+CHEMBL_PREFIX = "chembl:"  # prefix used by DGIdb to identify ChEMBL source IDs
 
 # ---------------------------------------------------------------------------
 # Cargar genes
@@ -105,7 +107,7 @@ query GeneInteractions($names: [String!]!) {
 """
 
 
-def query_dgidb_batch(gene_list: list[str]) -> list[dict] | None:
+def query_dgidb_batch(gene_list: List[str]) -> Optional[List[Dict]]:
     """GraphQL POST para una lista de genes. Retorna lista de nodos o None."""
     payload = {
         "query": GQL_QUERY,
@@ -134,9 +136,9 @@ def query_dgidb_batch(gene_list: list[str]) -> list[dict] | None:
 batches = [genes[i:i + BATCH_SIZE] for i in range(0, len(genes), BATCH_SIZE)]
 log.info(f"Batches: {len(batches)} x ~{BATCH_SIZE} genes")
 
-all_interactions: list[dict] = []
-matched_genes: set[str] = set()
-empty_genes: list[str] = []
+all_interactions: List[Dict] = []
+matched_genes: set = set()
+empty_genes: List[str] = []
 
 for i, batch in enumerate(batches, 1):
     log.info(f"  Batch {i}/{len(batches)} ({len(batch)} genes) ...")
@@ -168,7 +170,7 @@ for i, batch in enumerate(batches, 1):
 
             concept_id = drug.get("conceptId", "")
             # extraer ChEMBL ID si está disponible en conceptId
-            chembl_id = concept_id if concept_id.startswith("chembl:") else ""
+            chembl_id = concept_id if concept_id.startswith(CHEMBL_PREFIX) else ""
 
             itypes = "|".join(
                 t["type"] for t in (ix.get("interactionTypes") or []) if t.get("type")

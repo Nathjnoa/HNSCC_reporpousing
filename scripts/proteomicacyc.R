@@ -8,18 +8,24 @@ library(proteoDA)
 library(limma)
 library(dplyr)
 library(ggplot2)
+library(here)
+
+## ── Project root & analysis constants ────────────────────────────────────────
+proj_dir     <- here::here()
+FC_THRESH    <- 1     # log2 fold-change threshold for volcano plot coloring
+LOG10_EPS    <- 1e-10 # epsilon to avoid -Inf in -log10(0)
 
 #CARGAR ARCHIVOS NECESARIOS
 
 #Matriz de expresión o abundancia
-input_data <- read.csv2("proteomicacyc.csv", header = TRUE, row.names = 1)
+input_data <- read.csv2(file.path(proj_dir, "proteomicacyc.csv"), header = TRUE, row.names = 1)
 
 #Anotación de las proteinas
-annotation_data <- read.csv2("annotation.csv")
+annotation_data <- read.csv2(file.path(proj_dir, "annotation.csv"))
 dim(annotation_data)
 
 #Metadatos del experimento
-sample_metadata <- read.csv2("metadata.csv", row.names = 1)
+sample_metadata <- read.csv2(file.path(proj_dir, "metadata.csv"), row.names = 1)
 dim(input_data)
 str(input_data)
 input_data[] <- lapply(input_data, function(x) as.numeric(as.character(x)))
@@ -70,7 +76,7 @@ normalized$metadata$group <- factor(normalized$metadata$group,
 no_intercept <- add_design(normalized,
                         design_formula = ~0 + group)
 
-intercept$design$design_matrix
+no_intercept$design$design_matrix
 
 # Otra manera de generar la matriz de contrastes (no correr)
 #contrasts <- makeContrasts(
@@ -114,10 +120,10 @@ library(org.Hs.eg.db)
 
 res.df$gene_symbol <- mapIds(org.Hs.eg.db, key = row.names(res.df), keytype = "UNIPROT", column = "SYMBOL")
 
-res.df <- res.df %>% 
+res.df <- res.df %>%
   mutate(point_color = case_when(
-    adj.P.Val < 0.05 & logFC < -1 ~ "down", # significantly down
-    adj.P.Val < 0.05 & logFC > 1 ~ "up", # significantly up
+    adj.P.Val < 0.05 & logFC < -FC_THRESH ~ "down", # significantly down
+    adj.P.Val < 0.05 & logFC > FC_THRESH  ~ "up",   # significantly up
     TRUE ~ "NS") # not significant
   )
 
@@ -165,4 +171,3 @@ p <- ggplot(df_filtered, aes(x=Benjamini, y=reorder(Term, -Benjamini), size=Coun
 print(p)
 
 ggsave("Enrichment_todos.png", plot = p, width = 16, height = 14, dpi = 300)
-getwd()

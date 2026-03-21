@@ -37,6 +37,12 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
+# ── Named constants ───────────────────────────────────────────
+LOG10_EPS        <- 1e-10  # epsilon to avoid -Inf in -log10(0); 1e-300 seen elsewhere — verify with user
+LABEL_FC_THRESH  <- 3.5   # |logFC| cutoff for volcano plot gene labels (display only)
+LABEL_FDR_THRESH <- 0.01  # FDR cutoff for volcano plot gene labels (display only)
+BIAS_FLAG_THRESH <- 30    # flag samples where missingness differential exceeds this %
+
 # ── Rutas ────────────────────────────────────────────────────
 proj_dir  <- getwd()   # ejecutar desde la raíz del proyecto
 raw_file  <- file.path(proj_dir, "data/raw/results_proteomica.tsv")
@@ -152,7 +158,7 @@ missing_df <- data.frame(
 ) %>%
   mutate(
     missing_diff = pct_missing_tumor - pct_missing_normal,
-    bias_flag    = abs(missing_diff) > 30  # diferencia >30% entre grupos = sospechoso
+    bias_flag    = abs(missing_diff) > BIAS_FLAG_THRESH  # diferencia >30% entre grupos = sospechoso
   )
 
 n_biased <- sum(missing_df$bias_flag, na.rm = TRUE)
@@ -376,7 +382,7 @@ df_volc <- results_all %>%
   select(gene_symbol, logFC_TVsS, adj.P.Val_TVsS, sig.FDR_TVsS) %>%
   filter(!is.na(logFC_TVsS), !is.na(adj.P.Val_TVsS)) %>%
   mutate(
-    neg_log10_p = -log10(adj.P.Val_TVsS + 1e-10),  # +epsilon para evitar -Inf
+    neg_log10_p = -log10(adj.P.Val_TVsS + LOG10_EPS),  # +epsilon para evitar -Inf
     DE_status = case_when(
       sig.FDR_TVsS ==  1 & !is.na(sig.FDR_TVsS) ~ "Up",
       sig.FDR_TVsS == -1 & !is.na(sig.FDR_TVsS) ~ "Down",
@@ -384,8 +390,8 @@ df_volc <- results_all %>%
     ),
     # Etiquetar top genes (|logFC| alto Y p-value bajo)
     label = ifelse(
-      (logFC_TVsS > 3.5 | logFC_TVsS < -3.5) &
-        adj.P.Val_TVsS < 0.01,
+      (logFC_TVsS > LABEL_FC_THRESH | logFC_TVsS < -LABEL_FC_THRESH) &
+        adj.P.Val_TVsS < LABEL_FDR_THRESH,
       gene_symbol, ""
     )
   )

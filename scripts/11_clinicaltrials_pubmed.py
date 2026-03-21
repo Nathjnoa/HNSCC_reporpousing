@@ -26,6 +26,7 @@ import logging
 import datetime
 import requests
 import pandas as pd
+from typing import Optional, Dict, List, Any
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -82,7 +83,7 @@ REQUEST_DELAY = 0.35   # segundos entre llamadas (NCBI permite ~3/s)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def get_json(url: str, params: dict, retries: int = 3, timeout: int = 30) -> dict | None:
+def get_json(url: str, params: Dict, retries: int = 3, timeout: int = 30) -> Optional[Dict]:
     """GET con reintentos y delay."""
     for attempt in range(retries):
         try:
@@ -95,7 +96,7 @@ def get_json(url: str, params: dict, retries: int = 3, timeout: int = 30) -> dic
     return None
 
 
-def query_clinicaltrials(drug_name: str) -> dict:
+def query_clinicaltrials(drug_name: str) -> Dict:
     """
     Busca ensayos en ClinicalTrials.gov API v2 para 'drug_name' + HNSCC.
     Devuelve:
@@ -207,7 +208,7 @@ def simplify_drug_name(name: str) -> str:
     return s.capitalize()
 
 
-def query_pubmed(drug_name: str) -> dict:
+def query_pubmed(drug_name: str) -> Dict:
     """
     Cuenta publicaciones en PubMed para 'drug_name' + HNSCC.
     Busca tanto con el nombre completo como con el nombre simplificado (sin sales).

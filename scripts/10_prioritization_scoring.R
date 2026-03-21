@@ -80,11 +80,13 @@ phase_scores <- setNames(
   names(params$clinical_phase_scores)
 )
 
+WEIGHT_TOLERANCE <- 0.001  # acceptable deviation from sum-to-1 for scoring weights
+
 cat(sprintf("Pesos: pi_stat=%.2f | clinical=%.2f | cmap=%.2f | pathway=%.2f | network=%.2f | evidence=%.2f\n",
             w_pistat, w_clin, w_cmap, w_path, w_net, w_evid))
 weight_sum <- w_pistat + w_clin + w_cmap + w_path + w_net + w_evid
 cat(sprintf("Sum pesos: %.4f\n", weight_sum))
-if (abs(weight_sum - 1.0) > 0.001)
+if (abs(weight_sum - 1.0) > WEIGHT_TOLERANCE)
   stop(sprintf("FATAL: pesos suman %.4f, deben sumar exactamente 1.0", weight_sum))
 cat(sprintf("Top N candidatos: %d\n\n", top_n))
 
@@ -119,6 +121,8 @@ cat(sprintf("Candidatos tras dedup por ChEMBL ID: %d\n", nrow(candidates)))
 # Algunos compuestos tienen ChEMBL IDs distintos para la sal y la base (ej.
 # METFORMIN CHEMBL1431 vs METFORMIN HYDROCHLORIDE CHEMBL1703). Se colapsan
 # por nombre base, conservando la entrada con mayor n_sources.
+# Drug name normalization: common salt/form suffixes to strip for deduplication
+# Source: manually curated list of common pharmaceutical salt suffixes
 SALT_SUFFIXES <- paste0(
   "(\\s+(hydrochloride|hydrobromide|hydroiodide|",
   "hcl|hbr|hcloride|",

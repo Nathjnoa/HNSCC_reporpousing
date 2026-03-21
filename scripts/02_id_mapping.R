@@ -12,10 +12,11 @@ suppressPackageStartupMessages({
   library(org.Hs.eg.db)
   library(AnnotationDbi)
   library(dplyr)
+  library(here)
 })
 
 ## ── Paths ────────────────────────────────────────────────────
-proj_dir   <- "~/bioinfo/projects/hnscc_drug_repurposing"
+proj_dir   <- here::here()
 de_dir     <- file.path(proj_dir, "results/tables/de_limma")
 map_dir    <- file.path(proj_dir, "data/intermediate/id_mapping")
 log_dir    <- file.path(proj_dir, "logs")
@@ -79,7 +80,7 @@ cat("Entrez unmapped:      ", n_entrez_unmapped,
 
 # Symbol consistency check
 id_map_df$symbol_match <- id_map_df$symbol_org == id_map_df$uniprot_clean |
-                          is.na(id_map_df$symbol_org)
+                          is.na(id_map_df$symbol_org) # unused — candidate for removal
 # Compare with gene_symbol from proteoDA output
 all_merged_check <- left_join(all_tbl, id_map_df, by = "uniprot_id")
 symbol_discrepancies <- sum(

@@ -33,6 +33,8 @@ if (length(script_flag) > 0) {
   if (file.exists(file.path(proj_dir, "config/analysis_params.yaml")))
     setwd(proj_dir)
 }
+WEIGHT_TOLERANCE <- 0.001  # acceptable deviation from sum-to-1 for scoring weights
+
 cat("Working dir:", getwd(), "\n")
 
 # --- Log setup ---------------------------------------------------------------
@@ -52,6 +54,10 @@ cat("Inicio:", format(Sys.time()), "\n\n")
 # =============================================================================
 # CONFIGURACIONES DE PESOS
 # =============================================================================
+# Sensitivity analysis weight scenarios:
+# Each row is a named configuration of scoring dimension weights.
+# Weights within each row must sum to 1.0 (validated below).
+# Rationale: test how robust drug rankings are to weighting assumptions.
 # NOTA: s_logfc + s_sig reemplazados por s_pi_stat (script 10 actualizado)
 weight_configs <- list(
   baseline       = c(pi_stat=0.35, clinical=0.20, cmap=0.15, pathway=0.15, network=0.15),
@@ -87,6 +93,8 @@ excluded_drugs  <- toupper(unlist(params$exclusions$drugs))
 excl_targets    <- toupper(unlist(params$exclusions$exclude_single_target_genes))
 
 # Verificar que columna 'bonus' existe (calculada y exportada por script 10)
+# NOTE: 'bonus' column may be absent if script 10 did not generate it.
+# This fallback sets bonus = 0 for all rows to maintain compatibility.
 if (!"bonus" %in% colnames(all_scored)) {
   cat("WARN: columna 'bonus' no encontrada en 10_all_candidates_scored.tsv — usando 0\n")
   all_scored$bonus <- 0

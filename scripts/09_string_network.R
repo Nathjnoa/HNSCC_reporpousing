@@ -59,7 +59,7 @@ params         <- yaml::read_yaml("config/analysis_params.yaml")
 score_thr      <- params$network$string_score_threshold   # 700
 hub_percentile <- params$network$hub_percentile           # 90
 STRING_BASE    <- "https://string-db.org/api/json"
-SPECIES        <- 9606
+SPECIES_ID     <- 9606L  # NCBI taxonomy ID for Homo sapiens
 
 cat(sprintf("STRING score threshold:  %d\n", score_thr))
 cat(sprintf("Hub percentile: %d%% (top %d%%)\n", hub_percentile, 100 - hub_percentile))
@@ -115,7 +115,7 @@ cat("\n--- Paso 1: Mapeando genes a STRING IDs ---\n")
 # STRING acepta genes separados por \r (carriage return en el body)
 map_result <- string_post("get_string_ids", list(
   identifiers     = paste(gene_symbols, collapse = "\r"),
-  species         = as.character(SPECIES),
+  species         = as.character(SPECIES_ID),
   limit           = "1",
   echo_query      = "1",
   caller_identity = "hnscc_drug_repurposing"
@@ -142,7 +142,7 @@ cat("(Puede tardar 1-2 minutos para 500+ proteinas...)\n")
 
 net_result <- string_post("network", list(
   identifiers     = paste(string_ids, collapse = "\r"),
-  species         = as.character(SPECIES),
+  species         = as.character(SPECIES_ID),
   required_score  = as.character(score_thr),
   caller_identity = "hnscc_drug_repurposing"
 ))
@@ -151,7 +151,7 @@ if (is.null(net_result) || nrow(as.data.frame(net_result)) == 0) {
   cat("Sin interacciones con score >= ", score_thr, ". Reintentando con 400...\n")
   net_result <- string_post("network", list(
     identifiers    = paste(string_ids, collapse = "\r"),
-    species        = as.character(SPECIES),
+    species        = as.character(SPECIES_ID),
     required_score = "400",
     caller_identity = "hnscc_drug_repurposing"
   ))

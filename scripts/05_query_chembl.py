@@ -24,6 +24,7 @@ from datetime import datetime
 import yaml
 import requests
 import pandas as pd
+from typing import Optional, Dict, List, Any
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -59,13 +60,20 @@ BASE      = "https://www.ebi.ac.uk/chembl/api/data"
 MIN_PHASE = int(params["chembl"]["min_phase"])
 TIMEOUT   = 20    # segundos
 log.info(f"MIN_PHASE (desde config): {MIN_PHASE}")
-SLEEP_SEC = 0.3
-BATCH     = 50    # moleculas por request
+SLEEP_SEC = 0.3   # ChEMBL REST API — respect rate limit (~3 req/s)
+BATCH     = 50    # ChEMBL target batch size per request
+
+PHASE_LABELS: Dict[int, str] = {
+    1: "Phase I",
+    2: "Phase II",
+    3: "Phase III",
+    4: "Approved",
+}
 
 session = requests.Session()
 session.headers.update({"Accept": "application/json"})
 
-def get_json(url: str, params: dict = None, retries: int = 2) -> dict | None:
+def get_json(url: str, params: Optional[Dict] = None, retries: int = 2) -> Optional[Dict]:
     for attempt in range(retries + 1):
         try:
             r = session.get(url, params=params, timeout=TIMEOUT)
@@ -97,8 +105,8 @@ gene_meta = (
 # ---------------------------------------------------------------------------
 log.info("\n--- Paso 1: UniProt -> ChEMBL target ---")
 
-uniprot_to_target: list[dict] = []
-no_target: list[str] = []
+uniprot_to_target: List[Dict] = []
+no_target: List[str] = []
 
 for i, uniprot in enumerate(uniprot_ids):
     params = {
@@ -136,7 +144,7 @@ log.info(f"Targets ChEMBL unicos:     {len(target_ids)}")
 # ---------------------------------------------------------------------------
 log.info("\n--- Paso 2: Targets -> mecanismos ---")
 
-all_mechs: list[dict] = []
+all_mechs: List[Dict] = []
 
 for i, target_id in enumerate(target_ids):
     params = {
@@ -172,7 +180,7 @@ log.info("\n--- Paso 3: Detalles de moleculas ---")
 mol_ids = df_mechs["molecule_chembl_id"].dropna().unique().tolist()
 log.info(f"Moleculas a consultar: {len(mol_ids)}")
 
-mol_records: list[dict] = []
+mol_records: List[Dict] = []
 
 for i in range(0, len(mol_ids), BATCH):
     batch = mol_ids[i:i + BATCH]
@@ -229,9 +237,7 @@ df_phase3 = df_combined[
 ].copy()
 
 def phase_label(p):
-    if p == 4:   return "Approved"
-    elif p == 3: return "Phase III"
-    else:         return f"Phase {int(p)}"
+    return PHASE_LABELS.get(int(p), f"Phase {int(p)}")
 
 df_phase3["phase_label"] = df_phase3["max_phase"].apply(phase_label)
 
