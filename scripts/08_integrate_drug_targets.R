@@ -241,6 +241,36 @@ master_long <- bind_rows(
 cat(sprintf("Filas totales (long): %d\n", nrow(master_long)))
 
 # =============================================================================
+# 2b. NORMALIZAR NOMBRES CANÓNICOS (deduplicar sales y formas equivalentes)
+# =============================================================================
+cat("\n--- 2b. Aplicando nombres canónicos ---\n")
+
+CANONICAL_NAMES <- c(
+  "DIVALPROEX SODIUM"    = "VALPROIC ACID",   # sal sodio de divalproex
+  "VALPROATE SODIUM"     = "VALPROIC ACID",   # sal sodio de valproato
+  "VALPROIC-ACID"        = "VALPROIC ACID",   # variante con guión (L2S2)
+  "SODIUM VALPROATE"     = "VALPROIC ACID",   # orden invertido (DGIdb)
+  "DIVALPROEX"           = "VALPROIC ACID",   # forma sin sal
+  "VALPROATE"            = "VALPROIC ACID",   # forma iónica genérica
+  "ACETYLDIGITOXIN"      = "DIGITOXIN",       # derivado acetilado
+  "DESLANOSIDE"          = "DIGITOXIN",       # glucósido cardíaco análogo
+  "AFATINIB DIMALEATE"   = "AFATINIB",        # sal dimalato
+  "LAPATINIB DITOSYLATE" = "LAPATINIB"        # sal ditosylato
+)
+
+n_renamed <- sum(master_long$drug_name_norm %in% names(CANONICAL_NAMES))
+master_long <- master_long %>%
+  mutate(drug_name_norm = ifelse(
+    drug_name_norm %in% names(CANONICAL_NAMES),
+    CANONICAL_NAMES[drug_name_norm],
+    drug_name_norm
+  ))
+cat(sprintf("  Entradas renombradas a forma canónica: %d\n", n_renamed))
+for (nm in names(CANONICAL_NAMES)) {
+  cat(sprintf("    %s → %s\n", nm, CANONICAL_NAMES[nm]))
+}
+
+# =============================================================================
 # 3. CONSTRUIR TABLA RESUMEN POR FARMACO
 # =============================================================================
 cat("\n--- 3. Construyendo resumen por farmaco ---\n")
@@ -366,16 +396,62 @@ if (n_overridden > 0) {
   ), "\n")
 }
 
+# ---------------------------------------------------------------------------
+# 4c. Override B: oncológicos aprobados no capturados por Open Targets
+#     (OT no tenía indicación oncológica para estos → quedaban como Clase C)
+# ---------------------------------------------------------------------------
+CANCER_APPROVED_OVERRIDE <- c(
+  "NERATINIB",   # FDA 2017: neratinib maleate, HER2+ breast cancer (extended adjuvant)
+  "LAZERTINIB"   # FDA 2024: lazertinib + amivantamab, NSCLC EGFR exon19del/L858R
+)
+
+n_b_overridden <- sum(
+  toupper(drug_summary$drug_name_norm) %in% CANCER_APPROVED_OVERRIDE &
+    drug_summary$drug_class == "C"
+)
+if (n_b_overridden > 0) {
+  cat(sprintf("\n  Corrigiendo %d drogas de Clase C → B (cancer approved override):\n",
+              n_b_overridden))
+  drug_summary <- drug_summary %>%
+    mutate(
+      has_cancer_indication = ifelse(
+        toupper(drug_name_norm) %in% CANCER_APPROVED_OVERRIDE,
+        TRUE, has_cancer_indication
+      ),
+      drug_class = ifelse(
+        toupper(drug_name_norm) %in% CANCER_APPROVED_OVERRIDE & drug_class == "C",
+        "B", drug_class
+      ),
+      drug_class_label = case_when(
+        drug_class == "A" ~ "A: Approved + HNSCC evidence",
+        drug_class == "B" ~ "B: Approved other cancer",
+        drug_class == "C" ~ "C: Approved non-oncology",
+        drug_class == "D" ~ "D: Not approved / Experimental"
+      )
+    )
+  cat(paste(
+    drug_summary$drug_name_norm[toupper(drug_summary$drug_name_norm) %in%
+                                   CANCER_APPROVED_OVERRIDE],
+    collapse = ", "
+  ), "\n")
+}
+
 # =============================================================================
 # 5. FILTRAR CANDIDATOS CON SOPORTE EN >= min_db FUENTES
 # =============================================================================
 cat(sprintf("\n--- 5. Filtrando candidatos con soporte >= %d fuentes ---\n", min_db))
 
+excluded_drugs <- toupper(unlist(params$exclusions$drugs))
+
 candidates <- drug_summary %>%
   filter(n_sources >= min_db | drug_class %in% c("A", "B")) %>%
+  filter(!toupper(drug_name_norm) %in% excluded_drugs) %>%
   arrange(drug_class, desc(n_sources), desc(n_de_genes))
 
 cat(sprintf("Candidatos multi-fuente: %d\n", nrow(candidates)))
+if (length(excluded_drugs) > 0) {
+  cat(sprintf("  (excluidos por config: %d drugs en lista)\n", length(excluded_drugs)))
+}
 
 cat("\nTop 30 candidatos:\n")
 cat(sprintf("  %-35s %-5s %-5s %-10s %-30s\n",

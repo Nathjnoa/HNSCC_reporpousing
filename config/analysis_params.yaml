@@ -42,19 +42,22 @@ network:
   hub_percentile: 90                  # Top 10% por grado de nodo = hub
 
 # --- Priorización multi-criterio (script 10) ---
-# CAMBIO: logFC+significance colapsados en pi_stat; nuevo weight_evidence
+# CAMBIO v2: weight_evidence eliminado (sesgo de publicación + circularidad con revisión manual).
+# El 15% se redistribuyó proporcionalmente entre los 3 componentes de datos propios:
+#   pi_stat (proteómica): 0.25 + 0.075 = 0.325
+#   network_centrality:   0.15 + 0.045 = 0.195
+#   cmap_connectivity:    0.10 + 0.030 = 0.130
 scoring:
-  weight_pi_stat: 0.25           # reemplaza weight_log2fc(0.20)+weight_significance(0.15)
-  weight_clinical_phase: 0.20
-  weight_cmap_connectivity: 0.10 # reducido desde 0.15 (L2S2 usa transcriptómica, no proteómica)
-  weight_pathway_relevance: 0.15
-  weight_network_centrality: 0.15 # ahora usa n_distinct_modules (no n_targets raw)
-  weight_evidence: 0.15          # nuevo: trials clínicos + PubMed (antes en script 13 solo)
+  weight_pi_stat: 0.325          # señal proteómica (logFC × significancia)
+  weight_clinical_phase: 0.20    # fase FDA (independiente de literatura HNSCC)
+  weight_cmap_connectivity: 0.13 # reversión de firma transcriptómica (L2S2)
+  weight_pathway_relevance: 0.15 # solapamiento con vías enriquecidas en HNSCC
+  weight_network_centrality: 0.195 # centralidad en red PPI STRING
   # Suma = 1.00 (verificado en script 10)
 
 # --- Candidatos finales (script 10) ---
 candidates:
-  top_n: 20                           # Top N candidatos para validación profunda
+  top_n: 35                           # Ampliado para análisis LOD + sensibilidad más informativo
   min_databases: 2                    # Mínimo de bases de datos de soporte
 
 # --- Fase clínica → score (script 10) ---
@@ -86,6 +89,9 @@ exclusions:
     - "LEPIRUDIN"                               # Anticoagulante (F2)
     - "DABIGATRAN ETEXILATE MESYLATE"           # Anticoagulante (F2)
     - "XIMELAGATRAN"                            # Anticoagulante (F2)
+    - "COLLAGENASE CLOSTRIDIUM HISTOLYTICUM"    # enzima tópica Dupuytren — no sistémico
+    - "OCRIPLASMIN"                             # proteasa intravítrea — no oncológico
+    - "TECHNETIUM TC 99M SUCCIMER"              # agente diagnóstico de imagen
   # Exclusión por gen diana primario: todos los fármacos cuyo target único
   # no tiene plausibilidad antitumoral
   exclude_single_target_genes:
@@ -93,5 +99,3 @@ exclusions:
     - "APP"        # Amiloide — anticuerpos Alzheimer (sin relevancia oncológica)
     - "CACNA2D1"   # Canal calcio α2δ — gabapentinoides analgésicos
     - "ADH1B"      # Alcohol deshidrogenasa — antídotos
-  # Motivo: aparecen en trials HNSCC para manejo sintomático (dolor, trombosis)
-  #         o no tienen relevancia oncológica (Alzheimer, antídotos)

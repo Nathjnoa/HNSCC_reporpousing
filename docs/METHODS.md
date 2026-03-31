@@ -1,6 +1,6 @@
 # Methods — HNSCC Drug Repurposing Pipeline
 
-*Última actualización: 2026-03-08 (correcciones metodológicas aplicadas)*
+*Última actualización: 2026-03-30 (v2: scoring recalibrado, deduplicación, reclasificación, criterio LOD-stability)*
 
 ---
 
@@ -80,12 +80,27 @@ to enable reproducibility assessment over time.
 
 ## Phase 3: Drug Integration (Script 08)
 
-Four sources unified into a master drug-target table. Drugs classified:
-- **Class A**: HNSCC-approved (cetuximab, pembrolizumab, nivolumab included
-  via HNSCC-approved override regardless of source annotation)
-- **Class B**: Approved for other cancers
-- **Class C**: Approved for non-oncology indications
-- **Class D**: Experimental/investigational
+Four sources unified into a master drug-target table. Prior to aggregation, drug name
+normalization was applied to collapse pharmaceutical salt forms and equivalent
+formulations into canonical names (e.g., divalproex sodium / valproate sodium /
+sodium valproate → valproic acid; acetyldigitoxin / deslanoside → digitoxin;
+afatinib dimaleate → afatinib; lapatinib ditosylate → lapatinib).
+
+Drugs classified by indication:
+
+- **Class A**: HNSCC-approved — used as pipeline validation (positive controls);
+  not included in repurposing candidates. Cetuximab, pembrolizumab, and nivolumab
+  included via manual HNSCC-approved override to correct EFO annotation gaps.
+- **Class B**: Approved for other cancers (intra-oncology repurposing). Two drugs
+  not captured by Open Targets — neratinib (FDA 2017, HER2+ breast cancer) and
+  lazertinib (FDA 2024, NSCLC EGFR+) — were manually corrected from Class C to B.
+- **Class C**: Approved for non-oncology indications (classical repurposing)
+- **Class D**: Experimental/investigational (phase ≤ 3)
+
+Non-antitumoral agents excluded from candidates: diagnostic imaging agents
+(technetium Tc 99m succimer), topical enzymes (collagenase clostridium histolyticum),
+ophthalmic proteases (ocriplasmin), anticoagulants, anti-amyloid antibodies,
+gabapentinoids, and alcohol dehydrogenase inhibitors (see `config/analysis_params.yaml`).
 
 Multi-source candidates (≥ 2 databases) prioritized for scoring.
 
@@ -113,18 +128,25 @@ all nodes.
 
 ## Phase 4: Multi-Criteria Scoring (Script 10)
 
-Six-dimension composite score (weights sum to 1.00):
+Five-dimension composite score (weights sum to 1.00):
 
 | Dimension | Weight | Description |
 |-----------|--------|-------------|
-| π-statistic (proteomics) | 0.25 | `sign(logFC) × |logFC| × −log10(adj.P.Val + ε)`; replaces separate logFC (0.20) + significance (0.15) |
-| Clinical phase | 0.20 | Normalized max development phase across databases |
-| Pathway relevance | 0.15 | Overlap of drug targets with enriched GO/Hallmark pathways |
-| Network centrality | 0.15 | Module diversity: penalizes drugs targeting proteins in a single complex |
-| Evidence (trials + literature) | 0.15 | ClinicalTrials.gov + PubMed evidence score |
-| L2S2 connectivity | 0.10 | Transcriptomic reversal score (reduced weight due to data-type mismatch) |
+| π-statistic (proteomics) | 0.325 | `sign(logFC) × abs(logFC) × -log10(adj.P.Val + ε)` |
+| Clinical phase | 0.200 | Normalized max development phase across databases |
+| Network centrality | 0.195 | Module diversity score in STRING PPI network |
+| Pathway relevance | 0.150 | Overlap of drug targets with enriched GO/Hallmark pathways |
+| L2S2 connectivity | 0.130 | Transcriptomic reversal score (L2S2/LINCS) |
 
-Top 20 selected with diversity filter (max 3 per primary target gene).
+The clinical literature evidence score (ClinicalTrials.gov + PubMed hit count) was
+excluded from the composite to avoid publication bias (well-studied drugs would score
+higher regardless of proteomics signal) and circularity with the manual literature
+review performed by the research group. It is retained as a descriptive column.
+
+Class A drugs (HNSCC-approved) received no scoring bonus and are reported separately
+as positive controls validating pipeline performance.
+
+Top 35 candidates selected by composite score without per-target diversity limits.
 Scores normalized [0, 1] per dimension before weighting.
 
 ---
@@ -150,15 +172,18 @@ Robustness evaluated through three complementary analyses:
 
 1. **Weight sensitivity**: 6 alternative weight configurations (clinical-heavy,
    molecular-heavy, network-heavy, pathway-heavy, equal weights) applied to
-   assess rank stability.
-2. **Drop-one-database**: Each of the 4 drug databases excluded in turn;
-   candidates stable in top 20 across all exclusions reported.
-3. **Permutation test** (n=1,000): Drug labels randomly shuffled; empirical
-   p-value computed for top-1 composite score.
+   assess rank stability across the top 35.
+2. **Leave-one-database (LOD)**: Each of the 4 drug databases excluded in turn;
+   candidates appearing in the top 35 across all 4 exclusion scenarios classified
+   as `lod_stable = TRUE`. This criterion defines the final candidate panel,
+   as it does not depend on arbitrary score thresholds or weight choices.
+3. **Permutation test** (n=1,000): π-statistics randomly shuffled across proteins;
+   empirical p-value computed for top-1 composite score (p = 0.058).
 
-Result: 9 candidates highly stable (present in top 20 across all 6 weight
-configurations): GEFITINIB, METFORMIN, MAVACAMTEN, VANDETANIB, DIGOXIN,
-TRANYLCYPROMINE, DECITABINE, DIGITOXIN, CEDAZURIDINE.
+Result: **26 LOD-stable candidates** identified (25 repurposing candidates +
+Cetuximab as Class A positive control). Of these, 13 belong to the EGFR inhibitor
+cluster (Class B); remaining 12 span OXPHOS, cardiac glycosides, DNMT inhibitors,
+MAO inhibitors, HDAC modulators, and other mechanisms.
 
 ---
 

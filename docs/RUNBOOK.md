@@ -2,7 +2,7 @@
 
 Guia paso a paso para reproducir el analisis completo (16 scripts: 01–15 + 17).
 
-*Última actualización: 2026-03-08 — Correcciones metodológicas aplicadas (HPV-adjusted model, pi-statistic GSEA, Louvain modules, scoring recalibrado)*
+*Última actualización: 2026-03-30 — Revisión metodológica v2: scoring recalibrado, deduplicación de sales, reclasificación farmacológica, criterio LOD-stability para panel final*
 
 ---
 
@@ -137,10 +137,12 @@ conda activate omics-R
 Rscript scripts/09_string_network.R
 # Output: results/tables/network/09_*.tsv (incluye 09_modules.tsv), results/figures/09_*.pdf
 
-# 10 - Scoring multi-criterio recalibrado (pi-stat + diversidad de módulos + evidencia)
+# 10 - Scoring multi-criterio v2 (pi-stat + clinical + pathway + network + cmap)
+#      Sin límite de diversidad por target; sin score_evidence en composite
 Rscript scripts/10_prioritization_scoring.R
-# Output: results/tables/10_top20_candidates.tsv, results/tables/10_all_candidates_scored.tsv
-# Pesos actuales: pi_stat=0.25, clinical=0.20, pathway=0.15, network=0.15, evidence=0.15, cmap=0.10
+# Output: results/tables/10_top20_candidates.tsv (top 35), results/tables/10_all_candidates_scored.tsv
+# Pesos v2: pi_stat=0.325, clinical=0.20, pathway=0.15, network=0.195, cmap=0.13
+# Panel final = candidatos con lod_stable=TRUE en 15_lod_stability.tsv
 ```
 
 ### Fase 5: Validacion in silico (Python)
@@ -176,10 +178,11 @@ Rscript scripts/14_methods_summary.R
 ```bash
 conda activate omics-R
 
-# 15 - Análisis de sensibilidad: 6 configs de pesos + drop-one-database + permutation test (n=1000)
+# 15 - Análisis de sensibilidad: 6 configs de pesos + LOD (leave-one-database) + permutation test (n=1000)
+#      LOD-stability es el criterio principal para definir el panel final de candidatos
 Rscript scripts/15_sensitivity_analysis.R
 # Output: results/tables/15_sensitivity_ranks.tsv
-#         results/tables/15_lod_stability.tsv
+#         results/tables/15_lod_stability.tsv      ← criterio de inclusión en panel final
 #         results/tables/15_permutation_test.tsv
 ```
 

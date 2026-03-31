@@ -464,15 +464,12 @@ if (!file.exists(de_file)) {
   max_pi_real <- max(abs(gene_de$pi_stat), na.rm = TRUE)
 
   # Pesos del scoring — usar config baseline del script 15
-  w_base <- weight_configs[["baseline"]]
-  # Baseline: logfc=0.20, sig=0.15, clinical=0.20, cmap=0.15, pathway=0.15, network=0.15
-  # Para el permutation test colapsamos logfc+sig en la componente molecular (pi_stat)
-  w_molec <- w_base["logfc"] + w_base["sig"]   # 0.35 combinado
-  w_clin  <- w_base["clinical"]                # 0.20
-  w_cmap  <- w_base["cmap"]                   # 0.15
-  w_path  <- w_base["pathway"]                # 0.15
-  w_net   <- w_base["network"]               # 0.15
-  # Renormalizar para que sumen 1 (ya suman 1 por construcción)
+  w_base  <- weight_configs[["baseline"]]
+  w_molec <- w_base["pi_stat"]   # señal proteómica (pi-stat)
+  w_clin  <- w_base["clinical"]
+  w_cmap  <- w_base["cmap"]
+  w_path  <- w_base["pathway"]
+  w_net   <- w_base["network"]
 
   set.seed(2026)
   n_perm <- 1000

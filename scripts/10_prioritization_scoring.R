@@ -7,12 +7,13 @@
 #           6 dimensiones independientes. Seleccionar top 20 para validacion.
 #
 # Dimensiones de scoring (pesos en config/analysis_params.yaml):
-#   1. score_pi_stat       (0.25): pi-stat = sign(logFC)*|logFC|*(-log10 adj.P)
-#   2. score_clinical      (0.20): fase clinica maxima del farmaco
-#   3. score_cmap          (0.10): connectivity reversal score L2S2/LINCS (reversal)
-#   4. score_pathway       (0.15): proporcion genes diana en vias enriquecidas
-#   5. score_network       (0.15): centralidad + diversidad de modulos en red PPI
-#   6. score_evidence      (0.15): evidencia clinica pre-calculada (trials + PubMed)
+#   1. score_pi_stat       (0.325): pi-stat = sign(logFC)*|logFC|*(-log10 adj.P)
+#   2. score_clinical      (0.200): fase clinica maxima del farmaco
+#   3. score_cmap          (0.130): connectivity reversal score L2S2/LINCS (reversal)
+#   4. score_pathway       (0.150): proporcion genes diana en vias enriquecidas
+#   5. score_network       (0.195): centralidad + diversidad de modulos en red PPI
+# NOTA v2: score_evidence eliminado del composite (sesgo publicacion + circularidad
+#          con revision manual del grupo). Se mantiene como columna descriptiva.
 #
 # Input:  results/tables/drug_targets/08_drug_summary_per_drug.tsv
 #         results/tables/drug_targets/08_multi_source_candidates.tsv
@@ -72,7 +73,7 @@ w_clin    <- params$scoring$weight_clinical_phase
 w_cmap    <- params$scoring$weight_cmap_connectivity  # reducido a 0.10
 w_path    <- params$scoring$weight_pathway_relevance
 w_net     <- params$scoring$weight_network_centrality
-w_evid    <- params$scoring$weight_evidence           # nuevo
+w_evid    <- params$scoring$weight_evidence %||% 0.0  # excluido del composite (v2: sesgo publicacion)
 top_n     <- params$candidates$top_n
 
 phase_scores <- setNames(
@@ -82,10 +83,10 @@ phase_scores <- setNames(
 
 WEIGHT_TOLERANCE <- 0.001  # acceptable deviation from sum-to-1 for scoring weights
 
-cat(sprintf("Pesos: pi_stat=%.2f | clinical=%.2f | cmap=%.2f | pathway=%.2f | network=%.2f | evidence=%.2f\n",
-            w_pistat, w_clin, w_cmap, w_path, w_net, w_evid))
-weight_sum <- w_pistat + w_clin + w_cmap + w_path + w_net + w_evid
-cat(sprintf("Sum pesos: %.4f\n", weight_sum))
+cat(sprintf("Pesos: pi_stat=%.3f | clinical=%.3f | cmap=%.3f | pathway=%.3f | network=%.3f (evidence excluido)\n",
+            w_pistat, w_clin, w_cmap, w_path, w_net))
+weight_sum <- w_pistat + w_clin + w_cmap + w_path + w_net
+cat(sprintf("Sum pesos (sin evidence): %.4f\n", weight_sum))
 if (abs(weight_sum - 1.0) > WEIGHT_TOLERANCE)
   stop(sprintf("FATAL: pesos suman %.4f, deben sumar exactamente 1.0", weight_sum))
 cat(sprintf("Top N candidatos: %d\n\n", top_n))
@@ -317,14 +318,13 @@ scored <- candidates %>%
                       w_clin   * s_clinical  +
                       w_cmap   * s_cmap      +
                       w_path   * s_pathway   +
-                      w_net    * s_network   +
-                      w_evid   * s_evidence,
-    # Bonus: clase A (HNSCC direct) o candidatos con CMap + gene-target
+                      w_net    * s_network,
+    # Bonus: candidatos con CMap + gene-target o Clase C multi-fuente
+    # Clase A removida del bonus (se reporta como control positivo, no como candidato)
     bonus = case_when(
-      drug_class == "A"              ~ 0.05,
       !is.na(cmap_score) & n_sources >= 3 ~ 0.03,
       drug_class == "C" & n_sources >= 2  ~ 0.01,
-      TRUE                           ~ 0
+      TRUE                                ~ 0
     ),
     final_score = pmin(composite_score + bonus, 1.0)
   ) %>%
@@ -359,33 +359,21 @@ cat(sprintf("Total excluidos: %d | Candidatos restantes: %d\n",
             n_excl_name + n_excl_target, nrow(scored)))
 
 # =============================================================================
-# TOP 20
+# TOP N — sin límite por target (criterio: LOD stability aplicado post-hoc)
 # =============================================================================
-# Seleccion con diversidad: max 3 drugs por gen diana primario
-# Gen diana primario = el primer gen listado en de_genes
+# El límite de diversidad por target fue removido (v2): era arbitrario y
+# ocultaba candidatos LOD-stable legítimos (ej. cluster EGFR).
+# La agrupación por mecanismo se hace editorialmente en la discusión.
 scored <- scored %>%
   mutate(primary_target = sapply(de_genes, function(g) {
     if (is.na(g) || g == "") return("unknown")
     str_split(g, "\\|")[[1]][1]
   }))
 
-top20_diverse <- scored %>%
-  group_by(primary_target) %>%
-  slice_head(n = 3) %>%          # top 3 por gen diana primario
-  ungroup() %>%
+top20 <- scored %>%
   arrange(desc(final_score)) %>%
   slice_head(n = top_n)
 
-# Si no alcanza top_n con diversidad, rellenar con los mejores restantes
-if (nrow(top20_diverse) < top_n) {
-  remaining <- scored %>%
-    filter(!drug_name_norm %in% top20_diverse$drug_name_norm) %>%
-    slice_head(n = top_n - nrow(top20_diverse))
-  top20_diverse <- bind_rows(top20_diverse, remaining) %>%
-    arrange(desc(final_score))
-}
-
-top20 <- top20_diverse
 cat(sprintf("Targets primarios representados en top %d: %d\n",
             top_n, n_distinct(top20$primary_target)))
 
