@@ -1,6 +1,6 @@
 # Methods — HNSCC Drug Repurposing Pipeline
 
-*Última actualización: 2026-03-30 (v2: scoring recalibrado, deduplicación, reclasificación, criterio LOD-stability)*
+*Última actualización: 2026-04-04 (v3: pi_stat direccional, reclasificación DIGOXIN, exclusión miosinas cardíacas, sección Limitaciones)*
 
 ---
 
@@ -24,6 +24,13 @@ Within-patient correlation for paired samples (tumor/normal from the same patien
 was estimated using `duplicateCorrelation()` with `patient_id` as blocking factor,
 then incorporated into `lmFit()`. Contrast: Tumor − Adjacent Normal (TVsS).
 Moderated t-statistics were computed with `eBayes(trend=TRUE)`.
+
+The consensus intra-patient correlation estimated by `duplicateCorrelation()` was 0.016,
+indicating that the blocking effect was minimal in this DIA proteomics context. This is
+consistent with high inter-tumoral biological heterogeneity and may also reflect the
+median normalization applied in MaxQuant processing, which partially reduces inter-individual
+variability. Despite the low consensus correlation, the paired design was retained to maximize
+power in the presence of any residual intra-patient correlation.
 
 Proteins were considered significantly differentially expressed at |log2FC| > 1
 and adjusted P-value (Benjamini-Hochberg) < 0.05. Result: **3,352 proteins
@@ -132,11 +139,23 @@ Five-dimension composite score (weights sum to 1.00):
 
 | Dimension | Weight | Description |
 |-----------|--------|-------------|
-| π-statistic (proteomics) | 0.325 | `sign(logFC) × abs(logFC) × -log10(adj.P.Val + ε)` |
+| π-statistic (proteomics) | 0.325 | `sign(logFC) × abs(logFC) × -log10(adj.P.Val + ε)`, signed min-max normalized |
 | Clinical phase | 0.200 | Normalized max development phase across databases |
 | Network centrality | 0.195 | Module diversity score in STRING PPI network |
 | Pathway relevance | 0.150 | Overlap of drug targets with enriched GO/Hallmark pathways |
 | L2S2 connectivity | 0.130 | Transcriptomic reversal score (L2S2/LINCS) |
+
+The π-statistic was computed as π = sign(logFC) × |logFC| × −log₁₀(adj.P.Val + ε) for
+each significantly regulated protein. For candidate scoring, the **signed** mean π-statistic
+across a drug's target genes was used, normalized to the global dataset range (min-max, where
+0 = most downregulated target and 1 = most upregulated). This normalization assigns higher
+scores to drugs targeting proteins **upregulated** in tumor relative to normal — the canonical
+mechanistic hypothesis for oncology repurposing (inhibit what the tumor overexpresses). Drugs
+targeting strongly downregulated proteins receive intermediate scores, reflecting a different
+but still biologically plausible hypothesis (e.g., metabolic reprogramming via OXPHOS Complex I
+inhibition by metformin). The complementary reversal hypothesis — that a drug's transcriptomic
+signature inverts the tumor signature — is independently captured by the L2S2 connectivity
+dimension, which only considers drugs with reversal scores below −90.
 
 The clinical literature evidence score (ClinicalTrials.gov + PubMed hit count) was
 excluded from the composite to avoid publication bias (well-studied drugs would score
@@ -184,6 +203,28 @@ Result: **26 LOD-stable candidates** identified (25 repurposing candidates +
 Cetuximab as Class A positive control). Of these, 13 belong to the EGFR inhibitor
 cluster (Class B); remaining 12 span OXPHOS, cardiac glycosides, DNMT inhibitors,
 MAO inhibitors, HDAC modulators, and other mechanisms.
+
+---
+
+## Limitations
+
+The pathway relevance dimension (s_pathway) showed saturation: the majority of candidates
+reached the maximum score (≈ 1.0) because nearly all their target genes belong to the same
+dominant enriched pathways (OXPHOS, EGFR signaling). This dimension confirms biological
+relevance but has low discriminative power in final ranking.
+
+Tissue composition artifacts constitute a known confounder in tumor-vs-adjacent-normal
+proteomics. Proteins specific to muscle fibers present in adjacent normal tissue (e.g.,
+cardiac and skeletal myosins MYH7, MYL2, MYL3; troponins TNNT3, TNNI3) appear strongly
+downregulated in tumor simply due to tissue type differences rather than oncogenic regulation.
+Drugs targeting these proteins were excluded from the candidate list (see
+`config/analysis_params.yaml`). The directed π-statistic normalization further mitigates
+this artifact by deprioritizing drugs targeting strongly downregulated proteins.
+
+The L2S2 connectivity scores are based on transcriptomic (mRNA-level) perturbation signatures
+from cancer cell lines, whereas the DE analysis uses DIA proteomics from primary HNSCC tissue.
+Connectivity scores reflect mRNA-level perturbation similarity and may not fully capture
+protein-level effects.
 
 ---
 
