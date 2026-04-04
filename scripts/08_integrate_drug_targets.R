@@ -436,6 +436,46 @@ if (n_b_overridden > 0) {
   ), "\n")
 }
 
+# ---------------------------------------------------------------------------
+# 4d. Override C: fármacos aprobados para indicaciones NO oncológicas cuya
+#     clasificación como B es un artefacto de Open Targets (CT ≠ FDA approval).
+# ---------------------------------------------------------------------------
+NOT_CANCER_APPROVED_OVERRIDE <- c(
+  "DIGOXIN",   # FDA: insuficiencia cardíaca/arritmia. OT muestra CTs en K. sarcoma/NSCLC, no aprobación oncológica.
+  "DIGITOXIN"  # Igual — glucósido cardíaco sin aprobación oncológica FDA.
+)
+
+n_c_overridden <- sum(
+  toupper(drug_summary$drug_name_norm) %in% NOT_CANCER_APPROVED_OVERRIDE &
+    drug_summary$drug_class == "B"
+)
+if (n_c_overridden > 0) {
+  cat(sprintf("\n  Corrigiendo %d drogas de Clase B → C (clinical trial ≠ FDA cancer approval):\n",
+              n_c_overridden))
+  drug_summary <- drug_summary %>%
+    mutate(
+      has_cancer_indication = ifelse(
+        toupper(drug_name_norm) %in% NOT_CANCER_APPROVED_OVERRIDE,
+        FALSE, has_cancer_indication
+      ),
+      drug_class = ifelse(
+        toupper(drug_name_norm) %in% NOT_CANCER_APPROVED_OVERRIDE & drug_class == "B",
+        "C", drug_class
+      ),
+      drug_class_label = case_when(
+        drug_class == "A" ~ "A: Approved + HNSCC evidence",
+        drug_class == "B" ~ "B: Approved other cancer",
+        drug_class == "C" ~ "C: Approved non-oncology",
+        drug_class == "D" ~ "D: Not approved / Experimental"
+      )
+    )
+  cat(paste(
+    drug_summary$drug_name_norm[toupper(drug_summary$drug_name_norm) %in%
+                                   NOT_CANCER_APPROVED_OVERRIDE],
+    collapse = ", "
+  ), "\n")
+}
+
 # =============================================================================
 # 5. FILTRAR CANDIDATOS CON SOPORTE EN >= min_db FUENTES
 # =============================================================================
