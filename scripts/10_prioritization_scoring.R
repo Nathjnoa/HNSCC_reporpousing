@@ -83,7 +83,7 @@ phase_scores <- setNames(
 
 WEIGHT_TOLERANCE <- 0.001  # acceptable deviation from sum-to-1 for scoring weights
 
-cat(sprintf("Pesos: pi_stat=%.3f | clinical=%.3f | cmap=%.3f | pathway=%.3f | network=%.3f (evidence excluido)\n",
+cat(sprintf("Pesos: pi_stat=%.3f (directional, signed min-max) | clinical=%.3f | cmap=%.3f | pathway=%.3f | network=%.3f (evidence excluido)\n",
             w_pistat, w_clin, w_cmap, w_path, w_net))
 weight_sum <- w_pistat + w_clin + w_cmap + w_path + w_net
 cat(sprintf("Sum pesos (sin evidence): %.4f\n", weight_sum))
@@ -197,13 +197,19 @@ gene_de <- gene_de %>%
     pi_stat = sign(logFC_TVsS) * abs(logFC_TVsS) *
               (-log10(adj.P.Val_TVsS + 1e-300))
   )
-max_pi <- max(abs(gene_de$pi_stat), na.rm = TRUE)
+# Normalización direccional: 0 = target más downregulado del dataset,
+# 1 = target más upregulado. Mantiene plausibilidad para mecanismos
+# metabólicos (metformin/OXPHOS) pero prioriza inhibición de genes UP.
+pi_min <- min(gene_de$pi_stat, na.rm = TRUE)
+pi_max <- max(gene_de$pi_stat, na.rm = TRUE)
+pi_range <- pi_max - pi_min
 
 score_pistat_fn <- function(gene_str) {
   genes   <- get_target_genes(gene_str)
-  pi_vals <- abs(gene_de$pi_stat[gene_de$symbol_org %in% genes])
+  pi_vals <- gene_de$pi_stat[gene_de$symbol_org %in% genes]  # signed
   if (length(pi_vals) == 0) return(0)
-  mean(pi_vals, na.rm = TRUE) / max_pi
+  mean_pi <- mean(pi_vals, na.rm = TRUE)
+  (mean_pi - pi_min) / pi_range  # 0–1, mayor = target más upregulado
 }
 
 # =============================================================================
