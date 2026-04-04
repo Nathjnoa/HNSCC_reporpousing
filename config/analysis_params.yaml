@@ -92,6 +92,12 @@ exclusions:
     - "COLLAGENASE CLOSTRIDIUM HISTOLYTICUM"    # enzima tópica Dupuytren — no sistémico
     - "OCRIPLASMIN"                             # proteasa intravítrea — no oncológico
     - "TECHNETIUM TC 99M SUCCIMER"              # agente diagnóstico de imagen
+    - "MAVACAMTEN"                              # Inhibidor miosina cardíaca MYH7 — target muscular (artefacto tisular HNSCC)
+    - "OMECAMTIV MECARBIL"                      # Activador miosina cardíaca MYH7 — target muscular (artefacto tisular HNSCC)
+    - "DANICAMTIV"                              # Activador miosina esquelética MYH7 — target muscular (artefacto tisular HNSCC)
+    - "RELDESEMTIV"                             # Activador troponina esquelética TNNT3 — target muscular (artefacto tisular HNSCC)
+    - "TIRASEMTIV"                              # Activador troponina esquelética TNNT3 — target muscular (artefacto tisular HNSCC)
+    - "LEVOSIMENDAN"                            # Sensibilizador calcio TNNI3/TNC — target muscular (artefacto tisular HNSCC)
   # Exclusión por gen diana primario: todos los fármacos cuyo target único
   # no tiene plausibilidad antitumoral
   exclude_single_target_genes:
