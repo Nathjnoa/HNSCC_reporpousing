@@ -98,6 +98,20 @@ exclusions:
     - "RELDESEMTIV"                             # Activador troponina esquelética TNNT3 — target muscular (artefacto tisular HNSCC)
     - "TIRASEMTIV"                              # Activador troponina esquelética TNNT3 — target muscular (artefacto tisular HNSCC)
     - "LEVOSIMENDAN"                            # Sensibilizador calcio TNNI3/TNC — target muscular (artefacto tisular HNSCC)
+    # Proteínas plasmáticas / vasculares: señal de contaminación de sangre o
+    # composición tisular (normal adyacente con vasculatura), no biología tumoral.
+    - "CAPLACIZUMAB"                            # Anti-VWF (trombosis TTP) — sin mecanismo antitumoral
+    - "VON WILLEBRAND FACTOR HUMAN"             # Reemplazo proteico VWF — coagulopatía, no oncológico
+    - "VONICOG ALFA"                            # Reemplazo proteico VWF — coagulopatía, no oncológico
+    - "EGAPTIVON PEGOL"                         # Anti-VWF aptámero experimental — sin mecanismo antitumoral
+    # Fibrinógeno (FGA/FGB/FGG) — proteína plasmática abundante; señal de
+    # contaminación de sangre en biopsia DIA, no oncogénesis.
+    - "ALFIMEPRASE"                             # Fibrinolítico FGA/FGB/FGG — agente de coágulo, sin mecanismo antitumoral
+    - "ANCROD"                                  # Fibrinolítico FGA/FGB/FGG — veneno serpiente desfibrinogenante, sin mecanismo antitumoral
+    - "FIBRINOGEN, HUMAN"                       # Reemplazo proteico FGA/FGB/FGG — hemostático, no oncológico
+    - "PLASMINOGEN"                             # Precursor plasmina FGA — manejo trombosis, sin mecanismo antitumoral
+    - "TIROFIBAN"                               # Antiagregante FGA/integrina — manejo SCA, sin mecanismo antitumoral HNSCC
+    - "EPTIFIBATIDE"                            # Antiagregante FGA/integrina — manejo SCA, sin mecanismo antitumoral HNSCC
   # Exclusión por gen diana primario: todos los fármacos cuyo target único
   # no tiene plausibilidad antitumoral
   exclude_single_target_genes:
@@ -105,3 +119,6 @@ exclusions:
     - "APP"        # Amiloide — anticuerpos Alzheimer (sin relevancia oncológica)
     - "CACNA2D1"   # Canal calcio α2δ — gabapentinoides analgésicos
     - "ADH1B"      # Alcohol deshidrogenasa — antídotos
+    - "C5"         # Complemento C5 — anticuerpos anti-C5 (eculizumab etc.) — artefacto plasmático/contaminación; sin mecanismo antitumoral en HNSCC
+    # Nota: FGA no se agrega aquí porque en el pipeline de_genes es "FGA|FGB|FGG"
+    # (multi-target), no el string exacto "FGA". Esos fármacos se excluyen por nombre en exclusions.drugs.

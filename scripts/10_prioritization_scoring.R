@@ -197,17 +197,23 @@ gene_de <- gene_de %>%
     pi_stat = sign(logFC_TVsS) * abs(logFC_TVsS) *
               (-log10(adj.P.Val_TVsS + 1e-300))
   )
-# Normalización direccional: 0 = target más downregulado del dataset,
-# 1 = target más upregulado. Mantiene plausibilidad para mecanismos
-# metabólicos (metformin/OXPHOS) pero prioriza inhibición de genes UP.
+# Normalización direccional (min-max sobre pi_stat con signo):
+#   s_pi_stat = 1.0 → drug targets el gen más upregulado del dataset
+#   s_pi_stat = 0.0 → drug targets el gen más downregulado del dataset
+#                     OJO: también devuelve 0.0 cuando el drug no tiene
+#                     ningún target en la tabla DE (ver has_pi_evidence).
+# Mantiene plausibilidad para mecanismos metabólicos (metformin/OXPHOS)
+# pero prioriza inhibición de genes UP sobre targets downregulados.
 pi_min <- min(gene_de$pi_stat, na.rm = TRUE)
 pi_max <- max(gene_de$pi_stat, na.rm = TRUE)
 pi_range <- pi_max - pi_min
+if (pi_range == 0)
+  stop("FATAL: pi_range = 0 — todas las proteinas tienen el mismo pi_stat. Revisar tabla DE.")
 
 score_pistat_fn <- function(gene_str) {
   genes   <- get_target_genes(gene_str)
   pi_vals <- gene_de$pi_stat[gene_de$symbol_org %in% genes]  # signed
-  if (length(pi_vals) == 0) return(0)
+  if (length(pi_vals) == 0) return(0)  # sin evidencia proteómica → ver has_pi_evidence
   mean_pi <- mean(pi_vals, na.rm = TRUE)
   (mean_pi - pi_min) / pi_range  # 0–1, mayor = target más upregulado
 }
@@ -311,6 +317,7 @@ cat("Calculando scores para todos los candidatos...\n")
 scored <- candidates %>%
   rowwise() %>%
   mutate(
+    has_pi_evidence = n_de_genes > 0,  # FALSE: s_pi_stat=0 por falta de target DE, no por dirección
     s_pi_stat  = score_pistat_fn(de_genes),
     s_clinical = score_clinical_fn(max_phase),
     s_cmap     = score_cmap_fn(cmap_score),
@@ -529,6 +536,7 @@ out_cols <- c("drug_name_norm", "chembl_id", "drug_class", "drug_class_label",
               "n_sources", "sources", "max_phase", "is_approved", "hnscc_indication",
               "cmap_score", "n_de_genes", "n_up_genes", "n_down_genes", "de_genes",
               "primary_target",
+              "has_pi_evidence",
               "s_pi_stat", "s_clinical", "s_cmap", "s_pathway", "s_network", "s_evidence",
               "composite_score", "bonus", "final_score")
 out_cols_avail <- intersect(out_cols, colnames(scored))

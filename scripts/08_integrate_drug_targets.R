@@ -345,11 +345,12 @@ drug_summary <- drug_summary %>%
     )
   )
 
+# Conteo pre-override (antes de bloques 4b/4c/4d) — solo para log intermedio
 class_counts <- drug_summary %>%
   count(drug_class, drug_class_label) %>%
   arrange(drug_class)
 
-cat("\nDistribucion por clase:\n")
+cat("\nDistribucion por clase (pre-override):\n")
 for (i in seq_len(nrow(class_counts))) {
   cat(sprintf("  %s: %d farmacos\n",
               class_counts$drug_class_label[i], class_counts$n[i]))
@@ -440,6 +441,10 @@ if (n_b_overridden > 0) {
 # 4d. Override C: fármacos aprobados para indicaciones NO oncológicas cuya
 #     clasificación como B es un artefacto de Open Targets (CT ≠ FDA approval).
 # ---------------------------------------------------------------------------
+# Nota: el guard `drug_class == "B"` asume que estos fármacos llegan aquí como B,
+# no como A. Si un update de OT los vincula a HNSCC y bloque 4b los sube a A,
+# este override no los bajaría a C. Escenario considerado implausible para
+# glucósidos cardíacos, pero documentado aquí como supuesto explícito.
 NOT_CANCER_APPROVED_OVERRIDE <- c(
   "DIGOXIN",   # FDA: insuficiencia cardíaca/arritmia. OT muestra CTs en K. sarcoma/NSCLC, no aprobación oncológica.
   "DIGITOXIN"  # Igual — glucósido cardíaco sin aprobación oncológica FDA.
@@ -676,6 +681,12 @@ cat(sprintf("Exportado: 08_multi_source_candidates.tsv (%d candidatos)\n",
 # =============================================================================
 # RESUMEN FINAL
 # =============================================================================
+# Recomputar class_counts post-override para que el resumen refleje
+# el estado final después de bloques 4b (HNSCC), 4c (cancer approved), 4d (not cancer approved).
+class_counts <- drug_summary %>%
+  count(drug_class, drug_class_label) %>%
+  arrange(drug_class)
+
 cat("\n=== RESUMEN ===\n")
 cat(sprintf("  Fuentes integradas:          4 (DGIdb, ChEMBL, OpenTargets, L2S2)\n"))
 cat(sprintf("  Farmacos totales:            %d\n", nrow(drug_summary)))
