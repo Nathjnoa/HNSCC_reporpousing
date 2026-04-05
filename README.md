@@ -106,23 +106,23 @@ realizado en el laboratorio con proteoDA. Los resultados estan en
 | `07_cmap_connectivity_DEPRECATED.R` | — | DEPRECADO | Reemplazado por `07_l2s2_connectivity.py`. Conservado como referencia. |
 | `08_integrate_drug_targets.R` | 3 | COMPLETADO | Unificar 4 fuentes (DGIdb+ChEMBL+OpenTargets+L2S2). Clasificar farmacos: A=aprobado HNSCC, B=otro cancer, C=no-cancer, D=experimental. 2,421 farmacos unicos; 187 candidatos multi-fuente. Output: `results/tables/drug_targets/08_drug_target_master_table.tsv` |
 | `09_string_network.R` | 4 | COMPLETADO | Red PPI via STRING REST API v12 (score>=700). 403 nodos, 2,001 aristas. 41 hubs (top 10%), todos subunidades de Complejo I mitocondrial. 16 druggable hubs (Metformin). Export GraphML para Cytoscape. Output: `results/tables/network/09_network_node_metrics.tsv` |
-| `10_prioritization_scoring.R` | 4 | COMPLETADO | Scoring multi-criterio (6 dimensiones) + filtro de exclusion de farmacos no-antitumorales. 177 candidatos evaluados (10 excluidos por nombre, 10 por target unico). Top 20 refinado. Output: `results/tables/10_top20_candidates.tsv` |
+| `10_prioritization_scoring.R` | 4 | COMPLETADO | Scoring multi-criterio (5 dimensiones, π-stat direccional) + filtro de exclusion de farmacos no-antitumorales. 177 candidatos evaluados. Pool top 35 para análisis LOD. Panel final = LOD-stable (script 15). Output: `results/tables/10_top20_candidates.tsv`, `10_all_candidates_scored.tsv` |
 | `11_clinicaltrials_pubmed.py` | 5 | COMPLETADO | Para top 20: buscar en ClinicalTrials.gov API v2 (drug+HNSCC) y contar papers PubMed. 11/20 con trials HNSCC, 8 activos. Output: `results/tables/evidence/11_clinical_evidence.tsv` |
 | `12_cosmic_overlap.py` | 5 | COMPLETADO | Cruzar targets DE con cancer driver databases (NCG7 + literatura HNSCC). 2 driver genes solapan (EGFR principal). Output: `results/tables/evidence/12_cosmic_overlap.tsv` |
 | `13_evidence_summary.R` | 6 | COMPLETADO | Compilar evidencia final. Clasificar nivel 1-4 por candidato. Ranking combinado: 60% scoring + 40% evidencia. Output: `results/tables/13_FINAL_drug_candidates.xlsx` |
 | `14_methods_summary.R` | 6 | COMPLETADO | Generar `docs/METHODS.md` con parametros exactos y `docs/OUTPUTS.md`. |
-| `15_sensitivity_analysis.R` | 7 | COMPLETADO | Analisis de sensibilidad de pesos (6 configuraciones). 9 candidatos altamente estables (6/6 configs), top 5 ALTAMENTE ROBUSTO. Output: `results/tables/15_sensitivity_ranks.tsv` |
+| `15_sensitivity_analysis.R` | 7 | COMPLETADO | Analisis de sensibilidad: 6 configs de pesos + LOD (leave-one-database) + permutation test (n=1000, p=0.001). **23 candidatos LOD-stable** = panel definitivo. Output: `results/tables/15_sensitivity_ranks.tsv`, `15_lod_stability.tsv` |
 | `17_pub_figures.R` | 8 | COMPLETADO | Figuras de calidad publicacion (pub-figures double_col, Okabe-Ito, PDF+PNG 300 DPI). 14 figuras individuales + 5 multipanel. 5 figuras nuevas: MA plot, heatmap top DE, scatter logFC-vs-grado PPI, dot matrix scoring, bump chart. Output: `results/figures/pub/` |
 
 ### Scoring multi-criterio (script 10)
 
 ```text
-Score = 0.20 x |log2FC| normalizado
-      + 0.15 x significancia (-log10 adj.P)
-      + 0.20 x fase clinica (aprobado=1, fase3=0.75, fase2=0.5, fase1=0.25)
-      + 0.15 x L2S2 reversal score (normalizado, mas negativo = mejor)
-      + 0.15 x relevancia de ruta (target en pathway enriquecido?)
-      + 0.15 x centralidad en red (betweenness normalizado)
+Score = 0.325 x π-estadístico (logFC × -log10 adj.P, direccional)
+      + 0.200 x fase clinica (aprobado=1, fase3=0.75, fase2=0.5, fase1=0.25)
+      + 0.195 x centralidad en red (betweenness normalizado, STRING v12)
+      + 0.150 x relevancia de ruta (target en pathway enriquecido?)
+      + 0.130 x L2S2 reversal score (normalizado, mas negativo = mejor)
+      # Suma = 1.00 (v3: logFC y significancia unificados en pi-stat)
 ```
 
 Pesos ajustables en `config/analysis_params.yaml`.

@@ -197,11 +197,11 @@ Robustness evaluated through three complementary analyses:
    as `lod_stable = TRUE`. This criterion defines the final candidate panel,
    as it does not depend on arbitrary score thresholds or weight choices.
 3. **Permutation test** (n=1,000): π-statistics randomly shuffled across proteins;
-   empirical p-value computed for top-1 composite score (p = 0.058).
+   empirical p-value computed for top-1 composite score (p = 0.001).
 
-Result: **26 LOD-stable candidates** identified (25 repurposing candidates +
+Result: **23 LOD-stable candidates** identified (22 repurposing candidates +
 Cetuximab as Class A positive control). Of these, 13 belong to the EGFR inhibitor
-cluster (Class B); remaining 12 span OXPHOS, cardiac glycosides, DNMT inhibitors,
+cluster (Class B); remaining 9 span OXPHOS, cardiac glycosides, DNMT inhibitors,
 MAO inhibitors, HDAC modulators, and other mechanisms.
 
 ---

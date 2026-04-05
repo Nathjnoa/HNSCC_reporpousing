@@ -1,128 +1,143 @@
-# Trabajo Futuro — HNSCC Drug Repurposing
+# Guía de Revisión Bibliográfica — HNSCC Drug Repurposing
 
-Este documento registra los próximos pasos planificados para fortalecer el análisis hacia publicación.
-El pipeline computacional (scripts 01-15) está completo. Lo que sigue son análisis de validación independiente.
+El pipeline computacional (scripts 01–15 + 17) está completo. El panel definitivo
+son los **23 candidatos LOD-stable** (`results/tables/15_lod_stability.tsv`).
+Los 12 candidatos restantes del pool top-35 no-LOD-stable van a Supplementary Table.
 
----
-
-## Nivel 2 — Tesis final / preprint
-
-### Script 16: Validación pronóstica en TCGA-HNSC
-
-**Archivo**: `scripts/16_tcga_survival.R` (pendiente)
-**Ambiente**: `omics-R`
-**Paquetes requeridos**: `TCGAbiolinks`, `survival`, `survminer`, `SummarizedExperiment`
-
-**Objetivo**: Verificar de forma independiente que los targets de los candidatos top tienen impacto pronóstico en HNSCC, usando la cohorte TCGA-HNSC (~500 pacientes con RNA-seq + datos clínicos).
-
-**Plan de análisis**:
-
-1. Descargar TCGA-HNSC (GDC portal) via TCGAbiolinks:
-   - RNA-seq HTSeq-FPKM normalizado
-   - Datos clínicos: OS, OS.time, HPV status, estadio, sitio anatómico
-
-2. Estratificar pacientes por expresión alta/baja de cada target (mediana como punto de corte):
-   - `EGFR` → Erlotinib/Cetuximab/Lapatinib
-   - `NDUFA13` (representativo de Complejo I) → Metformin
-   - `MMP8` → Doxycycline/Collagenase/Marimastat
-   - `MYH7` → Mavacamten (¿tiene impacto pronóstico?)
-
-3. Para cada target:
-   - Kaplan-Meier (log-rank test)
-   - Cox univariado (HR, 95% CI, p-valor)
-   - Cox multivariado ajustando por: HPV status, estadio (I-II vs III-IV), sitio (orofaringe vs otros)
-
-4. Pregunta clave: ¿targets de candidatos con alta evidencia clínica (Metformin, Doxycycline) también tienen impacto pronóstico independiente?
-
-**Outputs esperados**:
-- `results/figures/tcga/16_km_EGFR.pdf` — Kaplan-Meier EGFR
-- `results/figures/tcga/16_km_NDUFA13.pdf` — Kaplan-Meier Complejo I
-- `results/figures/tcga/16_km_MMP8.pdf` — Kaplan-Meier MMP8
-- `results/tables/16_cox_univariado.tsv` — resultados Cox univariado
-- `results/tables/16_cox_multivariado.tsv` — HR ajustados
-
-**Nota**: Si NDUFA13 (downregulado en tumor, logFC=-6) tiene HR > 1 (alta expresión = mejor pronóstico), refuerza directamente la lógica de reactivar el Complejo I con Metformin.
+Esta guía organiza la búsqueda bibliográfica por grupo mecanístico.
 
 ---
 
-### Script 17: Figuras de calidad publicación ✅ COMPLETADO (2026-03-04)
+## Panel definitivo: 23 candidatos LOD-stable
 
-**Archivo**: `scripts/17_pub_figures.R` (COMPLETADO)
-**Ambiente**: `omics-R`
-**Skill usado**: `/pub-figures` (preset `double_col`, 180×120 mm, Okabe-Ito)
-
-**19 PDFs + 19 PNGs en `results/figures/pub/`**:
-
-| Código | Figura | Nueva? |
-| ------ | ------ | ------ |
-| A1 | Volcano plot mejorado (labels top 20) | Mejorada |
-| A2 | MA plot (logFC vs intensidad media) | **NUEVA** |
-| A3 | PCA biplot con líneas de pares | Mejorada |
-| A4 | Heatmap top 30 DE × 20 muestras | **NUEVA** |
-| B1 | Hallmarks GSEA barplot horizontal | Mejorada |
-| C1 | Drug candidates por fuente DB | Mejorada |
-| C2 | Distribución fases clínicas | **NUEVA** |
-| D1 | Scatter logFC vs grado PPI | **NUEVA** |
-| D2 | Dot matrix 6 componentes × Top 20 | **NUEVA** |
-| D3 | Top 20 lollipop (por clase farmacológica) | Mejorada |
-| E1 | Evidence heatmap (ComplexHeatmap, categorías) | Mejorada |
-| F1 | Bump chart estabilidad de ranks | **NUEVA** |
-| F2 | Stability bar por candidato | Mejorada |
-| FIG1-5 | Multipanel listos para manuscrito | — |
-
-**Pendiente (Fig 6 manuscrito)**: Kaplan-Meier → ver Script 16 abajo.
+| Clase | Fármacos |
+|-------|----------|
+| **A — Aprobado HNSCC** | Cetuximab |
+| **B — Aprobado otro cáncer** | Afatinib, Amivantamab, Azacitidine, Crizotinib, Dacomitinib, Decitabine, Forodesine, Gefitinib, Lapatinib, Lazertinib, Mobocertinib, Necitumumab, Neratinib, Olmutinib, Osimertinib, Panitumumab, Vandetanib |
+| **C — No oncológico aprobado** | Digoxin, Metformin, Mitapivat, Tranylcypromine, Valproic Acid |
 
 ---
 
-## Nivel 3 — Manuscrito formal
+## Grupos mecanísticos y preguntas clave
 
-### Sección de limitaciones (para Discussion)
+### 1. Inhibidores EGFR/HER (15 candidatos)
+**Fármacos**: Cetuximab, Afatinib, Amivantamab, Dacomitinib, Gefitinib, Lapatinib,
+Lazertinib, Mobocertinib, Necitumumab, Neratinib, Olmutinib, Osimertinib, Panitumumab,
+Vandetanib, Crizotinib
 
-Puntos a incluir en la discusión del manuscrito:
+**Preguntas a responder:**
+- ¿Qué inhibidores EGFR más allá de Cetuximab/Afatinib tienen evidencia clínica en HNSCC?
+- ¿Hay datos de resistencia a Cetuximab y sensibilización con inhibidores de segunda/tercera generación?
+- ¿EGFR amplification/mutation rates en HNSCC HPV+ vs HPV-? (relevante para estratificación)
+- Cetuximab es control positivo de clase A — sirve como ancla para calibrar la narrativa
 
-1. **Proteómica vs transcriptómica**: L2S2 (LINCS L1000) usa firmas transcriptómicas de líneas celulares. La correlación proteoma-transcriptoma es ~0.6 en promedio; los resultados de reversión transcriptómica son sugestivos pero no concluyentes a nivel proteómico.
-
-2. **Tamaño de muestra**: n=10 pares pareados es estadísticamente robusto para detectar logFC>1 con FDR<5%, pero la generalización requiere validación en cohortes más grandes.
-
-3. **Ausencia de validación experimental**: El análisis es in silico. El siguiente paso lógico es validar los candidatos emergentes (Metformin, Doxycycline) en líneas celulares HNSCC (Cal-27, FaDu, SCC-25) con ensayos de viabilidad (MTT), migración, e invasión.
-
-4. **Un solo centro**: Los datos proteómicos provienen de una sola cohorte. La validación en TCGA (script 16) proporciona evidencia independiente a nivel transcriptómico.
-
-5. **Scoring subjetivo**: Los pesos del scoring compuesto son razonables pero arbitrarios. El análisis de sensibilidad (script 15) muestra que el top 5 es robusto, pero los candidatos en posiciones 10-20 son más dependientes de los pesos.
-
-### Comparación con literatura existente
-
-**Tarea pendiente** — buscar y sintetizar papers de drug repurposing en HNSCC:
-
-Búsqueda sugerida en PubMed:
+**Búsqueda sugerida:**
 ```
-("head and neck" OR "HNSCC") AND ("drug repurposing" OR "drug repositioning") AND ("proteomic" OR "transcriptomic") AND (2015:2026[dp])
+("HNSCC" OR "head and neck squamous") AND ("EGFR inhibitor" OR "cetuximab" OR "afatinib") AND ("resistance" OR "clinical trial")
 ```
 
-Preguntas a responder:
-- ¿Erlotinib/Cetuximab aparecen en estudios similares? (esperado: sí)
-- ¿Metformin ha sido reportado en HNSCC computacional? (buscar evidencia)
-- ¿Doxycycline como candidato de reposicionamiento en HNSCC? (evaluar novedad)
-- ¿Hay candidatos en nuestro top 20 completamente no reportados? (potencial novedad)
+---
 
-Papers clave a revisar:
-- Estudios de drug repurposing con datos TCGA-HNSC (transcriptómica)
-- Metformina en HNSCC: epidemiología y mecanismo (varios grupos han publicado)
-- Inhibidores de MMP en cáncer de cabeza y cuello (ECM como target terapéutico)
+### 2. OXPHOS / Metabolismo (1 candidato principal)
+**Fármacos**: Metformin (Complex I), Mitapivat (piruvato quinasa PKLR)
+
+**Preguntas a responder:**
+- ¿Metformina tiene evidencia clínica o epidemiológica en HNSCC?
+- ¿NDUFA13 u otras subunidades del Complejo I tienen valor pronóstico en HNSCC?
+- ¿Cuál es la racionalidad de inhibir el Complejo I en cáncer HPV+?
+- Mitapivat (activador PKLR): PKLR está DE en nuestra proteómica — ¿hay datos en cáncer?
+
+**Búsqueda sugerida:**
+```
+("metformin" OR "OXPHOS" OR "Complex I") AND ("HNSCC" OR "head and neck") AND ("repurposing" OR "antitumor")
+```
 
 ---
 
-## Cronograma sugerido
+### 3. Glucósidos cardíacos (1 candidato)
+**Fármacos**: Digoxin (Na+/K+-ATPase, ATP1A1)
 
-| Etapa | Tarea | Tiempo estimado |
-| ----- | ----- | --------------- |
-| Tesis | Script 16 (TCGA survival) | 1-2 semanas |
-| Tesis | Script 17 (pub figures) | 1 semana |
-| Tesis | Redacción capítulo resultados | 2-3 semanas |
-| Publicación | Sección limitaciones | 2-3 días |
-| Publicación | Búsqueda y síntesis literatura | 1 semana |
-| Publicación | Revisión por co-autores | variable |
+**Preguntas a responder:**
+- ¿Digoxina tiene evidencia antitumoral en HNSCC u otros carcinomas escamosos?
+- ¿ATP1A1 está documentado como target en cáncer?
+- Epidemiología: ¿pacientes con digoxina tienen menor incidencia de HNSCC?
+
+**Búsqueda sugerida:**
+```
+("digoxin" OR "cardiac glycoside") AND ("cancer" OR "carcinoma") AND ("antitumor" OR "repurposing")
+```
 
 ---
 
-Creado: 2026-03-04 | Actualizar cuando se complete cada etapa
+### 4. Inhibidores DNMT / Epigenética (3 candidatos)
+**Fármacos**: Decitabine, Azacitidine (DNMT1), Valproic Acid (HDAC/ALDH5A1)
+
+**Preguntas a responder:**
+- ¿Hay evidencia de hipermetilación en HNSCC que justifique inhibidores DNMT?
+- ¿Decitabine o Azacitidine tienen datos en tumores sólidos (más allá de hematológicos)?
+- Ácido Valproico: evidencia como agente epigenético en HNSCC o sinérgico con otros agentes
+
+**Búsqueda sugerida:**
+```
+("decitabine" OR "azacitidine" OR "valproic acid") AND ("HNSCC" OR "head and neck") AND ("epigenetic" OR "methylation")
+```
+
+---
+
+### 5. Inhibidores de enzimas específicas (2 candidatos)
+**Fármacos**: Tranylcypromine (MAO-A/LSD1), Forodesine (purina nucleósido fosforilasa, PNP)
+
+**Preguntas a responder:**
+- Tranylcypromine: ¿LSD1 (KDM1A) está sobreexpresado en HNSCC? ¿Hay datos en carcinomas?
+- Forodesine: mecanismo en cánceres sólidos — PNP es un target metabólico, ¿relevante en HNSCC?
+
+**Búsqueda sugerida:**
+```
+("tranylcypromine" OR "LSD1 inhibitor" OR "KDM1A") AND ("cancer" OR "carcinoma")
+("forodesine" OR "PNP inhibitor") AND ("cancer")
+```
+
+---
+
+## Estrategia general de búsqueda
+
+**Base de datos primaria**: PubMed
+**Período**: 2015–2026
+**Idioma**: inglés
+
+**Búsqueda general de drug repurposing en HNSCC:**
+```
+("head and neck" OR "HNSCC") AND ("drug repurposing" OR "drug repositioning")
+AND ("proteomic" OR "transcriptomic" OR "computational") AND (2015:2026[dp])
+```
+
+**Para cada candidato individual:**
+```
+("<nombre del fármaco>") AND ("HNSCC" OR "head and neck squamous" OR "oral cancer")
+```
+
+---
+
+## Prioridad de revisión
+
+| Prioridad | Fármacos | Razón |
+|-----------|----------|-------|
+| Alta | Cetuximab, Gefitinib, Afatinib, Metformin | Candidatos top con mayor evidencia clínica previa |
+| Media | Decitabine, Azacitidine, Digoxin, Valproic Acid | Mecanismo relevante pero evidencia en HNSCC escasa |
+| Baja | Tranylcypromine, Forodesine, Mitapivat | Candidatos novedosos — la novedad es el argumento |
+
+---
+
+## Output esperado de la revisión
+
+Para cada candidato, documentar:
+1. Evidencia preclínica en HNSCC (líneas celulares, modelos in vivo)
+2. Trials clínicos activos o completados en HNSCC
+3. Mecanismo de acción y conexión con la proteómica (¿cuál proteína DE es el target?)
+4. Grado de novedad (¿ya reportado en HNSCC computacional?)
+
+Consolidar en tabla para sección de Resultados/Discusión del manuscrito.
+
+---
+
+*Actualizado: 2026-04-05 — Pipeline computacional completo (v3); panel definitivo 23 candidatos LOD-stable*

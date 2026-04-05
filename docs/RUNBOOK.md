@@ -2,7 +2,7 @@
 
 Guia paso a paso para reproducir el analisis completo (16 scripts: 01–15 + 17).
 
-*Última actualización: 2026-03-30 — Revisión metodológica v2: scoring recalibrado, deduplicación de sales, reclasificación farmacológica, criterio LOD-stability para panel final*
+*Última actualización: 2026-04-05 — Revisión metodológica v3: pi-stat direccional, reclasificación DIGOXIN, exclusión miosinas cardíacas; panel final = 23 candidatos LOD-stable*
 
 ---
 
