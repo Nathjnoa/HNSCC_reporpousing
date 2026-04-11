@@ -2,7 +2,7 @@
 
 Guia paso a paso para reproducir el analisis completo (16 scripts: 01–15 + 17).
 
-*Última actualización: 2026-04-05 — Revisión metodológica v3: pi-stat direccional, reclasificación DIGOXIN, exclusión miosinas cardíacas; panel final = 23 candidatos LOD-stable*
+*Última actualización: 2026-04-11 — Fix API Open Targets (knownDrugs→drugAndClinicalCandidates); pipeline re-ejecutado completo; panel final = 32 candidatos LOD-stable*
 
 ---
 
@@ -243,6 +243,7 @@ Los scripts solo pueden ejecutarse si sus dependencias estan completas. Respetar
 | Script 17: `drug_class_label` no encontrada | La columna exportada por script 10 se llama `drug_class` (valores A/B/C/D). Script 17 traduce internamente a etiquetas descriptivas; no existe columna `drug_class_label` en los archivos intermedios. |
 | Script 15: advertencia `bonus` column not found | La columna `bonus` la exporta script 10. Si no está presente, script 15 usa 0 y continúa; verificar que script 10 se ejecutó sin errores y que `10_all_candidates_scored.tsv` está completo. |
 | Script 17: `logFC_TVsS` no encontrada en nodos de red | El archivo `09_network_node_metrics.tsv` solo contiene métricas de red. Script 17 hace un `left_join` automático desde la tabla DE para añadir `logFC_TVsS` y `adj.P.Val_TVsS`. No requiere intervención. |
+| Script 06: `Cannot query field 'knownDrugs'` (400 Bad Request) | La API de Open Targets Platform v4 eliminó el campo `knownDrugs` en abril 2026. El script ya fue actualizado para usar `drugAndClinicalCandidates`. Si el error reaparece, verificar que se usa la versión actualizada del script 06. La aprobación se detecta con `maximumClinicalStage = "APPROVAL"` (no "PHASE_4"). |
 
 ---
 

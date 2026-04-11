@@ -36,9 +36,6 @@
 - `results/tables/drug_targets/05_chembl_summary.tsv` ( 12.2K)
 - `results/tables/drug_targets/06_opentargets_gene_drugs.tsv` (  1.89M)
 - `results/tables/drug_targets/06_opentargets_hnscc_scores.tsv` (  3.46K)
-- `results/tables/drug_targets/07_cmap_dsea_go_bp.tsv` ( 98.27K)
-- `results/tables/drug_targets/07_cmap_results.tsv` (382.54K)
-- `results/tables/drug_targets/07_cmap_top_reversors.tsv` ( 24.69K)
 - `results/tables/drug_targets/07_l2s2_results.tsv` (172.36K)
 - `results/tables/drug_targets/07_l2s2_top_reversors.tsv` (172.36K)
 - `results/tables/drug_targets/08_drug_summary_per_drug.tsv` (393.97K)
@@ -94,10 +91,26 @@
 - `results/figures/pathway_enrichment/03_Reactome_dotplot.pdf` ( 7.37K)
 
 ### Drug Target Figures (script 08)
-- `` ()
+
+- `results/figures/08_cmap_vs_targets.pdf`
+- `results/figures/08_drug_class_barplot.pdf`
+- `results/figures/08_drug_sources_support.pdf`
+- `results/figures/08_top_candidates_lollipop.pdf`
 
 ### Network Figures (script 09)
-- `` ()
+
+- `results/figures/09_hub_druggable_scatter.pdf`
+- `results/figures/09_network_degree_dist.pdf`
+- `results/figures/09_network_full.pdf`
+- `results/figures/09_network_hubs_only.pdf`
+- `results/figures/09_network_modules.pdf`
+- `results/figures/09_top25_hubs_degree.pdf`
+
+### Sensitivity Figures (script 15)
+
+- `results/figures/15_rank_heatmap.pdf`
+- `results/figures/15_score_distribution.pdf`
+- `results/figures/15_stability_bar.pdf`
 
 ### Evidence Figures (scripts 11-12)
 - `results/figures/evidence/11_evidence_bubble.pdf` (22.9K)
@@ -117,10 +130,14 @@
 
 `results/tables/13_FINAL_drug_candidates.xlsx` — Master results file with 5 sheets:
 1. **Top20_Final**: Top 20 candidates with all evidence integrated
-2. **Todos_Candidatos**: All 187 multi-source candidates with scores
+2. **Todos_Candidatos**: All multi-source candidates with scores
 3. **Evidencia_Matriz**: Binary evidence matrix (10 dimensions x 20 candidates)
 4. **Ensayos_Clinicos**: ClinicalTrials.gov results per candidate
 5. **Metodologia**: Pipeline summary with result counts per step
+
+**Panel final LOD-stable (15_lod_stability.tsv):** 32 candidatos robustos (criterio: top-N en ≥4/4 configuraciones de pesos). Núcleos principales: EGFR/RTK (~26), Epigenético/DNMT (Decitabine, Azacitidine), Metabólico/OXPHOS (Metformina), Otros aprobados (Carfilzomib, Tranylcypromine, Mitapivat).
+
+**Último run completo:** 2026-04-11 (scripts 01–17). Fix OpenTargets API: `knownDrugs`→`drugAndClinicalCandidates`.
 
 ---
 

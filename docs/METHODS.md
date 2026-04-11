@@ -44,7 +44,7 @@ Parameters: minGSSize=10, maxGSSize=500, permutations=1000.
 
 - **DGIdb**: GraphQL API v5, all 520 DE genes queried.
 - **ChEMBL**: REST API v33, drugs in clinical phase >= 3.
-- **Open Targets**: GraphQL API, HNSCC association (EFO_0000181) + known drugs.
+- **Open Targets**: GraphQL API v4 (api.platform.opentargets.org), HNSCC association score (EFO_0000181) + drug candidates via `drugAndClinicalCandidates` (campo actualizado en API v4 de abril 2026; reemplaza `knownDrugs` de versiones anteriores). Aprobación detectada por `maximumClinicalStage = "APPROVAL"`.
 - **L2S2 (LINCS L1000 Signature Search)**: API GraphQL publica (l2s2.maayanlab.cloud);
   enriquecimiento bidireccional: top 150 proteinas UP vs firmas DOWN del farmaco + top 150 DOWN vs firmas UP;
   filtro filterFda=TRUE; pvalue < 0.001; 248 lineas celulares; 1,044 drugs FDA-aprobados evaluados;
