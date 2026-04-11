@@ -241,19 +241,19 @@ for i, sym in enumerate(unmatched_genes):
 
 log.info(f"Total genes con Ensembl ID: {len(full_ensembl_map)}")
 
-# --- Consultar knownDrugs ---
+# --- Consultar drugAndClinicalCandidates (reemplaza knownDrugs en API v4) ---
 QUERY_DRUGS = """
 query TargetDrugs($ensembl: String!) {
   target(ensemblId: $ensembl) {
     id
     approvedSymbol
-    knownDrugs {
+    drugAndClinicalCandidates {
       rows {
+        maxClinicalStage
         drug {
           id
           name
-          maximumClinicalTrialPhase
-          isApproved
+          maximumClinicalStage
           drugType
           mechanismsOfAction {
             rows {
@@ -262,20 +262,25 @@ query TargetDrugs($ensembl: String!) {
             }
           }
         }
-        disease {
-          id
-          name
-        }
-        phase
-        mechanismOfAction
-        urls {
-          url
+        diseases {
+          diseaseFromSource
+          disease {
+            id
+            name
+          }
         }
       }
     }
   }
 }
 """
+
+# Mapeo de etiqueta de fase a número para compatibilidad con código downstream
+PHASE_MAP = {
+    "PHASE_1": 1, "PHASE_1_2": 1, "PHASE_2": 2, "PHASE_2_3": 2,
+    "PHASE_3": 3, "PHASE_3_4": 3, "PHASE_4": 4,
+    "APPROVAL": 4, "APPROVED": 4, "PHASE_0": 0,
+}
 
 all_drug_rows: List[Dict] = []
 genes_with_drugs = 0
@@ -286,7 +291,7 @@ symbol_to_meta = {
 }
 
 items = list(full_ensembl_map.items())
-log.info(f"Consultando knownDrugs para {len(items)} genes ...")
+log.info(f"Consultando drugAndClinicalCandidates para {len(items)} genes ...")
 
 for i, (sym, ensembl) in enumerate(items):
     data = gql(QUERY_DRUGS, {"ensembl": ensembl})
@@ -295,7 +300,7 @@ for i, (sym, ensembl) in enumerate(items):
         continue
 
     tgt = data["target"]
-    known = tgt.get("knownDrugs") or {}
+    known = tgt.get("drugAndClinicalCandidates") or {}
     rows = known.get("rows") or []
 
     if not rows:
@@ -316,26 +321,43 @@ for i, (sym, ensembl) in enumerate(items):
 
     for r in rows:
         drug = r.get("drug") or {}
-        disease = r.get("disease") or {}
-        is_hnscc = disease.get("id", "") == HNSCC_EFO
-        all_drug_rows.append({
-            "symbol_org":           sym,
-            "ensembl_id":           ensembl,
-            "logFC_TVsS":           logfc,
-            "adj_pval":             adj_pval,
-            "direction":            direction,
-            "hnscc_ot_score":       hnscc_score,
-            "drug_id":              drug.get("id", ""),
-            "drug_name":            (drug.get("name") or "").strip().upper(),
-            "max_phase_global":     drug.get("maximumClinicalTrialPhase", ""),
-            "is_approved":          drug.get("isApproved", ""),
-            "drug_type":            drug.get("drugType", ""),
-            "trial_phase":          r.get("phase", ""),
-            "indication_efo":       disease.get("id", ""),
-            "indication_name":      disease.get("name", ""),
-            "is_hnscc_indication":  is_hnscc,
-            "mechanism_of_action":  r.get("mechanismOfAction", ""),
-        })
+        diseases = r.get("diseases") or []
+        row_phase_str = r.get("maxClinicalStage") or drug.get("maximumClinicalStage") or ""
+        row_phase_num = PHASE_MAP.get(row_phase_str, None)
+        drug_phase_str = drug.get("maximumClinicalStage") or ""
+        drug_phase_num = PHASE_MAP.get(drug_phase_str, None)
+        # Mecanismo de accion (primer entry disponible)
+        moa_rows = (drug.get("mechanismsOfAction") or {}).get("rows") or []
+        moa_str = "; ".join(
+            f"{m.get('actionType','')} {m.get('mechanismOfAction','')}".strip()
+            for m in moa_rows
+        ) if moa_rows else ""
+
+        if not diseases:
+            # Sin indicacion especifica — agregar igual con indicacion vacía
+            diseases = [{"diseaseFromSource": "", "disease": {"id": "", "name": ""}}]
+
+        for dis_entry in diseases:
+            dis = dis_entry.get("disease") or {}
+            is_hnscc = dis.get("id", "") == HNSCC_EFO
+            all_drug_rows.append({
+                "symbol_org":           sym,
+                "ensembl_id":           ensembl,
+                "logFC_TVsS":           logfc,
+                "adj_pval":             adj_pval,
+                "direction":            direction,
+                "hnscc_ot_score":       hnscc_score,
+                "drug_id":              drug.get("id", ""),
+                "drug_name":            (drug.get("name") or "").strip().upper(),
+                "max_phase_global":     drug_phase_num,
+                "is_approved":          drug_phase_num == 4 if drug_phase_num is not None else "",
+                "drug_type":            drug.get("drugType", ""),
+                "trial_phase":          row_phase_num,
+                "indication_efo":       dis.get("id", ""),
+                "indication_name":      dis.get("name", ""),
+                "is_hnscc_indication":  is_hnscc,
+                "mechanism_of_action":  moa_str,
+            })
 
     time.sleep(SLEEP_SEC)
     if (i + 1) % 50 == 0:
@@ -352,7 +374,7 @@ log.info(f"Pares gen-farmaco totales: {len(all_drug_rows)}")
 # Construir DataFrame y exportar
 # ---------------------------------------------------------------------------
 if not all_drug_rows:
-    log.error("Sin resultados de knownDrugs. Revisar conectividad.")
+    log.error("Sin resultados de drugAndClinicalCandidates. Revisar conectividad.")
     sys.exit(1)
 
 df_drugs = pd.DataFrame(all_drug_rows)

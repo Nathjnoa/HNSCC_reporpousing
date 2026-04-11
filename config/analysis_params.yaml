@@ -48,11 +48,11 @@ network:
 #   network_centrality:   0.15 + 0.045 = 0.195
 #   cmap_connectivity:    0.10 + 0.030 = 0.130
 scoring:
-  weight_pi_stat: 0.325          # señal proteómica (logFC × significancia)
+  weight_pi_stat: 0.40           # señal proteómica (logFC × significancia)
   weight_clinical_phase: 0.20    # fase FDA (independiente de literatura HNSCC)
-  weight_cmap_connectivity: 0.13 # reversión de firma transcriptómica (L2S2)
+  weight_cmap_connectivity: 0.10 # reversión de firma transcriptómica (L2S2)
   weight_pathway_relevance: 0.15 # solapamiento con vías enriquecidas en HNSCC
-  weight_network_centrality: 0.195 # centralidad en red PPI STRING
+  weight_network_centrality: 0.15 # centralidad en red PPI STRING
   # Suma = 1.00 (verificado en script 10)
 
 # --- Candidatos finales (script 10) ---
