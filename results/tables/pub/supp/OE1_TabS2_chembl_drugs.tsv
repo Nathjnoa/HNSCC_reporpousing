@@ -1,0 +1,115 @@
+Gen	Fármaco	Fase	Fase (etiqueta)	Año aprobación	Tipo molécula
+A2M	TECHNETIUM TC 99M SUCCIMER	4	Approved	1982	Small molecule
+ALDH2	DISULFIRAM	4	Approved	1951	Small molecule
+ALDH5A1	DIVALPROEX SODIUM	4	Approved	1983	Small molecule
+ALDH5A1	VALPROATE SODIUM	4	Approved	1996	Small molecule
+ALDH5A1	VALPROIC ACID	4	Approved	1978	Small molecule
+APP	ADUCANUMAB	4	Approved	2021	Antibody
+APP	LECANEMAB	4	Approved	2023	Antibody
+CA2	BRINZOLAMIDE	4	Approved	1998	Small molecule
+C5	RAVULIZUMAB	4	Approved	2018	Antibody
+C5	POZELIMAB	4	Approved	2023	Antibody
+C5	ECULIZUMAB	4	Approved	2007	Antibody
+APP	DONANEMAB	4	Approved	NA	Antibody
+CA2	DICHLORPHENAMIDE	4	Approved	1958	Small molecule
+CA2	DORZOLAMIDE HYDROCHLORIDE	4	Approved	1994	Small molecule
+CA2	METHAZOLAMIDE	4	Approved	1959	Small molecule
+C5	CROVALIMAB	4	Approved	NA	Antibody
+C5	ZILUCOPLAN SODIUM	4	Approved	2023	Protein
+C5	AVACINCAPTAD PEGOL SODIUM	4	Approved	2023	Unknown
+DNMT1	DECITABINE	4	Approved	2006	Small molecule
+EGFR	CETUXIMAB	4	Approved	2004	Antibody
+DNMT1	AZACITIDINE	4	Approved	2004	Small molecule
+CPT2	PERHEXILINE MALEATE	4	Approved	1974	Small molecule
+CFB	IPTACOPAN	4	Approved	2023	Small molecule
+CFB	IPTACOPAN HYDROCHLORIDE	4	Approved	2023	Small molecule
+CDA	CEDAZURIDINE	4	Approved	2020	Small molecule
+CA2	ACETAZOLAMIDE SODIUM	4	Approved	1982	Small molecule
+CA2	ACETAZOLAMIDE	4	Approved	1953	Small molecule
+CA2	TOPIRAMATE	4	Approved	1996	Small molecule
+EGFR	BRIGATINIB	4	Approved	2017	Small molecule
+EGFR	OSIMERTINIB MESYLATE	4	Approved	2015	Small molecule
+EGFR	NECITUMUMAB	4	Approved	2015	Antibody
+EGFR	OLMUTINIB	4	Approved	2016	Small molecule
+EGFR	NERATINIB	4	Approved	2017	Small molecule
+EGFR	DACOMITINIB	4	Approved	2018	Small molecule
+EGFR	OSIMERTINIB	4	Approved	2015	Small molecule
+EGFR	AFATINIB DIMALEATE	4	Approved	2013	Small molecule
+EGFR	GEFITINIB	4	Approved	2003	Small molecule
+EGFR	ERLOTINIB HYDROCHLORIDE	4	Approved	2004	Small molecule
+EEF1A2	PLITIDEPSIN	4	Approved	2018	Small molecule
+EGFR	PANITUMUMAB	4	Approved	2006	Antibody
+EGFR	LAPATINIB DITOSYLATE	4	Approved	2007	Small molecule
+MMP8	DOXYCYCLINE HYCLATE	4	Approved	1967	Small molecule
+MMP8	DOXYCYCLINE CALCIUM	4	Approved	1974	Small molecule
+MMP8	DOXYCYCLINE	4	Approved	1967	Small molecule
+VWF	CAPLACIZUMAB	4	Approved	2018	Antibody
+EGFR	LAZERTINIB	4	Approved	2024	Small molecule
+EGFR	MOBOCERTINIB SUCCINATE	4	Approved	2021	Small molecule
+EGFR	MOBOCERTINIB	4	Approved	2021	Small molecule
+F2	DESIRUDIN	4	Approved	1997	Protein
+EGFR	LAZERTINIB MESYLATE	4	Approved	2024	Small molecule
+F2	LEPIRUDIN	4	Approved	1997	Protein
+F2	DABIGATRAN ETEXILATE MESYLATE	4	Approved	2008	Small molecule
+F2	ARGATROBAN	4	Approved	2000	Small molecule
+F2	BIVALIRUDIN	4	Approved	2000	Protein
+EGFR	AMIVANTAMAB	4	Approved	2021	Antibody
+EGFR	NERATINIB MALEATE	4	Approved	2017	Small molecule
+EGFR	DACOMITINIB ANHYDROUS	4	Approved	2018	Small molecule
+PKLR	MITAPIVAT	4	Approved	2022	Small molecule
+VWF	VONICOG ALFA	4	Approved	2018	Protein
+VWF	VON WILLEBRAND FACTOR HUMAN	4	Approved	2013	Unknown
+PKLR	MITAPIVAT SULFATE	4	Approved	2022	Small molecule
+MAOA	MINAPRINE	4	Approved	NA	Small molecule
+MAOA	TOLOXATONE	4	Approved	1984	Small molecule
+MAOA	MINAPRINE HYDROCHLORIDE	4	Approved	NA	Small molecule
+MAOA	PROXIBARBAL	4	Approved	NA	Small molecule
+HBB	BETIBEGLOGENE AUTOTEMCEL	4	Approved	2019	Gene
+HBB	LOVOTIBEGLOGENE AUTOTEMCEL	4	Approved	2023	Gene
+F5	DROTRECOGIN ALFA (ACTIVATED)	4	Approved	2001	Protein
+F2	PROTHROMBIN	4	Approved	2023	Protein
+F2	ANTITHROMBIN ALFA	4	Approved	2006	Protein
+F2	XIMELAGATRAN	4	Approved	NA	Small molecule
+PNP	FORODESINE HYDROCHLORIDE	4	Approved	2017	Small molecule
+MAOA	MOCLOBEMIDE	4	Approved	1990	Small molecule
+NECTIN4	ENFORTUMAB VEDOTIN	4	Approved	2019	Antibody drug conjugate
+APP	GANTENERUMAB	3	Phase III	NA	Antibody
+APP	TRAMIPROSATE	3	Phase III	NA	Small molecule
+APP	BAPINEUZUMAB	3	Phase III	NA	Antibody
+EGFR	ROCILETINIB	3	Phase III	NA	Small molecule
+EGFR	TESEVATINIB	3	Phase III	NA	Small molecule
+CA2	POLMACOXIB	3	Phase III	NA	Small molecule
+APP	CRENEZUMAB	3	Phase III	NA	Antibody
+APP	SOLANEZUMAB	3	Phase III	NA	Antibody
+C5	PEXELIZUMAB	3	Phase III	NA	Antibody
+C5	NOMACOPAN	3	Phase III	NA	Unknown
+C5	VILOBELIMAB	3	Phase III	NA	Antibody
+APP	VALILTRAMIPROSATE	3	Phase III	NA	Small molecule
+C5	ZILUCOPLAN	3	Phase III	NA	Protein
+EGFR	FUTUXIMAB	3	Phase III	NA	Antibody
+EGFR	NIMOTUZUMAB	3	Phase III	NA	Antibody
+EGFR	ZALUTUMUMAB	3	Phase III	NA	Antibody
+EGFR	SIMOTINIB	3	Phase III	NA	Small molecule
+EGFR	CANERTINIB DIHYDROCHLORIDE	3	Phase III	NA	Small molecule
+EGFR	PYROTINIB	3	Phase III	NA	Small molecule
+F2	DABIGATRAN	3	Phase III	NA	Small molecule
+EGFR	FIRMONERTINIB	3	Phase III	NA	Small molecule
+EGFR	ICOTINIB	3	Phase III	NA	Small molecule
+EGFR	ABIVERTINIB MALEATE	3	Phase III	NA	Small molecule
+EGFR	AUMOLERTINIB	3	Phase III	NA	Small molecule
+EGFR	ABIVERTINIB	3	Phase III	NA	Small molecule
+EGFR	RUSERONTINIB	3	Phase III	NA	Small molecule
+EGFR	CLN-081	3	Phase III	NA	Small molecule
+EGFR	DEPATUXIZUMAB MAFODOTIN	3	Phase III	NA	Antibody drug conjugate
+EGFR	RINDOPEPIMUT	3	Phase III	NA	Unknown
+EGFR	MODOTUXIMAB	3	Phase III	NA	Antibody
+EGFR	NAQUOTINIB	3	Phase III	NA	Small molecule
+F2	PROTHROMBIN COMPLEX CONCENTRATE	3	Phase III	NA	Protein
+METAP2	BELORANIB	3	Phase III	NA	Small molecule
+HSPA8	FORIGERIMOD ACETATE	3	Phase III	NA	Protein
+ITGB6	SIGVOTATUG VEDOTIN	3	Phase III	NA	Antibody drug conjugate
+F2	DEFIBROTIDE	3	Phase III	NA	Unknown
+MPO	VERDIPERSTAT	3	Phase III	NA	Small molecule
+MMP9	ANDECALIXIMAB	3	Phase III	NA	Antibody
+MMP9	MARIMASTAT	3	Phase III	NA	Small molecule
+MMP2	MARIMASTAT	3	Phase III	NA	Small molecule

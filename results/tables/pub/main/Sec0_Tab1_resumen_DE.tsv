@@ -1,0 +1,10 @@
+Parámetro	Valor	Nota
+Proteínas cuantificadas (total)	3352	Proteómica DIA, MaxQuant, 10 pares tumor/normal
+Proteínas mapeadas a Entrez ID	3352	Mapeo con org.Hs.eg.db (Bioconductor)
+Umbral log2 Fold Change	> 1.0  (cambio > 2× en escala lineal)	Aplicado sobre contrastes limma TVsS
+Umbral FDR (adj. p-valor)	< 0.05	Benjamini-Hochberg (limma/proteoDA)
+Proteínas DE significativas	666	19.9% del proteoma cuantificado
+  — Sobreexpresadas en tumor (up)	329	49.4% del total DE
+  — Subexpresadas en tumor (down)	337	50.6% del total DE
+HPV+ pacientes / pares	6 pacientes / 12 muestras	M3, M5, M6, M7, M9, M10
+HPV− pacientes / pares	4 pacientes / 8 muestras	M1, M2, M4, M8

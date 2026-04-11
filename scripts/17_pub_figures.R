@@ -201,6 +201,14 @@ sens      <- read_tsv("results/tables/15_sensitivity_ranks.tsv",
 
 cat("  Datos cargados OK\n")
 
+# ── Cargar metadata (HPV status) ──────────────────────────────────────────────
+meta <- read_delim("data/raw/metadata.csv", delim = ";", show_col_types = FALSE) %>%
+  mutate(hpv = ifelse(tolower(vph) == "positive", "HPV+", "HPV-"))
+hpv_lookup <- setNames(meta$hpv, meta$sample_id)
+HPV_COLS   <- c("HPV+" = "#009E73", "HPV-" = "#E69F00")
+cat("  Metadata cargada OK —", sum(meta$hpv == "HPV+"), "HPV+,",
+    sum(meta$hpv == "HPV-"), "HPV-\n")
+
 # ── Columna de intensidad media para MA plot ──────────────────────────────────
 # limma estándar exporta "AveExpr"; script 01 puede haberla renombrado
 avg_col <- if ("avg_intensity_TVsS" %in% colnames(de)) {
@@ -256,11 +264,17 @@ expr_mat <- de %>%
 cat("\n--- Sección A: QC / DE ---\n")
 
 # ── A1: Volcano plot ──────────────────────────────────────────────────────────
-# Top 10 por dirección para garantizar etiquetas en ambos grupos (up Y down)
+# Top 8 por dirección + proteínas de interés terapéutico forzadas independientemente del rango
+force_label_genes <- c("EGFR", "PSMB5", "PSMB2", "PSMA1", "PSMD11",
+                        "DNMT1", "TOP2A", "NDUFA9", "NDUFS3", "NDUFB3")
 top_vol <- bind_rows(
-  de %>% filter(direction == "up")   %>% arrange(desc(logFC_TVsS)) %>% slice_head(n = 10),
-  de %>% filter(direction == "down") %>% arrange(logFC_TVsS)       %>% slice_head(n = 10)
-)
+  de %>% filter(direction == "up")   %>% arrange(desc(logFC_TVsS)) %>% slice_head(n = 8),
+  de %>% filter(direction == "down") %>% arrange(logFC_TVsS)       %>% slice_head(n = 8),
+  de %>% filter(gene_symbol %in% force_label_genes, direction != "ns")
+) %>% distinct(gene_symbol, .keep_all = TRUE)
+force_found <- intersect(force_label_genes, de$gene_symbol[de$direction != "ns"])
+cat(sprintf("  A1: %d proteínas forzadas en etiquetas: %s\n",
+            length(force_found), paste(force_found, collapse = ", ")))
 
 p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
                             color = direction)) +
@@ -338,23 +352,26 @@ pca_df <- as.data.frame(pca_res$x[, 1:2]) %>%
   rownames_to_column("sample_id") %>%
   mutate(
     condition = ifelse(str_ends(sample_id, "T"), "Tumor", "Adjacent Normal"),
-    patient   = str_remove(sample_id, "[TS]$")
+    patient   = str_remove(sample_id, "[TS]$"),
+    hpv       = hpv_lookup[sample_id]
   )
 
-p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = condition)) +
+p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = condition, shape = hpv)) +
   geom_line(aes(group = patient), color = "grey70",
             linewidth = 0.4, linetype = "dotted") +
-  geom_point(aes(shape = condition), size = 2.4, stroke = 0.5) +
+  geom_point(size = 2.5, stroke = 0.6) +
   scale_color_manual(values = COND_COLS) +
-  scale_shape_manual(values = c(Tumor = 16, "Adjacent Normal" = 1)) +
+  scale_shape_manual(values = c("HPV+" = 17, "HPV-" = 16), na.value = 1) +
   labs(title = "PCA — paired tumor/adjacent normal samples",
        x     = sprintf("PC1  (%.1f%%)", var_exp[1]),
        y     = sprintf("PC2  (%.1f%%)", var_exp[2]),
-       color = "Condition", shape = "Condition") +
-  guides(color = guide_legend(override.aes = list(size = 2.5)),
-         shape = guide_legend(override.aes = list(size = 2.5))) +
+       color = "Condition", shape = "HPV status") +
+  guides(
+    color = guide_legend(override.aes = list(size = 2.5, shape = 15)),
+    shape = guide_legend(override.aes = list(size = 2.5))
+  ) +
   theme_pub() +
-  theme(legend.position = c(0.82, 0.15))
+  theme(legend.position = c(0.80, 0.12))
 
 save_pub(p_pca, "A3_PCA")
 cat("  A3: PCA — OK\n")
@@ -375,9 +392,14 @@ col_order <- order(col_cond)
 heat_z    <- heat_z[, col_order]
 col_cond  <- col_cond[col_order]
 
+hpv_ann_cols <- hpv_lookup[colnames(heat_mat)[col_order]]
 ht_col_ann <- HeatmapAnnotation(
   Condition = col_cond,
-  col = list(Condition = c(Tumor = "#D55E00", "Adjacent Normal" = "#0072B2")),
+  HPV       = hpv_ann_cols,
+  col = list(
+    Condition = c(Tumor = "#D55E00", "Adjacent Normal" = "#0072B2"),
+    HPV       = HPV_COLS
+  ),
   annotation_name_gp = gpar(fontsize = 6.5),
   simple_anno_size   = unit(3, "mm")
 )
@@ -477,19 +499,20 @@ source_long <- drug_sum %>%
   mutate(
     DGIdb       = str_detect(sources, "DGIdb"),
     ChEMBL      = str_detect(sources, "ChEMBL"),
-    OpenTargets = str_detect(sources, "OpenTargets")
+    OpenTargets = str_detect(sources, "OpenTargets"),
+    L2S2        = str_detect(sources, "L2S2")
   ) %>%
-  pivot_longer(c(DGIdb, ChEMBL, OpenTargets),
+  pivot_longer(c(DGIdb, ChEMBL, OpenTargets, L2S2),
                names_to = "source", values_to = "present") %>%
   filter(present) %>%
   count(source, name = "n_drugs") %>%
-  mutate(source = factor(source, levels = c("DGIdb", "ChEMBL", "OpenTargets")))
+  mutate(source = factor(source, levels = c("DGIdb", "OpenTargets", "L2S2", "ChEMBL")))
 
 p_sources <- ggplot(source_long,
                     aes(x = n_drugs, y = reorder(source, n_drugs), fill = source)) +
   geom_col(width = 0.55) +
   geom_text(aes(label = n_drugs), hjust = -0.25, size = 2.6) +
-  scale_fill_manual(values = OKB[1:3]) +
+  scale_fill_manual(values = OKB[1:4]) +
   scale_x_continuous(expand = expansion(mult = c(0, 0.18))) +
   labs(title = "Drug candidates per database source",
        x = "Number of drugs", y = NULL) +
@@ -531,6 +554,46 @@ p_phase <- ggplot(phase_df,
 
 save_pub(p_phase, "C2_drug_phase_dist")
 cat("  C2: Phase distribution — OK\n")
+
+# ── C3: UpSet plot — overlap entre bases de datos (OE1_FigC) ─────────────────
+multi_src <- read_tsv("results/tables/drug_targets/08_multi_source_candidates.tsv",
+                      show_col_types = FALSE)
+
+upset_list <- list(
+  DGIdb       = multi_src$drug_name_norm[str_detect(multi_src$sources, "DGIdb")],
+  ChEMBL      = multi_src$drug_name_norm[str_detect(multi_src$sources, "ChEMBL")],
+  OpenTargets = multi_src$drug_name_norm[str_detect(multi_src$sources, "OpenTargets")],
+  L2S2        = multi_src$drug_name_norm[str_detect(multi_src$sources, "L2S2")]
+)
+
+comb_m <- make_comb_mat(upset_list)
+
+ht_upset <- UpSet(
+  comb_m,
+  comb_col    = "#0072B2",
+  pt_size     = unit(3.5, "mm"),
+  lwd         = 1.5,
+  set_order   = order(set_size(comb_m), decreasing = TRUE),
+  comb_order  = order(comb_size(comb_m), decreasing = TRUE),
+  top_annotation = upset_top_annotation(
+    comb_m,
+    add_numbers      = TRUE,
+    numbers_gp       = gpar(fontsize = 7),
+    annotation_name_gp = gpar(fontsize = 7)
+  ),
+  right_annotation = upset_right_annotation(
+    comb_m,
+    add_numbers      = TRUE,
+    numbers_gp       = gpar(fontsize = 7),
+    annotation_name_gp = gpar(fontsize = 7)
+  ),
+  row_names_gp = gpar(fontsize = 8),
+  column_title = "Drug candidate overlap across database sources",
+  column_title_gp = gpar(fontsize = 8, fontface = "bold")
+)
+
+save_ch(ht_upset, "C3_upset_sources", "double_col", w_add = 10, h_add = 20)
+cat("  C3: UpSet plot sources — OK\n")
 
 # =============================================================================
 # SECCIÓN D — RED PPI + SCORING

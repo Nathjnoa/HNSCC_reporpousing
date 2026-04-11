@@ -1,0 +1,31 @@
+Fármaco	N fuentes	Fuentes	Fase clínica máx.	Indicación HNSCC	Indicación oncológica	ChEMBL ID
+Afatinib	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL2105712
+Lapatinib	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL1201179
+Valproic Acid	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL2105613
+Gefitinib	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL939
+Azacitidine	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL1489
+Disulfiram	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL964
+Acetazolamide	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL20
+Decitabine	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL1201129
+Neratinib	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL180022
+Bivalirudin	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	No	CHEMBL5314348
+Brinzolamide	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	No	CHEMBL220491
+Dabigatran	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	No	CHEMBL48361
+Methazolamide	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	No	CHEMBL19
+Topiramate	4	ChEMBL|DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	No	CHEMBL220492
+Metformin	3	DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL1431
+Cetuximab	3	ChEMBL|DGIdb|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL1201577
+Dacomitinib Anhydrous	3	ChEMBL|DGIdb|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL2110732
+Erlotinib	3	DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL553
+Nimotuzumab	3	ChEMBL|DGIdb|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL2108359
+Panitumumab	3	ChEMBL|DGIdb|OpenTargets	Aprobado (Fase IV)	Sí	Sí	CHEMBL1201827
+Carfilzomib	3	DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL451887
+Thioguanine	3	DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL727
+Brigatinib	3	ChEMBL|DGIdb|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL3545311
+Crizotinib	3	DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL601719
+Erlotinib Hydrochloride	3	ChEMBL|DGIdb|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL1079742
+Pentoxifylline	3	DGIdb|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL628
+Amivantamab	3	ChEMBL|DGIdb|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL4297774
+Aumolertinib	3	ChEMBL|DGIdb|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL4761468
+Cedazuridine	3	ChEMBL|DGIdb|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL3237547
+Dacomitinib	3	ChEMBL|L2S2|OpenTargets	Aprobado (Fase IV)	No	Sí	CHEMBL2105719

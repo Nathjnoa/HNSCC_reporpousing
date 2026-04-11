@@ -1,8 +1,8 @@
 # RUNBOOK — HNSCC Drug Repurposing Pipeline
 
-Guia paso a paso para reproducir el analisis completo (16 scripts: 01–15 + 17).
+Guia paso a paso para reproducir el analisis completo (17 scripts: 01–15 + 17–18).
 
-*Última actualización: 2026-04-11 — Fix API Open Targets (knownDrugs→drugAndClinicalCandidates); pipeline re-ejecutado completo; panel final = 32 candidatos LOD-stable*
+*Última actualización: 2026-04-11 — Fix API Open Targets; pipeline re-ejecutado completo; panel final = 32 candidatos LOD-stable; script 18 añadido (tablas publicación Sec0+OE1)*
 
 ---
 
@@ -12,7 +12,7 @@ Guia paso a paso para reproducir el analisis completo (16 scripts: 01–15 + 17)
 
 | Ambiente | Scripts | Proposito |
 | -------- | ------- | --------- |
-| `omics-R` | 01, 02, 03, 08, 09, 10, 13, 14, 15, 17 | Analisis proteomica, enriquecimiento, red, scoring, figuras pub |
+| `omics-R` | 01, 02, 03, 08, 09, 10, 13, 14, 15, 17, 18 | Analisis proteomica, enriquecimiento, red, scoring, figuras pub, tablas pub |
 | `omics-py` | 04, 05, 06, 07, 11, 12 | Consultas a bases de datos de farmacos (incluye L2S2) |
 
 ### Paquetes adicionales (instalar una sola vez)
