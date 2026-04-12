@@ -49,6 +49,9 @@ suppressPackageStartupMessages({
   library(scales)
   library(ComplexHeatmap)
   library(circlize)
+  library(igraph)
+  library(ggraph)
+  library(tidygraph)
 })
 
 # ── Detectar directorio del proyecto ─────────────────────────────────────────
@@ -194,8 +197,14 @@ hallmarks <- read_tsv("results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv",
                       show_col_types = FALSE)
 drug_sum  <- read_tsv("results/tables/drug_targets/08_drug_summary_per_drug.tsv",
                       show_col_types = FALSE)
-net_nodes <- read_tsv("results/tables/network/09_network_node_metrics.tsv",
-                      show_col_types = FALSE)
+net_nodes    <- read_tsv("results/tables/network/09_network_node_metrics.tsv",
+                        show_col_types = FALSE)
+net_edges    <- read_tsv("results/tables/network/09_network_edges.tsv",
+                        show_col_types = FALSE)
+drg_hubs     <- read_tsv("results/tables/network/09_druggable_hubs.tsv",
+                        show_col_types = FALSE)
+net_modules  <- read_tsv("results/tables/network/09_modules.tsv",
+                        show_col_types = FALSE)
 top20     <- read_tsv("results/tables/10_top20_candidates.tsv",
                       show_col_types = FALSE)
 evidence  <- read_tsv("results/tables/13_evidence_matrix.tsv",
@@ -630,6 +639,324 @@ ht_upset <- UpSet(
 
 save_ch(ht_upset, "C3_upset_sources", "double_col", w_add = 10, h_add = 20)
 cat("  C3: UpSet plot sources — OK\n")
+
+# =============================================================================
+# SECCIÓN OE2 — RED PPI + HUBS DRUGGABLES + PANEL FINAL
+# =============================================================================
+cat("\n--- Sección OE2: Red PPI + panel final ---\n")
+
+# ── OE2_FigA: Red PPI de proteínas DE ─────────────────────────────────────────
+# Diseño:
+#   - Nodos: componente gigante, excluye grado == 1 (hojas periféricas)
+#   - Color fill: dirección DE (naranja = up, azul = down, gris = NS)
+#   - Color borde: negro para hubs druggables, igual que fill para el resto
+#   - Tamaño: degree log-escalado
+#   - Labels: top 14 hubs druggables por grado, con ggrepel
+#   - Layout: Fruchterman-Reingold (seed fija)
+
+# -- Construir grafo: componente gigante, filtrar hojas (degree == 1)
+g_full <- graph_from_data_frame(net_edges, directed = FALSE,
+                                vertices = net_nodes$gene_symbol)
+comp        <- components(g_full)
+giant_genes <- names(comp$membership[comp$membership == which.max(comp$csize)])
+
+# Excluir hojas (degree == 1) para limpiar el layout
+core_genes <- net_nodes %>%
+  filter(gene_symbol %in% giant_genes, degree > 1) %>%
+  pull(gene_symbol)
+
+edge_core <- net_edges %>%
+  filter(gene_A %in% core_genes, gene_B %in% core_genes)
+
+# -- Tabla de atributos de nodo
+node_attr <- net_nodes %>%
+  filter(gene_symbol %in% core_genes) %>%
+  mutate(
+    de_dir     = case_when(
+      logFC_TVsS > 0 & adj.P.Val_TVsS < 0.05 ~ "Up",
+      logFC_TVsS < 0 & adj.P.Val_TVsS < 0.05 ~ "Down",
+      TRUE                                     ~ "NS"
+    ),
+    de_dir     = factor(de_dir, levels = c("Up", "Down", "NS")),
+    is_drg_hub = gene_symbol %in% drg_hubs$gene_symbol,
+    nd_size    = log1p(degree),           # tamaño proporcional al grado
+    nd_alpha   = ifelse(de_dir == "NS", 0.20, 0.82),
+    nd_stroke  = ifelse(is_drg_hub, 0.6, 0.0),
+    nd_color   = ifelse(is_drg_hub, "black",
+                        ifelse(de_dir == "Up",   "#D55E00",
+                        ifelse(de_dir == "Down",  "#0072B2", "#AAAAAA")))
+  )
+
+# -- Construir tidygraph
+g_core <- graph_from_data_frame(edge_core, directed = FALSE,
+                                vertices = node_attr$gene_symbol)
+for (col in c("de_dir","is_drg_hub","nd_size","nd_alpha","nd_stroke","nd_color")) {
+  vertex_attr(g_core, col) <-
+    node_attr[[col]][match(V(g_core)$name, node_attr$gene_symbol)]
+}
+tg <- as_tbl_graph(g_core)
+
+# -- Layout FR con seed fija
+set.seed(42)
+lay <- create_layout(tg, layout = "fr")
+
+# -- Genes a etiquetar: lista curada por relevancia biológica
+# Up: EGFR pathway + proteasoma + ECM (los protagonistas terapéuticos en up)
+# Down: OXPHOS Complejo I + cadena respiratoria (los protagonistas en down)
+hub_label_genes <- c(
+  # Up-regulated hubs druggables — relevancia terapéutica
+  "EGFR", "PSMB3", "PSMA2", "MMP9", "RPS11", "CASP3", "ENO1",
+  # Down-regulated hubs druggables — OXPHOS y cadena respiratoria
+  "NDUFS3", "NDUFS2", "NDUFV1", "ATP5F1C", "SDHA", "UQCRC2", "NDUFA9"
+)
+# Filtrar solo los que existen en la red
+hub_label_genes <- hub_label_genes[hub_label_genes %in% core_genes]
+
+hub_label_df <- lay %>%
+  filter(name %in% hub_label_genes) %>%
+  select(x, y, name, de_dir)
+
+# -- Figura
+p_network <- ggraph(lay) +
+  geom_edge_link(color = "grey80", alpha = 0.22, linewidth = 0.15) +
+  # Todos los nodos: shape 21 (fill + stroke independientes)
+  geom_node_point(
+    aes(fill = de_dir, size = nd_size, alpha = nd_alpha,
+        color = nd_color, stroke = nd_stroke),
+    shape = 21
+  ) +
+  # Etiquetas via ggrepel sobre coordenadas del layout
+  ggrepel::geom_label_repel(
+    data        = hub_label_df,
+    aes(x = x, y = y, label = name, fill = de_dir),
+    color       = "black",
+    size        = 2.0,
+    fontface    = "bold",
+    label.size  = 0.18,
+    label.padding = unit(0.12, "lines"),
+    box.padding = unit(0.25, "lines"),
+    segment.size  = 0.25,
+    segment.color = "grey40",
+    max.overlaps  = 30,
+    alpha       = 0.88,
+    show.legend = FALSE
+  ) +
+  scale_fill_manual(
+    values = c(Up = "#D55E00", Down = "#0072B2", NS = "#CCCCCC"),
+    name   = "DE direction",
+    guide  = guide_legend(override.aes = list(size = 3, alpha = 0.9,
+                                              stroke = 0, shape = 21))
+  ) +
+  scale_color_identity() +
+  scale_size_continuous(range = c(0.6, 4.5), guide = "none") +
+  scale_alpha_identity(guide = "none") +
+  labs(
+    title    = "PPI network of differentially expressed proteins in HNSCC",
+    subtitle = paste0("n = ", nrow(lay), " proteins  \u2022  ",
+                      ecount(g_core), " interactions  \u2022  ",
+                      "Node size: PPI degree  \u2022  Black border: druggable hub")
+  ) +
+  theme_graph(base_family = "sans", base_size = 8) +
+  theme(
+    plot.title      = element_text(size = 9, face = "bold", hjust = 0),
+    plot.subtitle   = element_text(size = 7, color = "grey40", hjust = 0),
+    legend.title    = element_text(size = 7.5, face = "bold"),
+    legend.text     = element_text(size = 7),
+    legend.position = c(0.02, 0.12),
+    plot.margin     = margin(4, 4, 4, 4, "mm")
+  )
+
+save_pub(p_network, "OE2_FigA_ppi_network", "double_col", w_add = 0, h_add = 60)
+cat("  OE2_FigA: PPI network — OK\n")
+
+# ── OE2_FigB: Fármacos del panel final × hubs que apuntan ────────────────────
+# Diseño:
+#   - Filas: fármacos priorizados (top20, ordenados por score)
+#   - Columnas: hubs druggables clave (representativos por módulo biológico)
+#   - Punto: el fármaco apunta a ese hub (presencia en top_drugs del hub)
+#   - Color punto: dirección DE del hub (azul = down, naranja = up)
+#   - Anotación columnas: módulo biológico del hub
+# Objetivo: conectar el panel de fármacos con la biología de red
+
+MODULE_LABELS <- c(
+  "8"  = "OXPHOS",
+  "4"  = "Proteasoma",
+  "2"  = "EGFR / Señalización",
+  "5"  = "Resp. inmune / ECM",
+  "14" = "Metab. peq. mol."
+)
+
+# Módulos clave para mostrar (los más terapéuticamente relevantes)
+KEY_MODULES <- c(8, 2, 4, 5, 14)
+
+# Hubs representativos: top 2 por módulo clave
+key_hubs_b <- drg_hubs %>%
+  filter(module_id %in% KEY_MODULES) %>%
+  left_join(node_attr %>% select(gene_symbol, de_dir), by = "gene_symbol") %>%
+  mutate(module_label = MODULE_LABELS[as.character(module_id)]) %>%
+  group_by(module_id, module_label) %>%
+  slice_max(degree, n = 2) %>%
+  ungroup() %>%
+  arrange(de_dir, module_id, desc(degree))
+
+# Cargar master table gen-fármaco
+master_tbl <- read_tsv("results/tables/drug_targets/08_drug_target_master_table.tsv",
+                       show_col_types = FALSE)
+
+# Pares: hubs × fármacos multi-fuente clase A o B
+drug_hub_b <- master_tbl %>%
+  filter(gene_symbol %in% key_hubs_b$gene_symbol,
+         n_sources >= 2,
+         drug_class %in% c("A", "B")) %>%
+  select(gene_symbol, drug_name_norm, drug_class, n_sources) %>%
+  distinct() %>%
+  inner_join(key_hubs_b %>% select(gene_symbol, module_label, de_dir, module_id),
+             by = "gene_symbol") %>%
+  mutate(
+    drug_label = str_to_title(drug_name_norm) %>% str_trunc(24),
+    hub_col    = gene_symbol
+  )
+
+# Limitar a los 25 fármacos más frecuentes (aparecen en más hubs) para legibilidad
+top_drugs_b <- drug_hub_b %>%
+  count(drug_label) %>%
+  slice_max(n, n = 25) %>%
+  pull(drug_label)
+
+# Orden fármacos: clase A primero, luego B, alfabético dentro
+drug_order <- drug_hub_b %>%
+  distinct(drug_label, drug_class) %>%
+  filter(drug_label %in% top_drugs_b) %>%
+  arrange(drug_class, drug_label) %>%
+  pull(drug_label)
+
+# Etiqueta del eje x: "GEN\n(Módulo)" para mostrar agrupación sin annotate
+hub_axis_labels <- key_hubs_b %>%
+  filter(gene_symbol %in% unique(drug_hub_b$hub_col)) %>%
+  arrange(de_dir, module_id, desc(degree)) %>%
+  mutate(axis_lbl = paste0(gene_symbol, "\n", module_label))
+
+hub_levels <- hub_axis_labels$gene_symbol
+
+drug_hub_b <- drug_hub_b %>%
+  filter(drug_label %in% top_drugs_b) %>%
+  mutate(
+    hub_col    = factor(hub_col, levels = hub_levels),
+    drug_label = factor(drug_label, levels = drug_order)
+  )
+
+# Separadores verticales entre módulos
+module_breaks <- hub_axis_labels %>%
+  mutate(pos = as.integer(factor(gene_symbol, levels = hub_levels))) %>%
+  group_by(module_id) %>%
+  summarise(last_pos = max(pos), .groups = "drop") %>%
+  filter(last_pos < max(hub_axis_labels %>%
+                          mutate(pos = row_number()) %>% pull(pos))) %>%
+  pull(last_pos)
+
+p_hub_drug <- ggplot(drug_hub_b,
+                     aes(x = hub_col, y = drug_label)) +
+  geom_vline(xintercept = module_breaks + 0.5,
+             color = "grey65", linewidth = 0.3, linetype = "dashed") +
+  geom_point(aes(color = de_dir, shape = drug_class),
+             size = 3.0, alpha = 0.88) +
+  scale_x_discrete(labels = setNames(hub_axis_labels$axis_lbl,
+                                     hub_axis_labels$gene_symbol)) +
+  scale_color_manual(
+    values = c(Up = "#D55E00", Down = "#0072B2"),
+    name   = "Hub direction"
+  ) +
+  scale_shape_manual(
+    values = c(A = 16, B = 17),
+    labels = c(A = "Approved (HNSCC)", B = "Approved (other cancer)"),
+    name   = "Drug class"
+  ) +
+  labs(
+    title    = "Drug candidates targeting druggable hub proteins",
+    subtitle = "Hubs grouped by biological module  \u2022  \u25cf Class A: HNSCC evidence  \u2022  \u25b2 Class B: other cancer",
+    x = NULL, y = "Drug candidate"
+  ) +
+  theme_pub() +
+  theme(
+    axis.text.x      = element_text(angle = 0, hjust = 0.5, size = 6.5,
+                                    lineheight = 1.1),
+    axis.text.y      = element_text(size = 6.5),
+    panel.grid.major = element_line(color = "grey92", linewidth = 0.25),
+    axis.line        = element_blank(),
+    axis.ticks       = element_blank(),
+    legend.position  = "right"
+  )
+
+save_pub(p_hub_drug, "OE2_FigB_hub_drug_dotplot", "double_col",
+         w_add = 10, h_add = 120)
+cat("  OE2_FigB: Hub × drug dotplot — OK\n")
+
+# ── OE2_FigC: Panel final — lollipop top candidatos LOD-stable ───────────────
+# Diseño:
+#   - Eje y: top 20 candidatos LOD-stable, ordenados por final_score
+#   - Eje x: final_score compuesto
+#   - Color: drug_class (A=HNSCC, B=otro cáncer, C=no-oncológico, D=experimental)
+#   - Tamaño del punto: n_sources (nº de bases de datos que respaldan el candidato)
+#   - Texto sobre el punto: blanco hub primario (gene hub que justifica su posición)
+
+lod_stable <- read_tsv("results/tables/15_lod_stability.tsv", show_col_types = FALSE)
+
+# Determinar blanco hub primario por fármaco (desde master_tbl)
+hub_primary <- master_tbl %>%
+  filter(drug_name_norm %in% top20$drug_name_norm,
+         gene_symbol %in% drg_hubs$gene_symbol) %>%
+  left_join(drg_hubs %>% select(gene_symbol, degree), by = "gene_symbol") %>%
+  group_by(drug_name_norm) %>%
+  slice_max(degree, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(drug_name_norm, hub_gene = gene_symbol)
+
+top20_lod <- top20 %>%
+  inner_join(lod_stable %>% filter(lod_stable) %>% select(drug_name_norm),
+             by = "drug_name_norm") %>%
+  slice_max(final_score, n = 20) %>%
+  left_join(hub_primary, by = "drug_name_norm") %>%
+  mutate(
+    drug_label  = str_to_title(drug_name_norm) %>% str_trunc(28),
+    drug_label  = factor(drug_label, levels = rev(drug_label)),
+    class_label = DRUG_CLASS_LABELS[drug_class],
+    class_label = factor(class_label, levels = DRUG_CLASS_LABELS),
+    hub_gene    = ifelse(is.na(hub_gene), "", hub_gene)
+  )
+
+CLASS_COLS_OE2 <- setNames(OKB[1:4], DRUG_CLASS_LABELS)
+
+p_lollipop_oe2 <- ggplot(top20_lod,
+                          aes(x = final_score, y = drug_label,
+                              color = class_label)) +
+  geom_segment(aes(xend = 0, yend = drug_label),
+               linewidth = 0.5, alpha = 0.7) +
+  geom_point(aes(size = n_sources), alpha = 0.92) +
+  # Etiqueta del hub sobre el punto
+  geom_text(aes(label = hub_gene),
+            hjust = -0.25, size = 2.0, color = "grey25",
+            fontface = "italic") +
+  scale_x_continuous(limits = c(0, max(top20_lod$final_score) * 1.25),
+                     expand = expansion(mult = c(0, 0.05))) +
+  scale_color_manual(values = CLASS_COLS_OE2, name = "Drug class",
+                     drop = FALSE) +
+  scale_size_continuous(range = c(2, 5.5), name = "N\u00ba sources",
+                        breaks = c(1, 2, 3, 4)) +
+  labs(
+    title    = "Prioritized drug candidates — LOD-stable panel",
+    subtitle = "Score = composite multi-criteria  \u2022  Hub target annotated  \u2022  Point size: n\u00ba data sources",
+    x = "Composite score", y = NULL
+  ) +
+  theme_pub() +
+  theme(
+    legend.position    = "right",
+    axis.line.y        = element_blank(),
+    axis.ticks.y       = element_blank(),
+    panel.grid.major.x = element_line(color = "grey90", linewidth = 0.3)
+  )
+
+save_pub(p_lollipop_oe2, "OE2_FigC_final_panel_lollipop", "double_col", h_add = 55)
+cat("  OE2_FigC: Lollipop panel final — OK\n")
 
 # =============================================================================
 # SECCIÓN D — RED PPI + SCORING

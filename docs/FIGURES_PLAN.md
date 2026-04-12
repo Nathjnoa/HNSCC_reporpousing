@@ -151,12 +151,41 @@ específicos. Responde: ¿Cuál es el estado del proteoma en HNSCC comparado con
 
 ---
 
-## Pendiente — OE2 y OE3
+## OE2 — Priorizar candidatos por centralidad de red y módulo biológico
+
+> Identificar, entre las proteínas DE con blancos farmacológicos, aquellas con mayor
+> centralidad en la red PPI de HNSCC y relacionarlas con los candidatos farmacológicos
+> de mayor relevancia clínica.
+
+*Narrativa: OE1 → 458 candidatos → demasiados. OE2 responde: ¿cuáles blancos son
+biológicamente centrales (hubs de red)? → candidatos que apuntan a esos hubs = panel prioritario.*
+
+---
+
+### Figuras principales (`pub/main/OE2_Fig*.pdf`)
+
+| ID | Archivo | Descripción | Estado |
+|---|---|---|---|
+| `OE2_FigA` | `OE2_FigA_ppi_network` | Red PPI de 432 proteínas DE (componente gigante, excluye hojas). Nodos coloreados por dirección DE (naranja=up, azul=down), tamaño por grado. Hubs druggables con borde negro y etiquetados: EGFR, PSMB3, PSMA2 (up); NDUFS3, SDHA, ATP5F1C, UQCRC2, NDUFA9 (down/OXPHOS). | ✅ Generada |
+| `OE2_FigB` | `OE2_FigB_hub_drug_dotplot` | Dot plot bipartito: fármacos candidatos (eje y) × hubs druggables por módulo biológico (eje x). Muestra relación muchos-a-muchos. Color = dirección hub; forma = clase clínica del fármaco (círculo=clase A/HNSCC, triángulo=clase B/otro cáncer). Módulos: EGFR/Señalización, Proteasoma, OXPHOS. | ✅ Generada |
+| `OE2_FigC` | `OE2_FigC_final_panel_lollipop` | Lollipop: top 20 candidatos LOD-stable ordenados por score compuesto. Color = clase de fármaco; tamaño del punto = nº de fuentes de datos; etiqueta = hub blanco primario. | ✅ Generada |
+
+---
+
+### Tablas — OE2
+
+| ID | Tipo | Contenido | Estado |
+|---|---|---|---|
+| `OE2_Tab1` | **Principal** | Hubs druggables (43 total): proteína, módulo biológico, grado, logFC, fármacos representativos | Existe en `09_druggable_hubs.tsv` — **falta formatear** |
+| `OE2_Tab2` | **Principal** | Panel final LOD-stable (32 candidatos): fármaco, hub blanco, módulo, clase clínica, score, n fuentes | Combinar `10_top20` + `15_lod_stability` — **falta construir** |
+
+---
+
+## Pendiente — OE3
 
 *(Se planificará en la siguiente iteración)*
 
-- **OE2:** Priorizar candidatos por conectividad, rutas y redes → figuras D1, D2, D3 + red STRING
-- **OE3:** Contrastar clínica y bibliográficamente → figura E1, bump chart, stability bar
+- **OE3:** Contrastar clínica y bibliográficamente los candidatos → figura E1, bump chart, stability bar
 
 ---
 
