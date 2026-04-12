@@ -94,8 +94,12 @@ OKB       <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
 DE_COLS   <- c(up = "#D55E00", down = "#0072B2", ns = "#CCCCCC")
 COND_COLS <- c(Tumor = "#D55E00", "Adjacent Normal" = "#0072B2")
 PHASE_COLS <- c(
-  "Phase IV (Approved)" = "#009E73", "Phase III" = "#56B4E9",
-  "Phase II" = "#E69F00", "Phase I" = "#CC79A7", "Unknown" = "#CCCCCC"
+  "Fase IV (Aprobado)"          = "#009E73",
+  "Aprobado (sin fase ChEMBL)"  = "#66C2A5",
+  "Fase III"                    = "#56B4E9",
+  "Fase II"                     = "#E69F00",
+  "Fase I"                      = "#CC79A7",
+  "Sin datos"                   = "#CCCCCC"
 )
 
 # Etiquetas legibles de clase de fármaco (script 10 exporta drug_class = A/B/C/D)
@@ -197,6 +201,8 @@ top20     <- read_tsv("results/tables/10_top20_candidates.tsv",
 evidence  <- read_tsv("results/tables/13_evidence_matrix.tsv",
                       show_col_types = FALSE)
 sens      <- read_tsv("results/tables/15_sensitivity_ranks.tsv",
+                      show_col_types = FALSE)
+multi_src <- read_tsv("results/tables/drug_targets/08_multi_source_candidates.tsv",
                       show_col_types = FALSE)
 
 cat("  Datos cargados OK\n")
@@ -523,37 +529,51 @@ p_sources <- ggplot(source_long,
 save_pub(p_sources, "C1_drug_sources_bar")
 cat("  C1: Drug sources bar — OK\n")
 
-# ── C2: Distribución de fases clínicas ────────────────────────────────────────
-phase_df <- drug_sum %>%
+# ── C2: Distribución de fases clínicas (candidatos multi-fuente) ──────────────
+# Usa multi_src en lugar de drug_sum para evitar el dominio de DGIdb-only (91% NA).
+# Combina max_phase (ChEMBL) con is_approved (flag DGIdb) para recuperar
+# los 222 aprobados cuya fase no está en ChEMBL.
+phase_df <- multi_src %>%
   mutate(
     phase_label = case_when(
-      max_phase == 4 ~ "Phase IV (Approved)",
-      max_phase == 3 ~ "Phase III",
-      max_phase == 2 ~ "Phase II",
-      max_phase == 1 ~ "Phase I",
-      TRUE           ~ "Unknown"
+      max_phase == 4                        ~ "Fase IV (Aprobado)",
+      max_phase == 3                        ~ "Fase III",
+      max_phase == 2                        ~ "Fase II",
+      max_phase == 1                        ~ "Fase I",
+      is_approved == TRUE & is.na(max_phase) ~ "Aprobado (sin fase ChEMBL)",
+      TRUE                                   ~ "Sin datos"
     ),
-    phase_label = factor(phase_label,
-      levels = c("Phase IV (Approved)", "Phase III", "Phase II",
-                 "Phase I", "Unknown"))
+    phase_label = factor(phase_label, levels = names(PHASE_COLS))
   ) %>%
   count(phase_label) %>%
-  filter(!is.na(phase_label))
+  mutate(pct = round(n / sum(n) * 100, 1))
+
+cat(sprintf("  C2: %d candidatos multi-fuente; %d aprobados (%.0f%%)\n",
+            nrow(multi_src),
+            sum(phase_df$n[phase_df$phase_label %in%
+                           c("Fase IV (Aprobado)", "Aprobado (sin fase ChEMBL)")]),
+            sum(phase_df$pct[phase_df$phase_label %in%
+                             c("Fase IV (Aprobado)", "Aprobado (sin fase ChEMBL)")])))
 
 p_phase <- ggplot(phase_df,
                   aes(x = phase_label, y = n, fill = phase_label)) +
-  geom_col(width = 0.6) +
-  geom_text(aes(label = n), vjust = -0.4, size = 2.6) +
+  geom_col(width = 0.62) +
+  geom_text(aes(label = sprintf("%d\n(%.0f%%)", n, pct)),
+            vjust = -0.3, size = 2.3, lineheight = 0.9) +
   scale_fill_manual(values = PHASE_COLS) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.18))) +
-  labs(title = "Clinical development phase of drug candidates",
-       x = NULL, y = "Number of drugs") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.22))) +
+  labs(
+    title    = "Clinical phase of multi-source drug candidates",
+    subtitle = sprintf("n = %d candidatos con evidencia en \u22652 bases de datos",
+                       nrow(multi_src)),
+    x = NULL, y = "N\u00famero de f\u00e1rmacos"
+  ) +
   theme_pub() +
   theme(legend.position = "none",
-        axis.text.x = element_text(angle = 20, hjust = 1))
+        axis.text.x = element_text(angle = 25, hjust = 1))
 
 save_pub(p_phase, "C2_drug_phase_dist")
-cat("  C2: Phase distribution — OK\n")
+cat("  C2: Phase distribution (multi-source) — OK\n")
 
 # ── C3: UpSet plot — overlap entre bases de datos (OE1_FigC) ─────────────────
 multi_src <- read_tsv("results/tables/drug_targets/08_multi_source_candidates.tsv",

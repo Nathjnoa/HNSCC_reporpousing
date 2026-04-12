@@ -116,7 +116,7 @@ específicos. Responde: ¿Cuál es el estado del proteoma en HNSCC comparado con
 | ID propuesto | Archivo actual | Descripción | Notas / Mejoras |
 |---|---|---|---|
 | `OE1_FigA` | `pub/C1_drug_sources_bar.pdf` | Candidatos identificados por cada fuente (DGIdb, ChEMBL, OpenTargets, L2S2). Muestra la estrategia multi-fuente. | Agregar encima de cada barra el n° de genes consultados. Unificar paleta con OE1_FigB. |
-| `OE1_FigB` | `pub/C2_drug_phase_dist.pdf` | Distribución de fases clínicas. Muestra que la mayoría de candidatos son fármacos aprobados (Fase IV). | Separar o colorear por fuente de datos si es posible. |
+| `OE1_FigB` | `pub/C2_drug_phase_dist.pdf` | Distribución de fases clínicas de los **candidatos multi-fuente** (n=458). 75% son fármacos aprobados: 120 con Fase IV confirmada por ChEMBL + 222 aprobados sin fase ChEMBL (solo DGIdb/L2S2). **Fix 2026-04-11:** figura corregida para usar `multi_src` en lugar de `drug_sum` (que incluía 3,513 candidatos DGIdb-only con 91.9% NA de fase — artefacto de que DGIdb no reporta fase sistemáticamente). | OK post-fix. |
 | `OE1_FigC` | **CREAR** | UpSet plot o diagrama de overlap entre las 4 fuentes de datos. Muestra qué candidatos tienen respaldo de múltiples fuentes (evidencia convergente). Candidatos en múltiples fuentes → mayor confianza. | Usar `UpSetR` en R. Datos disponibles en `results/tables/` (script 08). **Esta figura falta y es importante para OE1.** |
 
 ---
@@ -157,6 +157,14 @@ específicos. Responde: ¿Cuál es el estado del proteoma en HNSCC comparado con
 
 - **OE2:** Priorizar candidatos por conectividad, rutas y redes → figuras D1, D2, D3 + red STRING
 - **OE3:** Contrastar clínica y bibliográficamente → figura E1, bump chart, stability bar
+
+---
+
+## Correcciones aplicadas
+
+| Fecha | Figura | Problema | Solución |
+|---|---|---|---|
+| 2026-04-11 | `OE1_FigB` (C2) | Usaba `drug_summary` (3,513 fármacos) dominado por candidatos DGIdb-only sin fase clínica → 91.9% "Unknown". Artefacto: DGIdb no reporta max_phase sistemáticamente. | Cambiado a `multi_source_candidates` (n=458). Se combina `max_phase` (ChEMBL) con `is_approved` (flag DGIdb) para recuperar 222 aprobados sin fase ChEMBL. Resultado real: 75% aprobados. |
 
 ---
 
