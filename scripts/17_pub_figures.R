@@ -382,23 +382,44 @@ p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = condition, shape = hpv)) +
 save_pub(p_pca, "A3_PCA")
 cat("  A3: PCA — OK\n")
 
-# ── A4: Heatmap top 30 proteínas DE ──────────────────────────────────────────
+# ── A4: Heatmap top 40 proteínas DE ──────────────────────────────────────────
+# NOTA: expr_mat usa complete.cases → excluye proteínas con cualquier NA.
+# Para el heatmap se construye una matriz separada SIN ese filtro, de modo que
+# las 40 proteínas seleccionadas siempre aparecen (NAs → celda gris).
 top_up   <- de %>% filter(direction == "up")   %>%
   slice_max(logFC_TVsS, n = 20) %>% pull(gene_symbol)
 top_down <- de %>% filter(direction == "down") %>%
   slice_min(logFC_TVsS, n = 20) %>% pull(gene_symbol)
 top_genes <- c(top_up, top_down)
 
-heat_mat <- expr_mat[top_genes[top_genes %in% rownames(expr_mat)], , drop = FALSE]
-heat_z   <- t(scale(t(heat_mat)))   # Z-score por proteína (gen)
+heat_mat_raw <- de %>%
+  filter(gene_symbol %in% top_genes) %>%
+  select(gene_symbol, all_of(sample_cols)) %>%
+  column_to_rownames("gene_symbol") %>%
+  as.matrix()
+# Preservar orden (up primero, down después)
+heat_mat_raw <- heat_mat_raw[top_genes[top_genes %in% rownames(heat_mat_raw)], , drop = FALSE]
+
+# Z-score por fila ignorando NAs
+heat_z <- t(apply(heat_mat_raw, 1, function(x) {
+  m <- mean(x, na.rm = TRUE); s <- sd(x, na.rm = TRUE)
+  if (is.na(s) || s == 0) return(rep(NA_real_, length(x)))
+  (x - m) / s
+}))
+dimnames(heat_z) <- dimnames(heat_mat_raw)
+
+n_shown <- nrow(heat_z)
+n_with_na <- sum(apply(heat_mat_raw, 1, anyNA))
+cat(sprintf("  A4: %d proteínas en heatmap (%d con al menos 1 NA — celdas grises)\n",
+            n_shown, n_with_na))
 
 # Ordenar columnas: agrupar Tumor / Adjacent Normal
-col_cond  <- ifelse(str_ends(colnames(heat_mat), "T"), "Tumor", "Adjacent Normal")
+col_cond  <- ifelse(str_ends(colnames(heat_z), "T"), "Tumor", "Adjacent Normal")
 col_order <- order(col_cond)
 heat_z    <- heat_z[, col_order]
 col_cond  <- col_cond[col_order]
 
-hpv_ann_cols <- hpv_lookup[colnames(heat_mat)[col_order]]
+hpv_ann_cols <- hpv_lookup[colnames(heat_mat_raw)[col_order]]
 ht_col_ann <- HeatmapAnnotation(
   Condition = col_cond,
   HPV       = hpv_ann_cols,
@@ -413,6 +434,7 @@ ht_col_ann <- HeatmapAnnotation(
 # row_split: up genes primero, down genes después
 n_up_heat   <- sum(rownames(heat_z) %in% top_up)
 n_down_heat <- sum(rownames(heat_z) %in% top_down)
+cat(sprintf("  A4: %d up + %d down en heatmap\n", n_up_heat, n_down_heat))
 row_split <- factor(
   c(rep("Up-regulated", n_up_heat), rep("Down-regulated", n_down_heat)),
   levels = c("Up-regulated", "Down-regulated")
@@ -424,6 +446,7 @@ ht_de <- Heatmap(
   heat_z,
   name    = "Z-score",
   col     = colorRamp2(c(-2.5, 0, 2.5), c("#0072B2", "white", "#D55E00")),
+  na_col  = "grey85",
   top_annotation    = ht_col_ann,
   row_split         = row_split,
   cluster_row_slices = FALSE,
@@ -433,7 +456,7 @@ ht_de <- Heatmap(
   column_names_gp    = gpar(fontsize = 5.5),
   row_names_gp       = gpar(fontsize = 6.5),
   row_title_gp       = gpar(fontsize = 8, fontface = "bold"),
-  column_title       = "Top 40 differentially expressed proteins — Tumor vs. Adjacent Normal",
+  column_title       = sprintf("Top 40 differentially expressed proteins — Tumor vs. Adjacent Normal  (grey = not detected)"),
   column_title_gp    = gpar(fontsize = 8, fontface = "bold"),
   rect_gp            = gpar(col = "grey90", lwd = 0.4),
   heatmap_legend_param = list(
