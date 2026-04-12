@@ -1,8 +1,8 @@
 # Plan de Figuras y Tablas — HNSCC Drug Repurposing
 **Destino primario:** Tesis de grado  
 **Destino final:** Artículo científico  
-**Última actualización:** 2026-04-11  
-**Estado:** En construcción — Sección 0 y OE1 definidas. OE2 y OE3 pendientes.
+**Última actualización:** 2026-04-12  
+**Estado:** En construcción — Sección 0, OE1 y OE2 definidas y generadas. OE3 pendiente.
 
 ---
 
@@ -158,7 +158,9 @@ específicos. Responde: ¿Cuál es el estado del proteoma en HNSCC comparado con
 > de mayor relevancia clínica.
 
 *Narrativa: OE1 → 458 candidatos → demasiados. OE2 responde: ¿cuáles blancos son
-biológicamente centrales (hubs de red)? → candidatos que apuntan a esos hubs = panel prioritario.*
+biológicamente centrales (hubs de red)? → candidatos que apuntan a esos hubs = panel prioritario.
+El composite score integra centralidad de red + evidencia clínica + soporte multi-fuente.
+El panel final son los 32 candidatos LOD-stable.*
 
 ---
 
@@ -166,9 +168,12 @@ biológicamente centrales (hubs de red)? → candidatos que apuntan a esos hubs 
 
 | ID | Archivo | Descripción | Estado |
 |---|---|---|---|
-| `OE2_FigA` | `OE2_FigA_ppi_network` | Red PPI de 432 proteínas DE (componente gigante, excluye hojas). Nodos coloreados por dirección DE (naranja=up, azul=down), tamaño por grado. Hubs druggables con borde negro y etiquetados: EGFR, PSMB3, PSMA2 (up); NDUFS3, SDHA, ATP5F1C, UQCRC2, NDUFA9 (down/OXPHOS). | ✅ Generada |
-| `OE2_FigB` | `OE2_FigB_hub_drug_dotplot` | Dot plot bipartito: fármacos candidatos (eje y) × hubs druggables por módulo biológico (eje x). Muestra relación muchos-a-muchos. Color = dirección hub; forma = clase clínica del fármaco (círculo=clase A/HNSCC, triángulo=clase B/otro cáncer). Módulos: EGFR/Señalización, Proteasoma, OXPHOS. | ✅ Generada |
-| `OE2_FigC` | `OE2_FigC_final_panel_lollipop` | Lollipop: top 20 candidatos LOD-stable ordenados por score compuesto. Color = clase de fármaco; tamaño del punto = nº de fuentes de datos; etiqueta = hub blanco primario. | ✅ Generada |
+| `OE2_FigA` | `OE2_FigA_ppi_network` | Red PPI: 212 proteínas DE (degree > 8 o hub). Layout stress. Nodos por dirección DE (naranja=up, azul=down), tamaño por grado. Hubs druggables con borde negro. Etiquetados: EGFR, PSMB3, PSMA2, NDUFS3, SDHA, ATP5F1C, UQCRC2, NDUFA9. | ✅ |
+| `OE2_FigB` | `OE2_FigB_module_barplot` | Barplot horizontal: N° candidatos hub-targeting por módulo biológico, apilado por clase clínica (A/B/C). Sin etiquetas de valor en barra — valores en caption. | ✅ |
+| `OE2_FigC` | `OE2_FigC_class_distribution` | Barplot: distribución clase A/B/C/D de todos los candidatos que apuntan a hubs druggables (N=623). Muestra que 17% son aprobados en oncología. | ✅ |
+| `OE2_FigD` | `OE2_FigD_opt2_vis_table` | Tabla visual: 31 candidatos LOD-stable ordenados por composite score. Columnas: rank, fármaco, módulo, hub, clase (color), fuentes (puntos), score (barra). Sin título — lleva caption en tesis. | ✅ |
+
+> **Nota:** `OE2_FigD` se exporta como figura (PDF/PNG) solo para visualización. La versión definitiva en la tesis/artículo irá como tabla formateada en Word.
 
 ---
 
@@ -177,15 +182,27 @@ biológicamente centrales (hubs de red)? → candidatos que apuntan a esos hubs 
 | ID | Tipo | Contenido | Estado |
 |---|---|---|---|
 | `OE2_Tab1` | **Principal** | Hubs druggables (43 total): proteína, módulo biológico, grado, logFC, fármacos representativos | Existe en `09_druggable_hubs.tsv` — **falta formatear** |
-| `OE2_Tab2` | **Principal** | Panel final LOD-stable (32 candidatos): fármaco, hub blanco, módulo, clase clínica, score, n fuentes | Combinar `10_top20` + `15_lod_stability` — **falta construir** |
+| `OE2_Tab2` | **Principal** | Panel LOD-stable (31 candidatos): fármaco, módulo, hub, clase clínica, n fuentes, score | Generada como `OE2_FigD_opt2_vis_table` — **trasladar a Word** |
+
+---
+
+### Figuras descartadas (OE2)
+
+| Archivo | Motivo |
+|---|---|
+| `OE2_FigB_hub_drug_dotplot` | Dot plot hub × fármaco — reemplazado por barplot por módulo (más legible) |
+| `OE2_FigC_final_panel_lollipop` | Lollipop LOD-stable — reemplazado por tabla visual; todos los candidatos apuntaban a EGFR, poco discriminante como figura |
+| `OE2_FigD_opt1_dot_clinical` | Dot plot clínico — mismo problema EGFR-dominado que el lollipop |
 
 ---
 
 ## Pendiente — OE3
 
-*(Se planificará en la siguiente iteración)*
+*(Planificar en siguiente sesión)*
 
-- **OE3:** Contrastar clínica y bibliográficamente los candidatos → figura E1, bump chart, stability bar
+- **OE3:** Contrastar clínica y bibliográficamente los candidatos LOD-stable.
+- Figuras existentes a evaluar: `E1_evidence_heatmap`, `F1_bump_chart`, `F2_stability_bar`.
+- LOD-stability (`15_lod_stability.tsv`) va como **suplementaria de OE2** o abre OE3 como validación previa al contraste clínico.
 
 ---
 
@@ -194,6 +211,10 @@ biológicamente centrales (hubs de red)? → candidatos que apuntan a esos hubs 
 | Fecha | Figura | Problema | Solución |
 |---|---|---|---|
 | 2026-04-11 | `OE1_FigB` (C2) | Usaba `drug_summary` (3,513 fármacos) dominado por candidatos DGIdb-only sin fase clínica → 91.9% "Unknown". Artefacto: DGIdb no reporta max_phase sistemáticamente. | Cambiado a `multi_source_candidates` (n=458). Se combina `max_phase` (ChEMBL) con `is_approved` (flag DGIdb) para recuperar 222 aprobados sin fase ChEMBL. Resultado real: 75% aprobados. |
+| 2026-04-12 | `OE2_FigA` | FR layout comprimía clusters y aristas largas. | Cambiado a `graphlayouts::layout_stress()`. Filtro degree > 8 \| hub (212 nodos, 99 hubs preservados). |
+| 2026-04-12 | `OE2_FigB` | Dot plot hub × fármaco desbalanceado (EGFR domina). | Reemplazado por barplot horizontal N° candidatos por módulo, apilado por clase A/B/C. |
+| 2026-04-12 | `OE2_FigC` | Lollipop top20 LOD-stable: todos candidatos apuntan a EGFR. | Reemplazado por barplot distribución clase A/B/C/D de candidatos hub-targeting. |
+| 2026-04-12 | `OE2_FigD` | — | Nueva: tabla visual 31 candidatos LOD-stable con módulo real, hub, clase, fuentes y score. Sin título (va como caption). |
 
 ---
 
