@@ -1,0 +1,27 @@
+Fármaco	Subclase	Target primario	Fase clínica máx.	Aprobado HNSCC	Composite score	N fuentes
+Amivantamab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.706	3
+Cetuximab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	Sí	0.706	3
+Cetuximab Sarotalocan	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.706	2
+Necitumumab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.706	3
+Nimotuzumab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.706	3
+Panitumumab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.706	3
+Depatuxizumab Mafodotin	Anticuerpo/ADC anti-EGFR	EGFR	Fase III	No	0.656	3
+Vandetanib	Inhibidor multi-quinasa (EGFR+)	EGFR	Aprobado (Fase IV)	No	0.754	3
+Crizotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Aprobado (Fase IV)	No	0.675	3
+Metformin	Inhibidor multi-quinasa (EGFR+)	EGFR	Aprobado (Fase IV)	No	0.658	3
+Gefitinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.777	4
+Erlotinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.772	3
+Neratinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.753	4
+Dacomitinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.739	3
+Icotinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.706	3
+Afatinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	Sí	0.671	4
+Lapatinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.67	4
+Canertinib Dihydrochloride	TKI EGFR 1ª-2ª generación	EGFR	Fase III	No	0.656	3
+Aumolertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.706	3
+Lazertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.706	3
+Mobocertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.706	3
+Olmutinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.706	3
+Osimertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.706	3
+Rociletinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.706	3
+Abivertinib	TKI EGFR 3ª generación	EGFR	Fase III	No	0.656	3
+Firmonertinib	TKI EGFR 3ª generación	EGFR	Fase III	No	0.656	3
