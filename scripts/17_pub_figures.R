@@ -97,12 +97,11 @@ OKB       <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
 DE_COLS   <- c(up = "#D55E00", down = "#0072B2", ns = "#CCCCCC")
 COND_COLS <- c(Tumor = "#D55E00", "Adjacent Normal" = "#0072B2")
 PHASE_COLS <- c(
-  "Fase IV (Aprobado)"          = "#009E73",
-  "Aprobado (sin fase ChEMBL)"  = "#66C2A5",
-  "Fase III"                    = "#56B4E9",
-  "Fase II"                     = "#E69F00",
-  "Fase I"                      = "#CC79A7",
-  "Sin datos"                   = "#CCCCCC"
+  "Aprobado"   = "#009E73",
+  "Fase III"   = "#56B4E9",
+  "Fase II"    = "#E69F00",
+  "Fase I"     = "#CC79A7",
+  "Sin datos"  = "#CCCCCC"
 )
 
 # Etiquetas legibles de clase de fármaco (script 10 exporta drug_class = A/B/C/D)
@@ -561,11 +560,11 @@ cat("  C1: Drug sources bar — OK\n")
 phase_df <- multi_src %>%
   mutate(
     phase_label = case_when(
-      max_phase == 4                        ~ "Fase IV (Aprobado)",
-      max_phase == 3                        ~ "Fase III",
-      max_phase == 2                        ~ "Fase II",
-      max_phase == 1                        ~ "Fase I",
-      is_approved == TRUE & is.na(max_phase) ~ "Aprobado (sin fase ChEMBL)",
+      max_phase == 4                         ~ "Aprobado",
+      is_approved == TRUE & is.na(max_phase) ~ "Aprobado",
+      max_phase == 3                         ~ "Fase III",
+      max_phase == 2                         ~ "Fase II",
+      max_phase == 1                         ~ "Fase I",
       TRUE                                   ~ "Sin datos"
     ),
     phase_label = factor(phase_label, levels = names(PHASE_COLS))
@@ -575,10 +574,8 @@ phase_df <- multi_src %>%
 
 cat(sprintf("  C2: %d candidatos multi-fuente; %d aprobados (%.0f%%)\n",
             nrow(multi_src),
-            sum(phase_df$n[phase_df$phase_label %in%
-                           c("Fase IV (Aprobado)", "Aprobado (sin fase ChEMBL)")]),
-            sum(phase_df$pct[phase_df$phase_label %in%
-                             c("Fase IV (Aprobado)", "Aprobado (sin fase ChEMBL)")])))
+            sum(phase_df$n[phase_df$phase_label == "Aprobado"]),
+            sum(phase_df$pct[phase_df$phase_label == "Aprobado"])))
 
 p_phase <- ggplot(phase_df,
                   aes(x = phase_label, y = n, fill = phase_label)) +
@@ -589,7 +586,7 @@ p_phase <- ggplot(phase_df,
   scale_y_continuous(expand = expansion(mult = c(0, 0.22))) +
   labs(
     title    = "Clinical phase of multi-source drug candidates",
-    subtitle = sprintf("n = %d candidatos con evidencia en \u22652 bases de datos",
+    subtitle = sprintf("n = %d candidatos con evidencia en \u22652 bases de datos  \u2022  Aprobado = Fase IV ChEMBL o aprobado en DGIdb",
                        nrow(multi_src)),
     x = NULL, y = "N\u00famero de f\u00e1rmacos"
   ) +
