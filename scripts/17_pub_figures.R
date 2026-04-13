@@ -693,8 +693,8 @@ build_network_fig <- function(gene_set, edge_tbl, node_meta, hub_genes,
       data          = lbl_df,
       aes(x = x, y = y, label = name, fill = de_dir),
       color         = "black",
-      size          = 2.1,
-      fontface      = "bold",
+      size          = 2.6,
+      fontface      = "plain",
       label.size    = 0.18,
       label.padding = unit(0.11, "lines"),
       box.padding   = unit(0.28, "lines"),
@@ -713,16 +713,9 @@ build_network_fig <- function(gene_set, edge_tbl, node_meta, hub_genes,
     scale_color_identity() +
     scale_size_continuous(range = c(0.7, 5.0), guide = "none") +
     scale_alpha_identity(guide = "none") +
-    labs(
-      title    = paste0("PPI network of DE proteins in HNSCC", title_sfx),
-      subtitle = paste0("n = ", vcount(g), " proteins  \u2022  ",
-                        ecount(g), " interactions  \u2022  ",
-                        "Node size \u221d degree  \u2022  Black border: druggable hub")
-    ) +
+    labs() +
     theme_graph(base_family = "sans", base_size = 8) +
     theme(
-      plot.title      = element_text(size = 9, face = "bold", hjust = 0),
-      plot.subtitle   = element_text(size = 7, color = "grey40", hjust = 0),
       legend.title    = element_text(size = 7.5, face = "bold"),
       legend.text     = element_text(size = 7),
       legend.position = c(0.02, 0.10),
@@ -758,7 +751,7 @@ p_net_v1 <- build_network_fig(
   layout_algo = "stress",   # graphlayouts: minimiza diferencias en longitud de arista
   title_sfx   = " — all DE proteins (degree > 8 or hub)"
 )
-save_pub(p_net_v1, "OE2_FigA_ppi_network", "double_col", w_add = 40, h_add = 90)
+save_pub(p_net_v1, "OE2_FigA_ppi_network", "double_col", w_add = 60, h_add = 90)
 cat("  OE2_FigA v1 (stress, degree>8|hub): PPI network — OK\n")
 
 # ── v2: solo hubs (top 10% degree o betweenness) — layout stress ──────────────
@@ -776,7 +769,7 @@ p_net_v2 <- build_network_fig(
   layout_algo = "stress",
   title_sfx   = " — hub proteins only (top 10%)"
 )
-save_pub(p_net_v2, "OE2_FigA_v2_hubs_only", "double_col", w_add = 40, h_add = 90)
+save_pub(p_net_v2, "OE2_FigA_v2_hubs_only", "double_col", w_add = 60, h_add = 90)
 cat("  OE2_FigA v2 (stress, hubs only): PPI network — OK\n")
 
 # ── OE2_FigB: Fármacos del panel final × hubs que apuntan ────────────────────
