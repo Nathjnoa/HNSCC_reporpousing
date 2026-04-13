@@ -434,7 +434,6 @@ oe2_tab2 <- oe2_base %>%
     Fármaco           = str_to_title(drug_name_norm),
     Mecanismo         = mecanismo_map[drug_name_norm],
     `Indicación actual` = indicacion_map[drug_name_norm],
-    `CMap score`      = round(cmap_score, 3),
     `Composite score` = round(composite_score, 3)
   ) %>%
   select(
@@ -443,7 +442,6 @@ oe2_tab2 <- oe2_base %>%
     `Target primario`   = primary_target,
     `Indicación actual`,
     `Fase clínica máx.`,
-    `CMap score`,
     `Composite score`,
     `N fuentes`         = n_sources
   )
