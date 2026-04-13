@@ -311,7 +311,8 @@ p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
   ) +
   scale_alpha_manual(values = c(up = 0.85, down = 0.85, ns = 0.25),
                      guide = "none") +
-  labs(x     = expression(log[2]~"cambio de expresión (TVsS)"),
+  labs(title = "Differential proteome — Tumor vs. Adjacent Normal",
+       x     = expression(log[2]~"Fold Change  (TVsS)"),
        y     = expression(-log[10]~"FDR"),
        color = NULL) +
   theme_pub() +
@@ -347,7 +348,8 @@ p_ma <- ggplot(de, aes(x = .data[[avg_col]], y = logFC_TVsS,
   ) +
   scale_alpha_manual(values = c(up = 0.85, down = 0.85, ns = 0.2),
                      guide = "none") +
-  labs(       x     = expression("Mean"~log[2]~"intensity (A)"),
+  labs(title = "MA plot — abundance bias assessment",
+       x     = expression("Mean"~log[2]~"intensity (A)"),
        y     = expression(log[2]~"Fold Change  (M)"),
        color = NULL) +
   theme_pub() +
@@ -374,7 +376,8 @@ p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = condition, shape = hpv)) +
   geom_point(size = 2.5, stroke = 0.6) +
   scale_color_manual(values = COND_COLS) +
   scale_shape_manual(values = c("HPV+" = 17, "HPV-" = 16), na.value = 1) +
-  labs(       x     = sprintf("PC1  (%.1f%%)", var_exp[1]),
+  labs(title = "PCA — paired tumor/adjacent normal samples",
+       x     = sprintf("PC1  (%.1f%%)", var_exp[1]),
        y     = sprintf("PC2  (%.1f%%)", var_exp[2]),
        color = "Condition", shape = "HPV status") +
   guides(
@@ -454,7 +457,7 @@ ht_de <- Heatmap(
   column_names_gp    = gpar(fontsize = 5.5),
   row_names_gp       = gpar(fontsize = 6.5),
   row_title_gp       = gpar(fontsize = 8, fontface = "bold"),
-  column_title       = "Top 40 proteínas diferencialmente expresadas — Tumor vs. Tejido Normal Adyacente",
+  column_title       = "Top 40 differentially expressed proteins — Tumor vs. Adjacent Normal",
   column_title_gp    = gpar(fontsize = 8, fontface = "bold"),
   rect_gp            = gpar(col = "grey90", lwd = 0.4),
   heatmap_legend_param = list(
@@ -499,7 +502,8 @@ p_hall <- ggplot(hall_df,
                "Downregulated in tumor" = "#0072B2")
   ) +
   scale_x_continuous(expand = expansion(mult = c(0.2, 0.25))) +
-  labs(       x     = "Normalized enrichment score (NES)",
+  labs(title = "Hallmark gene sets — GSEA  (Tumor vs. Adjacent Normal)",
+       x     = "Normalized enrichment score (NES)",
        y     = NULL,
        fill  = NULL) +
   theme_pub() +
@@ -540,7 +544,8 @@ p_sources <- ggplot(source_long,
   geom_text(aes(label = n_drugs), hjust = -0.25, size = 2.6) +
   scale_fill_manual(values = OKB[1:4]) +
   scale_x_continuous(expand = expansion(mult = c(0, 0.18))) +
-  labs(x = "Número de fármacos", y = NULL) +
+  labs(title = "Drug candidates per database source",
+       x = "Number of drugs", y = NULL) +
   theme_pub() +
   theme(legend.position = "none",
         axis.line.y = element_blank(), axis.ticks.y = element_blank())
@@ -580,9 +585,10 @@ p_phase <- ggplot(phase_df,
   scale_fill_manual(values = PHASE_COLS) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.22))) +
   labs(
+    title    = "Clinical phase of multi-source drug candidates",
     subtitle = sprintf("n = %d candidatos con evidencia en \u22652 bases de datos  \u2022  Aprobado = Fase IV ChEMBL o aprobado en DGIdb",
                        nrow(multi_src)),
-    x = NULL, y = "Número de fármacos"
+    x = NULL, y = "N\u00famero de f\u00e1rmacos"
   ) +
   theme_pub() +
   theme(legend.position = "none",
@@ -624,7 +630,7 @@ ht_upset <- UpSet(
     annotation_name_gp = gpar(fontsize = 7)
   ),
   row_names_gp = gpar(fontsize = 8),
-  column_title = "Solapamiento de fármacos candidatos entre bases de datos",
+  column_title = "Drug candidate overlap across database sources",
   column_title_gp = gpar(fontsize = 8, fontface = "bold")
 )
 
@@ -838,12 +844,13 @@ p_module_bar <- ggplot(drug_per_module,
     values = c("HNSCC-approved" = OKB[1],
                "Other cancer"   = OKB[2],
                "Non-oncology"   = OKB[3]),
-    name = "Clase de fármaco"
+    name = "Drug class"
   ) +
   scale_x_continuous(expand = expansion(mult = c(0, 0.12))) +
   labs(
-    subtitle = "Candidatos dirigidos a hubs  \u2022  Agrupados por módulo STRING PPI",
-    x = "N° fármacos candidatos", y = NULL
+    title    = "Drug candidates by biological module",
+    subtitle = "Hub-targeting candidates  \u2022  Grouped by STRING PPI module",
+    x = "N\u00b0 drug candidates", y = NULL
   ) +
   theme_pub() +
   theme(
@@ -1048,17 +1055,17 @@ p_vis_table <- ggplot() +
   # Headers
   annotate("text", x=COL_X["rank"],    y=HEADER_Y, label="#",
            size=2.5, fontface="bold", hjust=0.5) +
-  annotate("text", x=COL_X["drug"],    y=HEADER_Y, label="Fármaco candidato",
+  annotate("text", x=COL_X["drug"],    y=HEADER_Y, label="Drug candidate",
            size=2.5, fontface="bold", hjust=0) +
-  annotate("text", x=COL_X["module"],  y=HEADER_Y, label="Módulo",
+  annotate("text", x=COL_X["module"],  y=HEADER_Y, label="Module",
            size=2.5, fontface="bold", hjust=0) +
-  annotate("text", x=COL_X["hub"],     y=HEADER_Y, label="Target hub",
+  annotate("text", x=COL_X["hub"],     y=HEADER_Y, label="Hub target",
            size=2.5, fontface="bold", hjust=0) +
-  annotate("text", x=COL_X["class"],   y=HEADER_Y, label="Clase",
+  annotate("text", x=COL_X["class"],   y=HEADER_Y, label="Class",
            size=2.5, fontface="bold", hjust=0) +
-  annotate("text", x=COL_X["sources"], y=HEADER_Y, label="Fuentes",
+  annotate("text", x=COL_X["sources"], y=HEADER_Y, label="Sources",
            size=2.5, fontface="bold", hjust=0.5) +
-  annotate("text", x=COL_X["score"],   y=HEADER_Y, label="Puntuación",
+  annotate("text", x=COL_X["score"],   y=HEADER_Y, label="Score",
            size=2.5, fontface="bold", hjust=0.5) +
   scale_x_continuous(limits=c(0,1), expand=c(0,0)) +
   scale_y_continuous(limits=c(0,1), expand=c(0,0)) +
@@ -1147,7 +1154,8 @@ p_dot_matrix <- ggplot(scores_long,
     limits  = c(0, 1),
     name    = "Score\n(0 – 1)"
   ) +
-  labs(       x = NULL, y = NULL) +
+  labs(title = "Scoring components — Top 20 candidates",
+       x = NULL, y = NULL) +
   theme_pub() +
   theme(
     axis.text.x      = element_text(angle = 0, hjust = 0.5, size = 7),
@@ -1185,7 +1193,8 @@ p_lollipop <- ggplot(top20_plot,
   scale_color_manual(values = setNames(OKB[seq_along(DRUG_CLASS_LABELS)],
                                        DRUG_CLASS_LABELS),
                      na.value = "grey50") +
-  labs(       x = "Final composite score",
+  labs(title = "Top 20 drug candidates — composite score",
+       x = "Final composite score",
        y = NULL,
        color = "Drug class") +
   theme_pub() +
@@ -1331,7 +1340,8 @@ p_bump <- ggplot(bump_df, aes(x = config_num, y = rank,
   # limits en orden natural (min, max); scale_y_reverse invierte la visualización
   scale_y_reverse(breaks = seq(1, 20, 2), limits = c(1, 20)) +
   scale_color_manual(values = bump_palette) +
-  labs(       x     = "Weight configuration",
+  labs(title = "Rank stability across weight configurations",
+       x     = "Weight configuration",
        y     = "Rank in Top 20") +
   theme_pub() +
   theme(
@@ -1367,7 +1377,8 @@ p_stab <- ggplot(stab_df, aes(x = n_configs_top20, y = drug_label,
   ) +
   scale_x_continuous(breaks = 1:6,
                      expand = expansion(mult = c(0, 0.1))) +
-  labs(       x     = "# weight configurations in Top 20  (max = 6)",
+  labs(title = "Candidate robustness — presence across weight configurations",
+       x     = "# weight configurations in Top 20  (max = 6)",
        y     = NULL) +
   theme_pub() +
   theme(
