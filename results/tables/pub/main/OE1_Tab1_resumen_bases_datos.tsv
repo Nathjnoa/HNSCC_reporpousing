@@ -1,5 +1,0 @@
-Base de datos	Descripción	Genes DE consultados	Genes con hits	Fármacos/pert. únicos	Pares gen-fármaco	Criterio de filtro	Aprobados (Fase IV)	Fase III
-DGIdb v5	Drug-Gene Interaction Database — interacciones gen-fármaco consolidadas de ~30 fuentes	666	291	2697	3542	Cualquier interacción reportada	NA	NA
-ChEMBL 34	European Bioinformatics Institute — compuestos con mecanismo de acción curado	666	27	NA	114	Fase clínica >= 3 (Phase III o aprobado)	74	40
-Open Targets	EBI/Sanger — evidencia multi-tipo para asociaciones gen-enfermedad	666	115	290	7236	Cualquier fármaco conocido para el gen	NA	NA
-L2S2	Library of Signatures and Similarities — conectividad transcriptómica inversa	666	NA	1048	1048	Conectividad negativa (reversión de firma)	NA	NA

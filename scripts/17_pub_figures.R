@@ -2,33 +2,17 @@
 # =============================================================================
 # 17_pub_figures.R
 # =============================================================================
-# Figuras de calidad publicación para el proyecto HNSCC Drug Repurposing.
-# Aplica tema centralizado (pub-figures double_col / single_col), paleta
-# Okabe-Ito (colorblind-safe) y exporta PDF + PNG 300 DPI.
+# Genera las 7 figuras de publicación incluidas en el reporte revisado
+# (HNSCC_DrugRepurposing_Figuras_reviewed.docx).
 #
-# Nota sobre nomenclatura: TVsS = Tumor vs. Sano (tejido adyacente del mismo
-# paciente). En inglés: Tumor vs. Adjacent Normal.
-#
-# Figuras generadas (results/figures/pub/):
-#   SECCIÓN A — Proteómica QC/DE
-#     A1_volcano          — Volcano plot mejorado (top labels ggrepel)
-#     A2_MA_plot          — MA plot (logFC vs intensidad media)
-#     A3_PCA              — PCA biplot con líneas de pares
-#     A4_heatmap_topDE    — Heatmap top 40 proteínas DE × 20 muestras (20 up + 20 down)
-#   SECCIÓN B — Enriquecimiento funcional
-#     B1_hallmarks_barplot — Hallmarks GSEA horizontal por NES
-#   SECCIÓN C — Bases de datos de fármacos
-#     C1_drug_sources_bar  — Nº candidatos por fuente
-#     C2_drug_phase_dist   — Distribución fases clínicas
-#   SECCIÓN D — Red PPI + Scoring
-#     D1_degree_vs_logFC   — Scatter grado PPI vs logFC
-#     D2_scoring_components_dot — Dot matrix 6 componentes × Top 20
-#     D3_top20_lollipop    — Lollipop ranking final mejorado
-#   SECCIÓN E — Evidencia final
-#     E1_evidence_heatmap  — Heatmap binario de evidencia (ComplexHeatmap)
-#   SECCIÓN F — Análisis de sensibilidad
-#     F1_bump_chart        — Bump chart estabilidad de ranks
-#     F2_stability_bar     — Barplot de robustez mejorado
+# Figuras generadas (results/figures/pub/main/):
+#   Sec0_FigB_volcano          — Volcano plot Tumor vs. Adjacent Normal
+#   Sec0_FigC_heatmap_topDE    — Heatmap top 40 proteínas DE × 20 muestras
+#   OE1_FigA_drug_sources_bar  — Nº candidatos por fuente de BD
+#   OE1_FigB_drug_phase_dist   — Distribución fases clínicas (multi-fuente)
+#   OE2_FigA_ppi_network       — Red PPI de proteínas DE (degree > 8 | hub)
+#   OE2_FigB_module_barplot    — Candidatos aprobados por módulo PPI
+#   OE2_FigC_class_distribution — Clasificación clínico-regulatoria (A/B/C/D)
 #
 # Ambiente: omics-R
 # Ejecución:
@@ -69,7 +53,7 @@ cat("Working directory:", getwd(), "\n")
 timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
 # ── Directorio de salida ──────────────────────────────────────────────────────
-pub_dir <- "results/figures/pub"
+pub_dir <- "results/figures/pub/main"
 dir.create(pub_dir, recursive = TRUE, showWarnings = FALSE)
 
 # ── Log ───────────────────────────────────────────────────────────────────────
@@ -170,21 +154,6 @@ save_ch <- function(ht, name, preset = "double_col", w_add = 0, h_add = 0) {
   invisible(pdf_path)
 }
 
-# ── Helper: asignar categoría a columnas de evidencia por patrón ──────────────
-# Robusto ante cambios de idioma/formato en nombres de columna de script 13
-assign_ev_category <- function(col_names) {
-  sapply(col_names, function(cn) {
-    cl <- tolower(iconv(cn, to = "ASCII//TRANSLIT"))
-    if      (grepl("proteom|logfc|de_sig|significant|expr", cl)) "Proteomics"
-    else if (grepl("multi.*source|n_source|cmap|pathway|fuente|reversor", cl)) "Databases"
-    else if (grepl("hub|network|ppi|degree|betweenness", cl))    "Network"
-    else if (grepl("phase|trial|clinic|fase|hnscc", cl))         "Clinical"
-    else if (grepl("pubmed|paper|literature|literat", cl))       "Literature"
-    else if (grepl("driver|cancer|cosmic|oncogen", cl))          "Genomics"
-    else                                                          "Other"
-  })
-}
-
 # =============================================================================
 # CARGAR DATOS
 # =============================================================================
@@ -192,10 +161,12 @@ cat("\n-- Cargando datos...\n")
 
 de        <- read_tsv("results/tables/de_limma/01_TVsS_all_proteins.tsv",
                       show_col_types = FALSE)
-hallmarks <- read_tsv("results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv",
-                      show_col_types = FALSE)
 drug_sum  <- read_tsv("results/tables/drug_targets/08_drug_summary_per_drug.tsv",
                       show_col_types = FALSE)
+multi_src <- read_tsv("results/tables/drug_targets/08_multi_source_candidates.tsv",
+                      show_col_types = FALSE)
+master_tbl <- read_tsv("results/tables/drug_targets/08_drug_target_master_table.tsv",
+                       show_col_types = FALSE)
 net_nodes    <- read_tsv("results/tables/network/09_network_node_metrics.tsv",
                         show_col_types = FALSE)
 net_edges    <- read_tsv("results/tables/network/09_network_edges.tsv",
@@ -204,14 +175,6 @@ drg_hubs     <- read_tsv("results/tables/network/09_druggable_hubs.tsv",
                         show_col_types = FALSE)
 net_modules  <- read_tsv("results/tables/network/09_modules.tsv",
                         show_col_types = FALSE)
-top20     <- read_tsv("results/tables/10_top20_candidates.tsv",
-                      show_col_types = FALSE)
-evidence  <- read_tsv("results/tables/13_evidence_matrix.tsv",
-                      show_col_types = FALSE)
-sens      <- read_tsv("results/tables/15_sensitivity_ranks.tsv",
-                      show_col_types = FALSE)
-multi_src <- read_tsv("results/tables/drug_targets/08_multi_source_candidates.tsv",
-                      show_col_types = FALSE)
 
 cat("  Datos cargados OK\n")
 
@@ -222,17 +185,6 @@ hpv_lookup <- setNames(meta$hpv, meta$sample_id)
 HPV_COLS   <- c("HPV+" = "#009E73", "HPV-" = "#E69F00")
 cat("  Metadata cargada OK —", sum(meta$hpv == "HPV+"), "HPV+,",
     sum(meta$hpv == "HPV-"), "HPV-\n")
-
-# ── Columna de intensidad media para MA plot ──────────────────────────────────
-# limma estándar exporta "AveExpr"; script 01 puede haberla renombrado
-avg_col <- if ("avg_intensity_TVsS" %in% colnames(de)) {
-  "avg_intensity_TVsS"
-} else if ("AveExpr" %in% colnames(de)) {
-  cat("  NOTE: usando 'AveExpr' para MA plot (avg_intensity_TVsS no encontrada)\n")
-  "AveExpr"
-} else {
-  stop("Columna de intensidad media no encontrada (avg_intensity_TVsS o AveExpr)")
-}
 
 # ── Derivar dirección DE ──────────────────────────────────────────────────────
 de <- de %>%
@@ -250,7 +202,6 @@ n_ns   <- sum(de$direction == "ns")
 cat(sprintf("  DE: %d up, %d down, %d NS\n", n_up, n_down, n_ns))
 
 # ── Unir columnas DE a net_nodes si no están presentes ───────────────────────
-# Script 09 exporta métricas de red; logFC y adj.P.Val vienen del TSV de script 01
 de_cols_needed <- c("logFC_TVsS", "adj.P.Val_TVsS")
 if (!all(de_cols_needed %in% colnames(net_nodes))) {
   cat("  NOTE: uniendo logFC_TVsS/adj.P.Val_TVsS a net_nodes desde tabla DE\n")
@@ -264,7 +215,7 @@ if (!all(de_cols_needed %in% colnames(net_nodes))) {
 # ── Matriz de expresión por muestra ──────────────────────────────────────────
 sample_cols <- c("M1S","M1T","M2S","M2T","M3S","M3T","M4S","M4T","M5S","M5T",
                  "M6S","M6T","M7S","M7T","M8S","M8T","M9S","M9T","M10S","M10T")
-sample_cols <- intersect(sample_cols, colnames(de))  # solo columnas que existen
+sample_cols <- intersect(sample_cols, colnames(de))
 
 expr_mat <- de %>%
   select(gene_symbol, all_of(sample_cols)) %>%
@@ -273,12 +224,10 @@ expr_mat <- de %>%
   as.matrix()
 
 # =============================================================================
-# SECCIÓN A — PROTEÓMICA QC / DE
+# Sec0_FigB — VOLCANO PLOT (Tumor vs. Adjacent Normal)
 # =============================================================================
-cat("\n--- Sección A: QC / DE ---\n")
+cat("\n--- Sec0_FigB: Volcano plot ---\n")
 
-# ── A1: Volcano plot ──────────────────────────────────────────────────────────
-# Top 8 por dirección + proteínas de interés terapéutico forzadas independientemente del rango
 force_label_genes <- c("EGFR", "PSMB5", "PSMB2", "PSMA1", "PSMD11",
                         "DNMT1", "TOP2A", "NDUFA9", "NDUFS3", "NDUFB3")
 top_vol <- bind_rows(
@@ -287,7 +236,7 @@ top_vol <- bind_rows(
   de %>% filter(gene_symbol %in% force_label_genes, direction != "ns")
 ) %>% distinct(gene_symbol, .keep_all = TRUE)
 force_found <- intersect(force_label_genes, de$gene_symbol[de$direction != "ns"])
-cat(sprintf("  A1: %d proteínas forzadas en etiquetas: %s\n",
+cat(sprintf("  %d proteínas forzadas en etiquetas: %s\n",
             length(force_found), paste(force_found, collapse = ", ")))
 
 p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
@@ -318,87 +267,17 @@ p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
   theme_pub() +
   theme(legend.position = c(0.82, 0.88))
 
-save_pub(p_volcano, "A1_volcano")
-cat("  A1: Volcano — OK\n")
+save_pub(p_volcano, "Sec0_FigB_volcano")
+cat("  Sec0_FigB: Volcano — OK\n")
 
-# ── A2: MA plot ───────────────────────────────────────────────────────────────
-# Top 8 up + 7 down para garantizar etiquetas en ambos grupos (up Y down)
-top_ma <- bind_rows(
-  de %>% filter(direction == "up")   %>% arrange(desc(logFC_TVsS)) %>% slice_head(n = 8),
-  de %>% filter(direction == "down") %>% arrange(logFC_TVsS)       %>% slice_head(n = 7)
-)
+# =============================================================================
+# Sec0_FigC — HEATMAP TOP 40 PROTEÍNAS DE
+# =============================================================================
+cat("\n--- Sec0_FigC: Heatmap top DE ---\n")
 
-p_ma <- ggplot(de, aes(x = .data[[avg_col]], y = logFC_TVsS,
-                       color = direction)) +
-  geom_point(aes(alpha = direction), size = PRESETS$double_col$pt, stroke = 0) +
-  geom_hline(yintercept = 0,       linetype = "solid",
-             linewidth = 0.45, color = "grey40") +
-  geom_hline(yintercept = c(-1,1), linetype = "dashed",
-             linewidth = 0.35, color = "grey60") +
-  geom_label_repel(
-    data = top_ma, aes(label = gene_symbol),
-    size = 1.8, label.padding = 0.1, label.size = 0.15,
-    max.overlaps = 15, segment.size = 0.25, show.legend = FALSE
-  ) +
-  scale_color_manual(
-    values = DE_COLS,
-    labels = c(up   = sprintf("Up (%d)",   n_up),
-               down = sprintf("Down (%d)", n_down),
-               ns   = sprintf("NS (%d)",   n_ns))
-  ) +
-  scale_alpha_manual(values = c(up = 0.85, down = 0.85, ns = 0.2),
-                     guide = "none") +
-  labs(title = "MA plot — abundance bias assessment",
-       x     = expression("Mean"~log[2]~"intensity (A)"),
-       y     = expression(log[2]~"Fold Change  (M)"),
-       color = NULL) +
-  theme_pub() +
-  theme(legend.position = c(0.15, 0.15))
-
-save_pub(p_ma, "A2_MA_plot")
-cat("  A2: MA plot — OK\n")
-
-# ── A3: PCA biplot ────────────────────────────────────────────────────────────
-pca_res <- prcomp(t(expr_mat), scale. = TRUE)
-var_exp <- round(summary(pca_res)$importance[2, 1:2] * 100, 1)
-
-pca_df <- as.data.frame(pca_res$x[, 1:2]) %>%
-  rownames_to_column("sample_id") %>%
-  mutate(
-    condition = ifelse(str_ends(sample_id, "T"), "Tumor", "Adjacent Normal"),
-    patient   = str_remove(sample_id, "[TS]$"),
-    hpv       = hpv_lookup[sample_id]
-  )
-
-p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = condition, shape = hpv)) +
-  geom_line(aes(group = patient), color = "grey70",
-            linewidth = 0.4, linetype = "dotted") +
-  geom_point(size = 2.5, stroke = 0.6) +
-  scale_color_manual(values = COND_COLS) +
-  scale_shape_manual(values = c("HPV+" = 17, "HPV-" = 16), na.value = 1) +
-  labs(title = "PCA — paired tumor/adjacent normal samples",
-       x     = sprintf("PC1  (%.1f%%)", var_exp[1]),
-       y     = sprintf("PC2  (%.1f%%)", var_exp[2]),
-       color = "Condition", shape = "HPV status") +
-  guides(
-    color = guide_legend(override.aes = list(size = 2.5, shape = 15)),
-    shape = guide_legend(override.aes = list(size = 2.5))
-  ) +
-  theme_pub() +
-  theme(legend.position = c(0.80, 0.12))
-
-save_pub(p_pca, "A3_PCA")
-cat("  A3: PCA — OK\n")
-
-# ── A4: Heatmap top 40 proteínas DE con detección completa ───────────────────
-# Criterio de selección: top proteínas DE detectadas en las 20/20 muestras
-# (complete cases). Con este filtro hay 194 up y 137 down elegibles, más que
-# suficientes para elegir 20+20 sin necesidad de imputación.
-# Justificación en Methods: "Se seleccionaron las proteínas DE con detección
-# en el 100% de las muestras, ordenadas por |log2FC|."
 de_detected <- de %>%
   mutate(n_detected = rowSums(!is.na(across(all_of(sample_cols))))) %>%
-  filter(n_detected == length(sample_cols))   # 20/20 muestras
+  filter(n_detected == length(sample_cols))
 
 top_up   <- de_detected %>% filter(direction == "up")   %>%
   slice_max(logFC_TVsS, n = 20) %>% pull(gene_symbol)
@@ -406,16 +285,14 @@ top_down <- de_detected %>% filter(direction == "down") %>%
   slice_min(logFC_TVsS, n = 20) %>% pull(gene_symbol)
 top_genes <- c(top_up, top_down)
 
-cat(sprintf("  A4: %d up + %d down elegibles (20/20 detección); seleccionados %d+%d\n",
+cat(sprintf("  %d up + %d down elegibles (20/20 detección); seleccionados %d+%d\n",
             sum(de_detected$direction == "up"),
             sum(de_detected$direction == "down"),
             length(top_up), length(top_down)))
 
-# Construir matriz desde expr_mat (ya es complete cases, todas las proteínas aquí están)
 heat_mat <- expr_mat[top_genes[top_genes %in% rownames(expr_mat)], , drop = FALSE]
-heat_z   <- t(scale(t(heat_mat)))   # Z-score estándar por proteína
+heat_z   <- t(scale(t(heat_mat)))
 
-# Ordenar columnas: agrupar Tumor / Adjacent Normal
 col_cond  <- ifelse(str_ends(colnames(heat_z), "T"), "Tumor", "Adjacent Normal")
 col_order <- order(col_cond)
 heat_z    <- heat_z[, col_order]
@@ -433,17 +310,14 @@ ht_col_ann <- HeatmapAnnotation(
   simple_anno_size   = unit(3, "mm")
 )
 
-# row_split: up genes primero, down genes después
 n_up_heat   <- sum(rownames(heat_z) %in% top_up)
 n_down_heat <- sum(rownames(heat_z) %in% top_down)
-cat(sprintf("  A4: %d up + %d down en heatmap\n", n_up_heat, n_down_heat))
+cat(sprintf("  %d up + %d down en heatmap\n", n_up_heat, n_down_heat))
 row_split <- factor(
   c(rep("Up-regulated", n_up_heat), rep("Down-regulated", n_down_heat)),
   levels = c("Up-regulated", "Down-regulated")
 )
 
-# Sin anotación derecha de logFC: el row_split y los colores del mapa ya
-# diferencian claramente las dos direcciones
 ht_de <- Heatmap(
   heat_z,
   name    = "Z-score",
@@ -466,64 +340,14 @@ ht_de <- Heatmap(
   )
 )
 
-save_ch(ht_de, "A4_heatmap_topDE", "double_col", h_add = 50)
-cat("  A4: Heatmap top DE — OK\n")
+save_ch(ht_de, "Sec0_FigC_heatmap_topDE", "double_col", h_add = 50)
+cat("  Sec0_FigC: Heatmap top DE — OK\n")
 
 # =============================================================================
-# SECCIÓN B — ENRIQUECIMIENTO FUNCIONAL
+# OE1_FigA — CANDIDATOS POR FUENTE DE BASE DE DATOS
 # =============================================================================
-cat("\n--- Sección B: Pathways ---\n")
+cat("\n--- OE1_FigA: Drug sources bar ---\n")
 
-# ── B1: Hallmarks GSEA — barplot horizontal ───────────────────────────────────
-hall_df <- hallmarks %>%
-  mutate(
-    pathway  = str_remove(Description, "^HALLMARK_") %>%
-               str_replace_all("_", " ") %>%
-               str_to_title() %>%
-               str_trunc(35),
-    gsea_dir = factor(
-      ifelse(NES < 0, "Downregulated in tumor", "Upregulated in tumor"),
-      levels = c("Upregulated in tumor", "Downregulated in tumor")
-    ),
-    pval_label  = sprintf("p=%.1e", p.adjust),
-    label_x     = ifelse(NES > 0, NES + 0.05, NES - 0.05),
-    label_hjust = ifelse(NES > 0, 0, 1)
-  ) %>%
-  arrange(NES)
-
-p_hall <- ggplot(hall_df,
-                 aes(x = NES, y = reorder(pathway, NES), fill = gsea_dir)) +
-  geom_col(width = 0.7) +
-  geom_vline(xintercept = 0, linewidth = 0.45, color = "black") +
-  geom_text(aes(x = label_x, hjust = label_hjust, label = pval_label),
-            size = 1.9, color = "grey35") +
-  scale_fill_manual(
-    values = c("Upregulated in tumor"   = "#D55E00",
-               "Downregulated in tumor" = "#0072B2")
-  ) +
-  scale_x_continuous(expand = expansion(mult = c(0.2, 0.25))) +
-  labs(title = "Hallmark gene sets — GSEA  (Tumor vs. Adjacent Normal)",
-       x     = "Normalized enrichment score (NES)",
-       y     = NULL,
-       fill  = NULL) +
-  theme_pub() +
-  theme(
-    legend.position    = "bottom",
-    legend.direction   = "horizontal",
-    axis.line.y        = element_blank(),
-    axis.ticks.y       = element_blank(),
-    panel.grid.major.x = element_line(color = "grey90", linewidth = 0.3)
-  )
-
-save_pub(p_hall, "B1_hallmarks_barplot", "double_col", h_add = 50)
-cat("  B1: Hallmarks GSEA barplot — OK\n")
-
-# =============================================================================
-# SECCIÓN C — BASES DE DATOS DE FÁRMACOS
-# =============================================================================
-cat("\n--- Sección C: Drug databases ---\n")
-
-# ── C1: Candidatos por fuente ─────────────────────────────────────────────────
 source_long <- drug_sum %>%
   select(drug_name_norm, sources) %>%
   mutate(
@@ -550,13 +374,14 @@ p_sources <- ggplot(source_long,
   theme(legend.position = "none",
         axis.line.y = element_blank(), axis.ticks.y = element_blank())
 
-save_pub(p_sources, "C1_drug_sources_bar")
-cat("  C1: Drug sources bar — OK\n")
+save_pub(p_sources, "OE1_FigA_drug_sources_bar")
+cat("  OE1_FigA: Drug sources bar — OK\n")
 
-# ── C2: Distribución de fases clínicas (candidatos multi-fuente) ──────────────
-# Usa multi_src en lugar de drug_sum para evitar el dominio de DGIdb-only (91% NA).
-# Combina max_phase (ChEMBL) con is_approved (flag DGIdb) para recuperar
-# los 222 aprobados cuya fase no está en ChEMBL.
+# =============================================================================
+# OE1_FigB — DISTRIBUCIÓN FASES CLÍNICAS (candidatos multi-fuente)
+# =============================================================================
+cat("\n--- OE1_FigB: Phase distribution ---\n")
+
 phase_df <- multi_src %>%
   mutate(
     phase_label = case_when(
@@ -572,7 +397,7 @@ phase_df <- multi_src %>%
   count(phase_label) %>%
   mutate(pct = round(n / sum(n) * 100, 1))
 
-cat(sprintf("  C2: %d candidatos multi-fuente; %d aprobados (%.0f%%)\n",
+cat(sprintf("  %d candidatos multi-fuente; %d aprobados (%.0f%%)\n",
             nrow(multi_src),
             sum(phase_df$n[phase_df$phase_label == "Aprobado"]),
             sum(phase_df$pct[phase_df$phase_label == "Aprobado"])))
@@ -594,56 +419,15 @@ p_phase <- ggplot(phase_df,
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 25, hjust = 1))
 
-save_pub(p_phase, "C2_drug_phase_dist")
-cat("  C2: Phase distribution (multi-source) — OK\n")
-
-# ── C3: UpSet plot — overlap entre bases de datos (OE1_FigC) ─────────────────
-multi_src <- read_tsv("results/tables/drug_targets/08_multi_source_candidates.tsv",
-                      show_col_types = FALSE)
-
-upset_list <- list(
-  DGIdb       = multi_src$drug_name_norm[str_detect(multi_src$sources, "DGIdb")],
-  ChEMBL      = multi_src$drug_name_norm[str_detect(multi_src$sources, "ChEMBL")],
-  OpenTargets = multi_src$drug_name_norm[str_detect(multi_src$sources, "OpenTargets")],
-  L2S2        = multi_src$drug_name_norm[str_detect(multi_src$sources, "L2S2")]
-)
-
-comb_m <- make_comb_mat(upset_list)
-
-ht_upset <- UpSet(
-  comb_m,
-  comb_col    = "#0072B2",
-  pt_size     = unit(3.5, "mm"),
-  lwd         = 1.5,
-  set_order   = order(set_size(comb_m), decreasing = TRUE),
-  comb_order  = order(comb_size(comb_m), decreasing = TRUE),
-  top_annotation = upset_top_annotation(
-    comb_m,
-    add_numbers      = TRUE,
-    numbers_gp       = gpar(fontsize = 7),
-    annotation_name_gp = gpar(fontsize = 7)
-  ),
-  right_annotation = upset_right_annotation(
-    comb_m,
-    add_numbers      = TRUE,
-    numbers_gp       = gpar(fontsize = 7),
-    annotation_name_gp = gpar(fontsize = 7)
-  ),
-  row_names_gp = gpar(fontsize = 8),
-  column_title = "Drug candidate overlap across database sources",
-  column_title_gp = gpar(fontsize = 8, fontface = "bold")
-)
-
-save_ch(ht_upset, "C3_upset_sources", "double_col", w_add = 10, h_add = 20)
-cat("  C3: UpSet plot sources — OK\n")
+save_pub(p_phase, "OE1_FigB_drug_phase_dist")
+cat("  OE1_FigB: Phase distribution — OK\n")
 
 # =============================================================================
-# SECCIÓN OE2 — RED PPI + HUBS DRUGGABLES + PANEL FINAL
+# OE2_FigA — RED PPI DE PROTEÍNAS DE
 # =============================================================================
-cat("\n--- Sección OE2: Red PPI + panel final ---\n")
+cat("\n--- OE2_FigA: Red PPI ---\n")
 
-# ── OE2_FigA: Red PPI de proteínas DE ─────────────────────────────────────────
-# Helper para construir y graficar red PPI (reutilizado en v1 y v2)
+# Helper para construir y graficar red PPI
 build_network_fig <- function(gene_set, edge_tbl, node_meta, hub_genes,
                                drg_hub_genes, label_genes, layout_algo,
                                seed = 42, title_sfx = "") {
@@ -721,13 +505,11 @@ build_network_fig <- function(gene_set, edge_tbl, node_meta, hub_genes,
   p
 }
 
-# Etiquetas curadas (presentes en ambas versiones si el nodo existe)
 hub_label_genes <- c(
   "EGFR", "PSMB3", "PSMA2", "MMP9", "CASP3", "ENO1",
   "NDUFS3", "NDUFS2", "NDUFV1", "ATP5F1C", "SDHA", "UQCRC2", "NDUFA9"
 )
 
-# ── v1: red completa filtrada (degree > 8 | hub) — layout stress ──────────────
 g_full <- graph_from_data_frame(net_edges, directed = FALSE,
                                 vertices = net_nodes$gene_symbol)
 comp        <- components(g_full)
@@ -745,38 +527,16 @@ p_net_v1 <- build_network_fig(
   hub_genes   = net_nodes %>% filter(is_hub) %>% pull(gene_symbol),
   drg_hub_genes = drg_hubs$gene_symbol,
   label_genes = hub_label_genes,
-  layout_algo = "stress",   # graphlayouts: minimiza diferencias en longitud de arista
+  layout_algo = "stress",
   title_sfx   = " — all DE proteins (degree > 8 or hub)"
 )
 save_pub(p_net_v1, "OE2_FigA_ppi_network", "double_col", w_add = 60, h_add = 90)
-cat("  OE2_FigA v1 (stress, degree>8|hub): PPI network — OK\n")
+cat("  OE2_FigA: PPI network — OK\n")
 
-# ── v2: solo hubs (top 10% degree o betweenness) — layout stress ──────────────
-hub_only_genes <- net_nodes %>%
-  filter(gene_symbol %in% giant_genes, is_hub == TRUE) %>%
-  pull(gene_symbol)
-
-p_net_v2 <- build_network_fig(
-  gene_set    = hub_only_genes,
-  edge_tbl    = net_edges,
-  node_meta   = net_nodes,
-  hub_genes   = hub_only_genes,
-  drg_hub_genes = drg_hubs$gene_symbol,
-  label_genes = hub_label_genes,
-  layout_algo = "stress",
-  title_sfx   = " — hub proteins only (top 10%)"
-)
-save_pub(p_net_v2, "OE2_FigA_v2_hubs_only", "double_col", w_add = 60, h_add = 90)
-cat("  OE2_FigA v2 (stress, hubs only): PPI network — OK\n")
-
-# ── OE2_FigB: Fármacos del panel final × hubs que apuntan ────────────────────
-# Diseño:
-#   - Filas: fármacos priorizados (top20, ordenados por score)
-#   - Columnas: hubs druggables clave (representativos por módulo biológico)
-#   - Punto: el fármaco apunta a ese hub (presencia en top_drugs del hub)
-#   - Color punto: dirección DE del hub (azul = down, naranja = up)
-#   - Anotación columnas: módulo biológico del hub
-# Objetivo: conectar el panel de fármacos con la biología de red
+# =============================================================================
+# OE2_FigB — CANDIDATOS APROBADOS POR MÓDULO BIOLÓGICO
+# =============================================================================
+cat("\n--- OE2_FigB: Module barplot ---\n")
 
 MODULE_LABELS <- c(
   "8"  = "OXPHOS",
@@ -785,35 +545,7 @@ MODULE_LABELS <- c(
   "5"  = "Resp. inmune / ECM",
   "14" = "Metab. peq. mol."
 )
-
-# Módulos clave para mostrar (los más terapéuticamente relevantes)
 KEY_MODULES <- c(8, 2, 4, 5, 14)
-
-# Hubs representativos: top 2 por módulo clave
-node_de_dir <- net_nodes %>%
-  transmute(gene_symbol,
-            de_dir = case_when(
-              logFC_TVsS > 0 & adj.P.Val_TVsS < 0.05 ~ "Up",
-              logFC_TVsS < 0 & adj.P.Val_TVsS < 0.05 ~ "Down",
-              TRUE ~ "NS"
-            ))
-
-key_hubs_b <- drg_hubs %>%
-  filter(module_id %in% KEY_MODULES) %>%
-  left_join(node_de_dir, by = "gene_symbol") %>%
-  mutate(module_label = MODULE_LABELS[as.character(module_id)]) %>%
-  group_by(module_id, module_label) %>%
-  slice_max(degree, n = 2) %>%
-  ungroup() %>%
-  arrange(de_dir, module_id, desc(degree))
-
-# Cargar master table gen-fármaco
-master_tbl <- read_tsv("results/tables/drug_targets/08_drug_target_master_table.tsv",
-                       show_col_types = FALSE)
-
-# ── OE2_FigB: Candidatos por módulo biológico (barplot apilado por clase) ─────
-# Pregunta: ¿Cuántos fármacos apuntan a cada módulo? ¿Con qué respaldo clínico?
-# Datos: todos los candidatos que apuntan a algún hub druggable, por módulo
 
 hub_module_map <- drg_hubs %>%
   filter(module_id %in% KEY_MODULES) %>%
@@ -859,10 +591,12 @@ p_module_bar <- ggplot(drug_per_module,
   )
 
 save_pub(p_module_bar, "OE2_FigB_module_barplot", "double_col", h_add = 0)
-cat("  OE2_FigB: N\u00b0 candidatos por m\u00f3dulo — OK\n")
+cat("  OE2_FigB: Module barplot — OK\n")
 
-# ── OE2_FigC: Distribución clase clínica A/B/C/D (candidatos hub-targeting) ───
-# Pregunta: ¿Qué proporción de los candidatos son aprobados vs experimentales?
+# =============================================================================
+# OE2_FigC — CLASIFICACIÓN CLÍNICO-REGULATORIA (A/B/C/D)
+# =============================================================================
+cat("\n--- OE2_FigC: Class distribution ---\n")
 
 drug_class_counts <- master_tbl %>%
   filter(gene_symbol %in% drg_hubs$gene_symbol) %>%
@@ -897,498 +631,7 @@ p_class_bar <- ggplot(drug_class_counts,
   )
 
 save_pub(p_class_bar, "OE2_FigC_class_distribution", "double_col", h_add = 10)
-cat("  OE2_FigC: Distribuci\u00f3n clase A/B/C/D — OK\n")
-
-# ── OE2_FigD — Opciones para el panel de candidatos priorizados ───────────────
-# Opción 1: Dot plot clínico (módulo × candidato, color=clase, tamaño=fuentes)
-# Opción 2: Tabla visual como figura (filas=candidatos, columnas=atributos clave)
-
-# --- Datos comunes: 32 candidatos LOD-stable con hub primario y módulo ---
-lod_stable <- read_tsv("results/tables/15_lod_stability.tsv",
-                       show_col_types = FALSE)
-
-# Etiquetas legibles para todos los módulos de la red
-module_labels_full <- net_modules %>%
-  distinct(module_id, module_name) %>%
-  mutate(
-    mod_label = module_name %>%
-      str_remove("^M\\d+_") %>%
-      str_replace_all("_", " ") %>%
-      str_to_sentence() %>%
-      str_trunc(24)
-  )
-# Sobrescribir con etiquetas curadas para módulos clave
-module_labels_full <- module_labels_full %>%
-  mutate(mod_label = case_when(
-    module_id == 2  ~ "EGFR / Signaling",
-    module_id == 4  ~ "Proteasome",
-    module_id == 8  ~ "OXPHOS",
-    module_id == 5  ~ "Immune / ECM",
-    module_id == 14 ~ "Small mol. metab.",
-    TRUE ~ mod_label
-  ))
-
-top_lod_ann <- top20 %>%
-  inner_join(lod_stable %>% filter(lod_stable) %>% select(drug_name_norm),
-             by = "drug_name_norm") %>%
-  arrange(desc(final_score)) %>%
-  mutate(hub_gene = primary_target) %>%
-  left_join(net_modules %>% distinct(gene_symbol, module_id),
-            by = c("hub_gene" = "gene_symbol")) %>%
-  left_join(module_labels_full %>% select(module_id, mod_label),
-            by = "module_id") %>%
-  mutate(
-    module_label = coalesce(mod_label, "—"),
-    drug_label   = str_to_title(drug_name_norm) %>% str_trunc(26),
-    drug_label   = factor(drug_label, levels = rev(unique(drug_label))),
-    class_label  = factor(DRUG_CLASS_LABELS[drug_class],
-                          levels = DRUG_CLASS_LABELS),
-    hub_gene     = ifelse(is.na(hub_gene), "—", hub_gene)
-  )
-
-# alias para compatibilidad con código siguiente
-top20_ann <- top_lod_ann
-
-# --- Opción 1: dot plot clínico ---
-p_dot_clinical <- ggplot(top20_ann,
-                          aes(x = module_label, y = drug_label)) +
-  geom_point(aes(color = class_label, size = n_sources), alpha = 0.90) +
-  geom_text(aes(label = hub_gene),
-            hjust = -0.30, size = 1.85, color = "grey30",
-            fontface = "italic") +
-  scale_color_manual(values = CLASS_COLS_OE2, name = "Drug class",
-                     drop = FALSE) +
-  scale_size_continuous(range = c(2.5, 6.5), name = "N\u00b0 sources",
-                        breaks = c(1, 2, 3, 4)) +
-  labs(
-    title    = "Top prioritized candidates — clinical & biological profile",
-    subtitle = "Ordered by composite score (top \u2192 bottom)  \u2022  Color: clinical class  \u2022  Size: data sources  \u2022  Label: hub target",
-    x = "Biological module (hub target)", y = NULL
-  ) +
-  theme_pub() +
-  theme(
-    axis.text.x      = element_text(angle = 18, hjust = 1, size = 7),
-    panel.grid.major = element_line(color = "grey92", linewidth = 0.25),
-    axis.line        = element_blank(),
-    axis.ticks       = element_blank(),
-    legend.position  = "right"
-  )
-
-save_pub(p_dot_clinical, "OE2_FigD_opt1_dot_clinical", "double_col", h_add = 60)
-cat("  OE2_FigD opt1: dot plot cl\u00ednico — OK\n")
-
-# --- Opción 2: tabla visual como figura ---
-# Columnas: Fármaco | Módulo | Hub | Clase | Fuentes | Score (barra)
-tbl_df <- top20_ann %>%
-  arrange(desc(final_score)) %>%
-  mutate(
-    rank       = seq_len(n()),
-    score_pct  = final_score / max(final_score),
-    src_dots   = strrep("\u25cf", n_sources)   # puntos como icono de fuentes
-  ) %>%
-  select(rank, drug_label, module_label, hub_gene, class_label,
-         src_dots, final_score, score_pct, drug_class)
-
-# Posiciones de columnas (en unidades del plot, x de 0 a 1)
-COL_X <- c(rank=0.03, drug=0.16, module=0.38, hub=0.57,
-            class=0.70, sources=0.83, score=0.94)
-N_ROWS  <- nrow(tbl_df)
-ROW_Y   <- seq(N_ROWS, 1) / (N_ROWS + 2)  # de arriba a abajo
-HEADER_Y <- (N_ROWS + 1.5) / (N_ROWS + 2)
-
-class_bg <- c(A="#FFF3CD", B="#D6EAF8", C="#D5F5E3", D="#F5EEF8")
-
-p_vis_table <- ggplot() +
-  # Fondo por fila (color clase)
-  geom_rect(
-    data = tbl_df,
-    aes(xmin = 0, xmax = 1,
-        ymin = ROW_Y - 0.5/(N_ROWS+2),
-        ymax = ROW_Y + 0.5/(N_ROWS+2),
-        fill = drug_class),
-    alpha = 0.35
-  ) +
-  scale_fill_manual(values = class_bg, guide = "none") +
-  # Barra de score (fondo gris)
-  geom_rect(
-    data = tbl_df,
-    aes(xmin = COL_X["score"] - 0.02,
-        xmax = COL_X["score"] + 0.055,
-        ymin = ROW_Y - 0.38/(N_ROWS+2),
-        ymax = ROW_Y + 0.38/(N_ROWS+2)),
-    fill = "grey88"
-  ) +
-  # Barra de score (valor)
-  geom_rect(
-    data = tbl_df,
-    aes(xmin = COL_X["score"] - 0.02,
-        xmax = COL_X["score"] - 0.02 + score_pct * 0.075,
-        ymin = ROW_Y - 0.38/(N_ROWS+2),
-        ymax = ROW_Y + 0.38/(N_ROWS+2),
-        fill = drug_class),
-    alpha = 0.80
-  ) +
-  # Texto: rank
-  geom_text(data=tbl_df, aes(x=COL_X["rank"], y=ROW_Y, label=rank),
-            size=2.3, hjust=0.5, color="grey40") +
-  # Texto: fármaco (negrita)
-  geom_text(data=tbl_df, aes(x=COL_X["drug"], y=ROW_Y, label=drug_label),
-            size=2.35, hjust=0, fontface="bold") +
-  # Texto: módulo
-  geom_text(data=tbl_df, aes(x=COL_X["module"], y=ROW_Y, label=module_label),
-            size=2.1, hjust=0, color="grey25") +
-  # Texto: hub
-  geom_text(data=tbl_df, aes(x=COL_X["hub"], y=ROW_Y, label=hub_gene),
-            size=2.2, hjust=0, fontface="italic", color="#333333") +
-  # Texto: clase (coloreado)
-  geom_text(data=tbl_df, aes(x=COL_X["class"], y=ROW_Y,
-                               label=as.character(class_label), color=drug_class),
-            size=2.0, hjust=0, fontface="bold") +
-  scale_color_manual(values=c(A="#B8860B",B="#1A6EA8",C="#1A8A5A",D="#7B4FA0"),
-                     guide="none") +
-  # Texto: fuentes (puntos)
-  geom_text(data=tbl_df, aes(x=COL_X["sources"], y=ROW_Y, label=src_dots),
-            size=2.1, hjust=0.5, color="grey30") +
-  # Línea separadora header
-  geom_hline(yintercept = HEADER_Y - 0.5/(N_ROWS+2),
-             color="grey50", linewidth=0.4) +
-  # Headers
-  annotate("text", x=COL_X["rank"],    y=HEADER_Y, label="#",
-           size=2.5, fontface="bold", hjust=0.5) +
-  annotate("text", x=COL_X["drug"],    y=HEADER_Y, label="Drug candidate",
-           size=2.5, fontface="bold", hjust=0) +
-  annotate("text", x=COL_X["module"],  y=HEADER_Y, label="Module",
-           size=2.5, fontface="bold", hjust=0) +
-  annotate("text", x=COL_X["hub"],     y=HEADER_Y, label="Hub target",
-           size=2.5, fontface="bold", hjust=0) +
-  annotate("text", x=COL_X["class"],   y=HEADER_Y, label="Class",
-           size=2.5, fontface="bold", hjust=0) +
-  annotate("text", x=COL_X["sources"], y=HEADER_Y, label="Sources",
-           size=2.5, fontface="bold", hjust=0.5) +
-  annotate("text", x=COL_X["score"],   y=HEADER_Y, label="Score",
-           size=2.5, fontface="bold", hjust=0.5) +
-  scale_x_continuous(limits=c(0,1), expand=c(0,0)) +
-  scale_y_continuous(limits=c(0,1), expand=c(0,0)) +
-  theme_void(base_family="sans") +
-  theme(plot.margin = margin(4,4,4,4,"mm"))
-
-save_pub(p_vis_table, "OE2_FigD_opt2_vis_table", "double_col", h_add = 80)
-cat("  OE2_FigD opt2: tabla visual — OK\n")
-
-# =============================================================================
-# SECCIÓN D — RED PPI + SCORING
-# =============================================================================
-cat("\n--- Sección D: Network + Scoring ---\n")
-
-# ── D1: logFC vs grado PPI ────────────────────────────────────────────────────
-net_df <- net_nodes %>%
-  mutate(
-    de_dir = case_when(
-      logFC_TVsS > 0 & adj.P.Val_TVsS < 0.05 ~ "up",
-      logFC_TVsS < 0 & adj.P.Val_TVsS < 0.05 ~ "down",
-      TRUE ~ "ns"
-    ),
-    de_dir = factor(de_dir, levels = c("up", "down", "ns"))
-  )
-
-hub_labels <- net_df %>%
-  filter(de_dir != "ns") %>%
-  slice_max(degree, n = 14)
-
-p_deg_fc <- ggplot(net_df, aes(x = degree, y = logFC_TVsS,
-                                color = de_dir, size = betweenness_norm)) +
-  geom_hline(yintercept = 0, linetype = "dashed",
-             linewidth = 0.4, color = "grey55") +
-  geom_point(aes(alpha = de_dir), stroke = 0) +
-  geom_label_repel(
-    data = hub_labels, aes(label = gene_symbol),
-    size = 1.8, label.padding = 0.1, label.size = 0.15,
-    max.overlaps = 12, segment.size = 0.25, show.legend = FALSE
-  ) +
-  scale_x_continuous(trans = "log10",
-                     labels = label_number(accuracy = 1)) +
-  scale_color_manual(
-    values = DE_COLS,
-    labels = c(up   = "Up-regulated",
-               down = "Down-regulated",
-               ns   = "Non-significant")
-  ) +
-  scale_alpha_manual(values = c(up = 0.85, down = 0.85, ns = 0.25),
-                     guide = "none") +
-  scale_size_continuous(range = c(0.5, 4.5), name = "Betweenness\n(norm.)") +
-  labs(
-    title = "PPI network centrality vs. proteomic fold change",
-    x     = "PPI degree  (log scale)",
-    y     = expression(log[2]~"Fold Change  (TVsS)"),
-    color = NULL
-  ) +
-  theme_pub() +
-  theme(legend.position = c(0.82, 0.82))
-
-save_pub(p_deg_fc, "D1_degree_vs_logFC")
-cat("  D1: Degree vs logFC scatter — OK\n")
-
-# ── D2: Dot matrix de componentes de score ────────────────────────────────────
-score_cols   <- c("s_pi_stat","s_clinical","s_cmap","s_pathway","s_network")
-score_labels <- c("Proteomics\n(pi-stat)","Clinical\nphase",
-                  "CMap\nconn.","Pathway\nrelevance","Network\nhub")
-
-scores_long <- top20 %>%
-  slice_head(n = 20) %>%
-  mutate(drug_label = str_to_title(drug_name_norm) %>% str_trunc(26)) %>%
-  select(drug_label, all_of(score_cols)) %>%
-  pivot_longer(all_of(score_cols), names_to = "component", values_to = "score") %>%
-  mutate(
-    component  = factor(component, levels = score_cols, labels = score_labels),
-    drug_label = factor(drug_label, levels = rev(unique(drug_label)))
-  )
-
-p_dot_matrix <- ggplot(scores_long,
-                       aes(x = component, y = drug_label,
-                           size = score, color = score)) +
-  geom_point() +
-  scale_size_continuous(range = c(0.3, 5.5), name = "Score\n(0 – 1)",
-                        limits = c(0, 1)) +
-  scale_color_gradientn(
-    colors  = c("#0072B2", "white", "#D55E00"),
-    limits  = c(0, 1),
-    name    = "Score\n(0 – 1)"
-  ) +
-  labs(title = "Scoring components — Top 20 candidates",
-       x = NULL, y = NULL) +
-  theme_pub() +
-  theme(
-    axis.text.x      = element_text(angle = 0, hjust = 0.5, size = 7),
-    axis.line        = element_blank(),
-    axis.ticks       = element_blank(),
-    panel.grid.major = element_line(color = "grey90", linewidth = 0.3),
-    legend.position  = "right"
-  )
-
-save_pub(p_dot_matrix, "D2_scoring_components_dot", "double_col", h_add = 60)
-cat("  D2: Scoring dot matrix — OK\n")
-
-# ── D3: Top 20 lollipop ───────────────────────────────────────────────────────
-# drug_class (A/B/C/D) → etiqueta legible; si no existe la columna se advierte
-top20_plot <- top20 %>%
-  slice_head(n = 20) %>%
-  mutate(
-    drug_label  = str_to_title(drug_name_norm) %>% str_trunc(28),
-    drug_label  = factor(drug_label, levels = rev(drug_label)),
-    class_short = if ("drug_class" %in% colnames(top20)) {
-      DRUG_CLASS_LABELS[drug_class]
-    } else {
-      cat("  WARN: columna 'drug_class' no encontrada en top20 — sin color por clase\n")
-      rep("Unknown", n())
-    }
-  )
-
-p_lollipop <- ggplot(top20_plot,
-                     aes(x = final_score, y = drug_label,
-                         color = class_short)) +
-  geom_segment(aes(xend = 0, yend = drug_label), linewidth = 0.55) +
-  geom_point(size = 2.2) +
-  scale_x_continuous(limits = c(0, NA),
-                     expand = expansion(mult = c(0, 0.1))) +
-  scale_color_manual(values = setNames(OKB[seq_along(DRUG_CLASS_LABELS)],
-                                       DRUG_CLASS_LABELS),
-                     na.value = "grey50") +
-  labs(title = "Top 20 drug candidates — composite score",
-       x = "Final composite score",
-       y = NULL,
-       color = "Drug class") +
-  theme_pub() +
-  theme(
-    legend.position    = "right",
-    axis.line.y        = element_blank(),
-    axis.ticks.y       = element_blank(),
-    panel.grid.major.x = element_line(color = "grey90", linewidth = 0.3)
-  )
-
-save_pub(p_lollipop, "D3_top20_lollipop", "double_col", h_add = 55)
-cat("  D3: Top 20 lollipop — OK\n")
-
-# =============================================================================
-# SECCIÓN E — EVIDENCIA FINAL
-# =============================================================================
-cat("\n--- Sección E: Evidencia final ---\n")
-
-# ── E1: Heatmap de evidencia binaria (ComplexHeatmap) ────────────────────────
-ev_mat_raw <- evidence %>%
-  slice_head(n = 20) %>%
-  select(-any_of(c("final_rank", "evidence_level")))
-
-# Detectar columna de nombre de fármaco (puede ser drug_name o drug_name_norm)
-ev_drug_col <- intersect(c("drug_name", "drug_name_norm"), colnames(ev_mat_raw))[1]
-if (is.na(ev_drug_col))
-  stop("Columna de nombre de fármaco no encontrada en 13_evidence_matrix.tsv")
-
-ev_drug_names <- str_to_title(ev_mat_raw[[ev_drug_col]]) %>% str_trunc(28)
-ev_mat <- ev_mat_raw %>%
-  select(-all_of(ev_drug_col)) %>%
-  mutate(across(everything(), as.integer)) %>%
-  as.matrix()
-rownames(ev_mat) <- ev_drug_names
-
-# Categorías por patrón de nombre de columna (robusto ante cambios de idioma)
-ev_cats  <- assign_ev_category(colnames(ev_mat))
-cat_cols <- c(Proteomics = "#E69F00", Databases = "#56B4E9",
-              Network    = "#009E73", Clinical  = "#D55E00",
-              Literature = "#CC79A7", Genomics  = "#0072B2",
-              Other      = "#AAAAAA")
-
-ev_level <- if ("evidence_level" %in% colnames(evidence)) {
-  evidence %>% slice_head(n = 20) %>% pull(evidence_level)
-} else {
-  NULL
-}
-
-ha_ev_top <- HeatmapAnnotation(
-  Category = ev_cats,
-  col = list(Category = cat_cols[intersect(names(cat_cols), unique(ev_cats))]),
-  annotation_name_gp   = gpar(fontsize = 6.5),
-  simple_anno_size     = unit(3, "mm"),
-  show_annotation_name = TRUE
-)
-
-ha_ev_row <- if (!is.null(ev_level)) {
-  rowAnnotation(
-    Level = as.character(ev_level),
-    col = list(Level = c("1" = "#D55E00", "2" = "#E69F00",
-                         "3" = "#56B4E9", "4" = "#009E73")),
-    annotation_name_gp = gpar(fontsize = 6),
-    simple_anno_size   = unit(3, "mm")
-  )
-} else {
-  NULL
-}
-
-ht_ev <- Heatmap(
-  ev_mat,
-  name     = "Evidence",
-  col      = c("0" = "#F5F5F5", "1" = "#0072B2"),
-  top_annotation    = ha_ev_top,
-  right_annotation  = ha_ev_row,
-  cluster_rows      = FALSE,
-  cluster_columns   = FALSE,
-  row_names_gp      = gpar(fontsize = 7),
-  column_names_gp   = gpar(fontsize = 7),
-  column_names_rot  = 40,
-  rect_gp           = gpar(col = "grey80", lwd = 0.5),
-  column_title      = "Evidence matrix — Top 20 candidates",
-  column_title_gp   = gpar(fontsize = 8, fontface = "bold"),
-  heatmap_legend_param = list(
-    title_gp  = gpar(fontsize = 7, fontface = "bold"),
-    labels_gp = gpar(fontsize = 6.5),
-    at        = c(0, 1),
-    labels    = c("Absent", "Present")
-  )
-)
-
-save_ch(ht_ev, "E1_evidence_heatmap", "double_col", w_add = 20, h_add = 55)
-cat("  E1: Evidence heatmap — OK\n")
-
-# =============================================================================
-# SECCIÓN F — ANÁLISIS DE SENSIBILIDAD
-# =============================================================================
-cat("\n--- Sección F: Sensibilidad ---\n")
-
-config_names <- c(
-  baseline        = "Baseline",
-  clinical_heavy  = "Clinical\nheavy",
-  molecular_heavy = "Molecular\nheavy",
-  network_heavy   = "Network\nheavy",
-  pathway_heavy   = "Pathway\nheavy",
-  equal_weights   = "Equal\nweights"
-)
-
-# ── F1: Bump chart ────────────────────────────────────────────────────────────
-bump_drugs <- sens %>%
-  filter(n_configs_top20 >= 4) %>%
-  arrange(baseline) %>%
-  pull(drug_name_norm)
-
-n_bump <- length(bump_drugs)
-bump_palette <- setNames(colorRampPalette(OKB)(n_bump),
-                         str_to_title(bump_drugs) %>% str_trunc(22))
-
-bump_df <- sens %>%
-  filter(drug_name_norm %in% bump_drugs) %>%
-  select(drug_name_norm, all_of(names(config_names))) %>%
-  mutate(drug_label = str_to_title(drug_name_norm) %>% str_trunc(22)) %>%
-  pivot_longer(all_of(names(config_names)),
-               names_to = "config", values_to = "rank") %>%
-  mutate(
-    config     = factor(config, levels = names(config_names)),
-    config_num = as.numeric(config)
-  )
-
-p_bump <- ggplot(bump_df, aes(x = config_num, y = rank,
-                               group = drug_label, color = drug_label)) +
-  geom_line(linewidth = 0.7, alpha = 0.85) +
-  geom_point(size = 2.0) +
-  geom_text(
-    data = bump_df %>% filter(config_num == 1),
-    aes(label = drug_label, x = 0.85), hjust = 1, size = 1.85,
-    check_overlap = FALSE
-  ) +
-  scale_x_continuous(
-    breaks = 1:6,
-    labels = unname(config_names),
-    expand = expansion(add = c(2.8, 0.4))
-  ) +
-  # limits en orden natural (min, max); scale_y_reverse invierte la visualización
-  scale_y_reverse(breaks = seq(1, 20, 2), limits = c(1, 20)) +
-  scale_color_manual(values = bump_palette) +
-  labs(title = "Rank stability across weight configurations",
-       x     = "Weight configuration",
-       y     = "Rank in Top 20") +
-  theme_pub() +
-  theme(
-    legend.position    = "none",
-    panel.grid.major.y = element_line(color = "grey90", linewidth = 0.3),
-    axis.line.y        = element_blank(),
-    axis.text.x        = element_text(size = 7)
-  )
-
-save_pub(p_bump, "F1_bump_chart", "double_col", w_add = 30, h_add = 10)
-cat("  F1: Bump chart — OK\n")
-
-# ── F2: Stability bar ─────────────────────────────────────────────────────────
-stab_df <- sens %>%
-  mutate(
-    drug_label = str_to_title(drug_name_norm) %>% str_trunc(25),
-    drug_label = factor(drug_label,
-                        levels = drug_label[order(n_configs_top20,
-                                                  -baseline, na.last = TRUE)])
-  )
-
-p_stab <- ggplot(stab_df, aes(x = n_configs_top20, y = drug_label,
-                               fill = factor(n_configs_top20))) +
-  geom_col(width = 0.65) +
-  geom_vline(xintercept = 6, linetype = "dashed",
-             color = "grey40", linewidth = 0.4) +
-  annotate("text", x = 5.9, y = 1.5, label = "All configs",
-           hjust = 1, size = 2.0, color = "grey40") +
-  scale_fill_manual(
-    values = c("1" = "#CCCCCC", "2" = "#CC79A7", "3" = "#E69F00",
-               "4" = "#56B4E9", "5" = "#009E73", "6" = "#D55E00"),
-    name = "# configs\nin Top 20"
-  ) +
-  scale_x_continuous(breaks = 1:6,
-                     expand = expansion(mult = c(0, 0.1))) +
-  labs(title = "Candidate robustness — presence across weight configurations",
-       x     = "# weight configurations in Top 20  (max = 6)",
-       y     = NULL) +
-  theme_pub() +
-  theme(
-    axis.line.y  = element_blank(),
-    axis.ticks.y = element_blank(),
-    panel.grid.major.x = element_line(color = "grey90", linewidth = 0.3)
-  )
-
-save_pub(p_stab, "F2_stability_bar", "double_col", h_add = 70)
-cat("  F2: Stability bar — OK\n")
+cat("  OE2_FigC: Class distribution — OK\n")
 
 # =============================================================================
 # RESUMEN FINAL

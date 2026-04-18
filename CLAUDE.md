@@ -19,14 +19,13 @@ Ver `docs/RUNBOOK.md` para el orden completo y troubleshooting.
 
 Resumen de fases:
 
-1. R: QC proteómica, ID mapping, pathway enrichment (scripts 01-03)
-2. Python: consulta DGIdb, ChEMBL, OpenTargets, L2S2 (scripts 04-07)
-3. R: integración, red STRING, scoring (scripts 08-10)
-4. Python: ClinicalTrials + PubMed, COSMIC (scripts 11-12)
-5. R: resumen, figuras publicación (scripts 13-15, 17)
+1. R: QC proteómica, ID mapping (scripts 01–02)
+2. Python: consulta DGIdb, ChEMBL, OpenTargets, L2S2 (scripts 04–07)
+3. R: integración, red STRING, scoring (scripts 08–10)
+4. R: sensibilidad LOD, figuras publicación, tablas (scripts 15, 17, 18)
 
 ## Notas
 
-- `scripts/07_cmap_connectivity_DEPRECATED.R` — no usar (reemplazado por L2S2)
-- `scripts/proteomicacyc.R` — exploración inicial, no parte del pipeline
 - `data/raw/` — outputs MaxQuant (no modificar)
+- Panel final = candidatos con `lod_stable = TRUE` en `results/tables/15_lod_stability.tsv`
+- Pesos de scoring configurables en `config/analysis_params.yaml`

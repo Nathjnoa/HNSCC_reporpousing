@@ -1,8 +1,8 @@
 # RUNBOOK — HNSCC Drug Repurposing Pipeline
 
-Guia paso a paso para reproducir el analisis completo (17 scripts: 01–15 + 17–18).
+Guía paso a paso para reproducir el análisis completo (12 scripts: 01–02, 04–10, 15, 17–18).
 
-*Última actualización: 2026-04-11 — Fix API Open Targets; pipeline re-ejecutado completo; panel final = 32 candidatos LOD-stable; script 18 añadido (tablas publicación Sec0+OE1)*
+Última actualización: 2026-04-18 — Pipeline reducido a 12 scripts; panel final = 32 candidatos LOD-stable
 
 ---
 
@@ -10,45 +10,45 @@ Guia paso a paso para reproducir el analisis completo (17 scripts: 01–15 + 17�
 
 ### Ambientes conda
 
-| Ambiente | Scripts | Proposito |
-| -------- | ------- | --------- |
-| `omics-R` | 01, 02, 03, 08, 09, 10, 13, 14, 15, 17, 18 | Analisis proteomica, enriquecimiento, red, scoring, figuras pub, tablas pub |
-| `omics-py` | 04, 05, 06, 07, 11, 12 | Consultas a bases de datos de farmacos (incluye L2S2) |
+| Ambiente | Scripts | Propósito |
+| --- | --- | --- |
+| `omics-R` | 01, 02, 08, 09, 10, 15, 17, 18 | Análisis proteómica, red, scoring, sensibilidad, figuras, tablas |
+| `omics-py` | 04, 05, 06, 07 | Consultas a bases de datos de fármacos |
 
 ### Paquetes adicionales (instalar una sola vez)
 
 ```r
 # En omics-R
-BiocManager::install(c("ReactomePA"))
+BiocManager::install(c("org.Hs.eg.db", "clusterProfiler"))
 install.packages(c("igraph", "ggraph", "tidygraph", "yaml", "httr2", "jsonlite",
-                    "openxlsx", "fs", "patchwork", "ggrepel"))
+                    "openxlsx", "fs", "patchwork", "ggrepel", "ComplexHeatmap"))
 ```
 
 ```bash
 # En omics-py
 conda activate omics-py
-pip install chembl-webresource-client bioservices requests
+pip install requests pandas numpy
 ```
 
 ### Datos requeridos
 
-| Archivo | Ubicacion | Descripcion |
-| ------- | --------- | ----------- |
+| Archivo | Ubicación | Descripción |
+| --- | --- | --- |
 | `proteomicacyc.csv` | `data/raw/` | Matriz de intensidades brutas |
 | `metadata.csv` | `data/raw/` | Metadatos de muestras |
 | `results_proteomica.tsv` | `data/raw/` | Resultados DE pre-computados (proteoDA/limma) |
 
-### Configuracion
+### Configuración
 
-Todos los parametros del pipeline estan centralizados en `config/analysis_params.yaml`. Modificar ahi para analisis de sensibilidad.
+Todos los parámetros del pipeline están centralizados en `config/analysis_params.yaml`.
 
 ---
 
-## Ejecucion del pipeline
+## Ejecución del pipeline
 
 ### Directorio de trabajo
 
-Todos los scripts esperan ejecutarse desde la raiz del proyecto:
+Todos los scripts esperan ejecutarse desde la raíz del proyecto:
 
 ```bash
 cd ~/bioinfo/projects/hnscc_drug_repurposing
@@ -56,12 +56,10 @@ cd ~/bioinfo/projects/hnscc_drug_repurposing
 
 ### Nota sobre conda
 
-Si `conda` no está en el PATH, usar la ruta completa:
+Si `conda` no está en el PATH:
 
 ```bash
-# En lugar de: conda activate omics-R
 /home/jcarvajalv/anaconda3/bin/conda run -n omics-R Rscript scripts/01_parse_results_qc.R
-
 # O activar primero:
 source ~/.bashrc && conda activate omics-R
 ```
@@ -72,26 +70,16 @@ source ~/.bashrc && conda activate omics-R
 conda activate omics-R
 
 # 01 - Modelo limma HPV-ajustado + duplicateCorrelation (diseño pareado)
-#      Exporta tablas DE + análisis de missingness
+#      Exporta tablas DE
 Rscript scripts/01_parse_results_qc.R
 # Output: results/tables/de_limma/01_TVsS_*.tsv (666 sig: 329 up, 337 down)
-#         results/tables/de_limma/01_missingness_analysis.tsv
-#         results/figures/qc/01_*.pdf
 
 # 02 - Mapear UniProt → Entrez/Symbol
 Rscript scripts/02_id_mapping.R
-# Output: results/tables/de_limma/02_TVsS_*_with_ids.tsv
+# Output: data/intermediate/id_mapping/02_uniprot_to_ids.tsv
 ```
 
-### Fase 2: Enriquecimiento funcional (R)
-
-```bash
-# 03 - ORA (GO/KEGG/Reactome) + GSEA con ranking π-estadístico (Hallmarks, GO BP, KEGG, Reactome)
-Rscript scripts/03_pathway_enrichment.R
-# Output: results/tables/pathway_enrichment/03_*.tsv, results/figures/pathway_enrichment/03_*.pdf
-```
-
-### Fase 3: Consultar bases de datos de farmacos (Python + R)
+### Fase 2: Consultar bases de datos de fármacos (Python)
 
 Los scripts 04, 05, 06 son independientes y pueden ejecutarse en paralelo.
 
@@ -100,100 +88,68 @@ conda activate omics-py
 
 # 04 - DGIdb GraphQL API v5
 python scripts/04_query_dgidb.py
-# Output: results/tables/drug_targets/04_dgidb_*.tsv
+# Output: results/tables/drug_targets/04_dgidb_raw.tsv
 
-# 05 - ChEMBL REST API (farmacos fase >= 3)
+# 05 - ChEMBL REST API (fármacos fase >= 3)
 python scripts/05_query_chembl.py
 # Output: results/tables/drug_targets/05_chembl_drugs.tsv
 
-# 06 - Open Targets GraphQL (filtra por score HNSCC >= 0.2, ver config/analysis_params.yaml)
+# 06 - Open Targets GraphQL API v4
 python scripts/06_query_opentargets.py
-# Output: results/tables/drug_targets/06_opentargets_*.tsv
-```
-
-```bash
-conda activate omics-py
+# Output: results/tables/drug_targets/06_opentargets_gene_drugs.tsv
 
 # 07 - L2S2 connectivity analysis (~2 min, requiere internet)
 python scripts/07_l2s2_connectivity.py
 # Output: results/tables/drug_targets/07_l2s2_results.tsv
-#         results/tables/drug_targets/07_l2s2_top_reversors.tsv
 ```
+
+### Fase 3: Integración y red PPI (R)
 
 ```bash
 conda activate omics-R
 
 # 08 - Integrar 4 fuentes en tabla maestra
 Rscript scripts/08_integrate_drug_targets.R
-# Output: results/tables/drug_targets/08_*.tsv, results/figures/08_*.pdf
-```
+# Output: results/tables/drug_targets/08_*.tsv
 
-### Fase 4: Red PPI + Scoring (R)
-
-```bash
-conda activate omics-R
-
-# 09 - Red STRING + Louvain modules + hubs por módulo (top 10% betweenness intra-módulo)
+# 09 - Red STRING + Louvain modules + hubs por módulo
 Rscript scripts/09_string_network.R
-# Output: results/tables/network/09_*.tsv (incluye 09_modules.tsv), results/figures/09_*.pdf
+# Output: results/tables/network/09_*.tsv
 
-# 10 - Scoring multi-criterio v2 (pi-stat + clinical + pathway + network + cmap)
-#      Sin límite de diversidad por target; sin score_evidence en composite
+# 10 - Scoring multi-criterio (5 dimensiones)
+#      Pool top 35 para análisis LOD
 Rscript scripts/10_prioritization_scoring.R
-# Output: results/tables/10_top20_candidates.tsv (top 35), results/tables/10_all_candidates_scored.tsv
-# Pesos v2: pi_stat=0.325, clinical=0.20, pathway=0.15, network=0.195, cmap=0.13
-# Panel final = candidatos con lod_stable=TRUE en 15_lod_stability.tsv
+# Output: results/tables/10_all_candidates_scored.tsv
+# Pesos: pi_stat=0.325, clinical=0.20, network=0.195, pathway=0.15, cmap=0.13
 ```
 
-### Fase 5: Validacion in silico (Python)
-
-```bash
-conda activate omics-py
-
-# 11 - ClinicalTrials.gov + PubMed (requiere internet)
-python scripts/11_clinicaltrials_pubmed.py
-# Output: results/tables/evidence/11_clinical_evidence.tsv, results/figures/evidence/11_*.pdf
-
-# 12 - Cruce con genes driver de cancer
-python scripts/12_cosmic_overlap.py
-# Output: results/tables/evidence/12_*.tsv, results/figures/evidence/12_*.pdf
-```
-
-### Fase 6: Evidencia final + Documentacion (R)
+### Fase 4: Validación de robustez (R)
 
 ```bash
 conda activate omics-R
 
-# 13 - Ranking combinado + Excel final + figuras
-Rscript scripts/13_evidence_summary.R
-# Output: results/tables/13_FINAL_drug_candidates.xlsx, results/figures/final/13_*.pdf
-
-# 14 - Generar METHODS.md y OUTPUTS.md
-Rscript scripts/14_methods_summary.R
-# Output: docs/METHODS.md, docs/OUTPUTS.md
-```
-
-### Fase 7: Validacion de robustez (R)
-
-```bash
-conda activate omics-R
-
-# 15 - Análisis de sensibilidad: 6 configs de pesos + LOD (leave-one-database) + permutation test (n=1000)
-#      LOD-stability es el criterio principal para definir el panel final de candidatos
+# 15 - 6 configs de pesos + LOD (leave-one-database) + permutation test (n=1000)
+#      LOD-stability es el criterio principal para definir el panel final
 Rscript scripts/15_sensitivity_analysis.R
 # Output: results/tables/15_sensitivity_ranks.tsv
 #         results/tables/15_lod_stability.tsv      ← criterio de inclusión en panel final
-#         results/tables/15_permutation_test.tsv
 ```
 
-### Fase 8: Figuras de publicacion (R)
+### Fase 5: Outputs de publicación (R)
 
 ```bash
 conda activate omics-R
 
-# 17 - Figuras calidad publicacion (PDF + PNG 300 DPI)
+# 17 - 7 figuras publication-ready (PDF + PNG 300 DPI)
 Rscript scripts/17_pub_figures.R
-# Output: results/figures/pub/A1..F2_*.pdf/.png, results/figures/pub/FIG1..FIG5_*.pdf/.png
+# Output: results/figures/pub/main/{Sec0_FigB, Sec0_FigC, OE1_FigA, OE1_FigB,
+#                                   OE2_FigA, OE2_FigB, OE2_FigC}.pdf/.png
+
+# 18 - 6 tablas de publicación (TSV)
+Rscript scripts/18_pub_tables.R
+# Output: results/tables/pub/main/{Sec0_Tab1, Sec0_Tab2, OE1_Tab2,
+#                                  OE2_Tab1, OE2_Tab2}.tsv
+#         results/tables/pub/supp/OE2_TabS1_candidatos_extendidos_noEGFR.tsv
 ```
 
 ---
@@ -201,58 +157,44 @@ Rscript scripts/17_pub_figures.R
 ## Dependencias entre scripts
 
 ```text
-01 → 02 → 03
-        → 04, 05, 06 (paralelos)
-        → 07 (L2S2)
-              → 08 → 09 → 10 → 11, 12 (paralelos) → 13 → 14
-                              ↓
-                             15 (sensibilidad; requiere columna `bonus` de 10)
-                              ↓
-                             17 (figuras pub; requiere outputs de 01, 03, 09, 10, 13, 15)
+01 → 02 → 04, 05, 06, 07 (paralelos)
+               → 08 → 09 → 10 → 15 → 17
+                                     18
 ```
-
-Los scripts solo pueden ejecutarse si sus dependencias estan completas. Respetar el orden numerico garantiza que todos los inputs existan.
 
 ---
 
 ## Outputs principales
 
-| Archivo | Descripcion |
-| ------- | ----------- |
-| `results/tables/13_FINAL_drug_candidates.xlsx` | **Excel final** con Top 20, todos los candidatos, matriz de evidencia |
-| `results/tables/10_top20_candidates.tsv` | Top 20 candidatos con scores desglosados |
-| `results/tables/10_all_candidates_scored.tsv` | Candidatos con scoring completo (s_pi_stat, s_clinical, s_cmap, s_pathway, s_network) |
-| `results/tables/network/09_network_giant.graphml` | Red PPI para visualizar en Cytoscape |
-| `docs/METHODS.md` | Seccion de metodos para manuscrito |
-| `docs/OUTPUTS.md` | Catalogo de todos los archivos generados |
+| Archivo | Descripción |
+| --- | --- |
+| `results/figures/pub/main/` | 7 figuras de publicación (PDF + PNG) |
+| `results/tables/pub/main/` | 5 tablas de publicación (TSV) |
+| `results/tables/pub/supp/OE2_TabS1_*.tsv` | Tabla suplementaria |
+| `results/tables/15_lod_stability.tsv` | Panel final: 32 candidatos LOD-stable |
+| `results/tables/10_all_candidates_scored.tsv` | Todos los candidatos con scores |
+| `results/tables/network/09_network_giant.graphml` | Red PPI para Cytoscape |
 
 ---
 
 ## Troubleshooting
 
-| Problema | Solucion |
-| -------- | -------- |
+| Problema | Solución |
+| --- | --- |
 | `conda: command not found` | `source ~/.bashrc` o usar ruta completa: `~/anaconda3/bin/conda` |
-| Script 07 lento o sin resultados | L2S2 requiere conexión a internet (l2s2.maayanlab.cloud). No descarga datos localmente; cada ejecución consulta la API (~2 min). |
-| Script 09 timeout en STRING API | Reintentar. STRING tiene rate limits; el script hace pausa entre batches. Si score >= 700 no retorna aristas, el script reintenta automáticamente con score = 400 y actualiza el umbral en consecuencia. |
-| Scripts 11-12 sin resultados de internet | Verificar conexion a internet. Las APIs de ClinicalTrials.gov y PubMed requieren acceso HTTPS. |
-| Script 11: advertencia de email NCBI | El script usa `NCBI_EMAIL` como identificador en PubMed E-utilities. Por defecto usa `jcarvajal@fucsalud.edu.co`. Para sobreescribir: `export NCBI_EMAIL="tu@email.com"` antes de ejecutar. |
-| `STRINGdb` no disponible | Normal. Script 09 usa STRING REST API directamente con httr2+jsonlite. |
-| COSMIC CGC vacio | Descarga manual requerida (login en cancer.sanger.ac.uk). Script 12 funciona sin el con NCG7 embebido. |
-| Script 17: `avg_intensity_TVsS` no encontrada | Columna opcional. Script 17 detecta automáticamente `AveExpr` (columna estándar de salida limma) como alternativa para el MA plot. No requiere intervención. |
-| Script 17: `drug_class_label` no encontrada | La columna exportada por script 10 se llama `drug_class` (valores A/B/C/D). Script 17 traduce internamente a etiquetas descriptivas; no existe columna `drug_class_label` en los archivos intermedios. |
-| Script 15: advertencia `bonus` column not found | La columna `bonus` la exporta script 10. Si no está presente, script 15 usa 0 y continúa; verificar que script 10 se ejecutó sin errores y que `10_all_candidates_scored.tsv` está completo. |
-| Script 17: `logFC_TVsS` no encontrada en nodos de red | El archivo `09_network_node_metrics.tsv` solo contiene métricas de red. Script 17 hace un `left_join` automático desde la tabla DE para añadir `logFC_TVsS` y `adj.P.Val_TVsS`. No requiere intervención. |
-| Script 06: `Cannot query field 'knownDrugs'` (400 Bad Request) | La API de Open Targets Platform v4 eliminó el campo `knownDrugs` en abril 2026. El script ya fue actualizado para usar `drugAndClinicalCandidates`. Si el error reaparece, verificar que se usa la versión actualizada del script 06. La aprobación se detecta con `maximumClinicalStage = "APPROVAL"` (no "PHASE_4"). |
+| Script 07 lento | L2S2 requiere internet (l2s2.maayanlab.cloud). Cada ejecución consulta la API (~2 min). |
+| Script 09 timeout STRING API | Reintentar. El script reintenta automáticamente con score=400 si score=700 no retorna aristas. |
+| Script 06: error `Cannot query field 'knownDrugs'` | Verificar que se usa la versión actualizada del script (usa `drugAndClinicalCandidates`, no `knownDrugs`). |
+| Script 17: columna no encontrada | Verificar que scripts 01, 08, 09, 15 se ejecutaron sin errores antes de 17. |
+| Script 18: columna no encontrada | Verificar que scripts 01, 08, 10, 15 se ejecutaron sin errores antes de 18. |
 
 ---
 
-## Checklist de reproduccion
+## Checklist de reproducción
 
-- [ ] Ambientes `omics-R` y `omics-py` activados y con paquetes instalados
+- [ ] Ambientes `omics-R` y `omics-py` con paquetes instalados
 - [ ] Datos en `data/raw/` (3 archivos)
-- [ ] `config/analysis_params.yaml` revisado (parametros por defecto son los usados en el analisis)
-- [ ] Scripts 01-15 ejecutados en orden sin errores
-- [ ] Script 17 ejecutado para figuras de publicacion
-- [ ] `results/tables/13_FINAL_drug_candidates.xlsx` generado
-- [ ] Logs verificados en `logs/` (cada script genera log con timestamp)
+- [ ] `config/analysis_params.yaml` revisado
+- [ ] Scripts 01–02, 04–10, 15 ejecutados en orden sin errores
+- [ ] Scripts 17 y 18 ejecutados para outputs de publicación
+- [ ] Logs verificados en `logs/`

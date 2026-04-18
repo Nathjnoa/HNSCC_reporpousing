@@ -2,23 +2,18 @@
 # =============================================================================
 # 18_pub_tables.R
 # =============================================================================
-# Genera las tablas formateadas para tesis/artículo.
-# Sección 0 (base metodológica) y OE1 (relacionar DE con fármacos).
+# Genera las tablas formateadas para publicación.
+# Sección 0 (base metodológica), OE1 (fuentes farmacológicas) y OE2 (priorización).
 #
 # Tablas generadas (results/tables/pub/):
 #   main/
 #     Sec0_Tab1_resumen_DE.tsv          — Resumen estadístico del análisis DE
 #     Sec0_Tab2_top_proteinas.tsv       — Top proteínas DE (20 up + 20 down)
-#     OE1_Tab1_resumen_bases_datos.tsv  — Resumen de consulta por base de datos
-#     OE1_Tab2_top_candidatos.tsv       — Top candidatos por n_fuentes
+#     OE1_Tab2_top_candidatos.tsv       — Top 30 candidatos por n_fuentes
+#     OE2_Tab1_EGFR_LOD_stable.tsv      — Candidatos EGFR LOD-stable
+#     OE2_Tab2_noEGFR_LOD_stable.tsv    — Candidatos no-EGFR LOD-stable
 #   supp/
-#     Sec0_TabS1_proteinas_DE_completo.tsv   — 666 proteínas DE completas
-#     Sec0_TabS2_hallmarks_gsea.tsv          — GSEA Hallmarks completa
-#     OE1_TabS1_dgidb_pares.tsv             — Pares gen-fármaco DGIdb
-#     OE1_TabS2_chembl_drugs.tsv            — Fármacos ChEMBL fase>=3
-#     OE1_TabS3_opentargets_drugs.tsv       — Fármacos OpenTargets
-#
-# También genera: pub_tables.xlsx con todas las tablas en hojas separadas.
+#     OE2_TabS1_candidatos_extendidos_noEGFR.tsv — Candidatos robustos a pesos, no LOD-stable
 #
 # Ambiente: omics-R
 # Ejecución:
@@ -32,7 +27,6 @@ suppressPackageStartupMessages({
   library(readr)
   library(tidyr)
   library(stringr)
-  library(openxlsx)
 })
 
 # ── Directorio del proyecto ───────────────────────────────────────────────────
@@ -92,16 +86,6 @@ de_sig   <- read_tsv("results/tables/de_limma/01_TVsS_significant.tsv",
 de_up    <- read_tsv("results/tables/de_limma/01_TVsS_upregulated.tsv",
                      show_col_types = FALSE)
 de_down  <- read_tsv("results/tables/de_limma/01_TVsS_downregulated.tsv",
-                     show_col_types = FALSE)
-hallmarks <- read_tsv("results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv",
-                      show_col_types = FALSE)
-dgidb    <- read_tsv("results/tables/drug_targets/04_dgidb_raw.tsv",
-                     show_col_types = FALSE)
-chembl   <- read_tsv("results/tables/drug_targets/05_chembl_drugs.tsv",
-                     show_col_types = FALSE)
-ot_drugs <- read_tsv("results/tables/drug_targets/06_opentargets_gene_drugs.tsv",
-                     show_col_types = FALSE)
-l2s2     <- read_tsv("results/tables/drug_targets/07_l2s2_results.tsv",
                      show_col_types = FALSE)
 multi    <- read_tsv("results/tables/drug_targets/08_multi_source_candidates.tsv",
                      show_col_types = FALSE)
@@ -176,106 +160,12 @@ sec0_tab2 <- bind_rows(top_up_tab, top_down_tab) %>%
   )
 save_tsv(sec0_tab2, "Sec0_Tab2_top_proteinas", out_main)
 
-# ── Sec0_TabS1: Tabla completa 666 proteínas DE ──────────────────────────────
-sec0_tabs1 <- de_sig %>%
-  mutate(
-    Dirección = ifelse(logFC_TVsS > 0, "Up", "Down"),
-    `log2FC`  = round(logFC_TVsS, 3),
-    `FDR`     = signif(adj.P.Val_TVsS, 3)
-  ) %>%
-  select(
-    Gen          = gene_symbol,
-    `UniProt ID` = uniprot_id,
-    `log2FC`,
-    `FDR`,
-    Dirección
-  ) %>%
-  arrange(desc(`log2FC`))
-save_tsv(sec0_tabs1, "Sec0_TabS1_proteinas_DE_completo", out_supp)
-
-# ── Sec0_TabS2: GSEA Hallmarks ───────────────────────────────────────────────
-# Seleccionar columnas relevantes si existen
-hall_cols_querer <- c("Description", "NES", "pvalue", "p.adjust",
-                       "setSize", "enrichmentScore", "core_enrichment")
-hall_cols_exist  <- intersect(hall_cols_querer, colnames(hallmarks))
-
-sec0_tabs2 <- hallmarks %>%
-  select(all_of(hall_cols_exist)) %>%
-  mutate(
-    Dirección   = ifelse(NES > 0, "Activado en tumor", "Reprimido en tumor"),
-    Pathway     = str_remove(Description, "^HALLMARK_") %>%
-                  str_replace_all("_", " ") %>% str_to_title(),
-    NES         = round(NES, 3),
-    pvalue      = signif(pvalue, 3),
-    p.adjust    = signif(p.adjust, 3)
-  ) %>%
-  arrange(NES) %>%
-  select(Pathway, NES, `p-valor` = pvalue, `FDR` = p.adjust,
-         `Genes en set` = setSize, Dirección, everything(),
-         -Description, -any_of("enrichmentScore"))
-save_tsv(sec0_tabs2, "Sec0_TabS2_hallmarks_gsea", out_supp)
-
 # =============================================================================
 # OE1 — TABLAS
 # =============================================================================
 cat("\n--- OE1: Tablas bases de datos de fármacos ---\n")
 
-# ── OE1_Tab1: Resumen por base de datos ──────────────────────────────────────
-# Calcular métricas desde archivos reales
-n_de_genes <- nrow(de_sig)
-
-# DGIdb
-dgi_gene_col <- grep("query_gene|gene_symbol|symbol", names(dgidb),
-                     ignore.case = TRUE, value = TRUE)[1]
-dgi_drug_col <- grep("drug_name|drug", names(dgidb),
-                     ignore.case = TRUE, value = TRUE)[1]
-dgi_n_genes  <- n_distinct(dgidb[[dgi_gene_col]])
-dgi_n_drugs  <- n_distinct(dgidb[[dgi_drug_col]])
-dgi_n_pairs  <- nrow(dgidb)
-
-# ChEMBL
-chmb_gene_col   <- grep("gene_symbol|symbol", names(chembl), ignore.case=TRUE, value=TRUE)[1]
-chmb_n_genes    <- n_distinct(chembl[[chmb_gene_col]])
-chmb_n_approved <- sum(chembl$max_phase >= 4, na.rm = TRUE)
-chmb_n_phase3   <- sum(chembl$max_phase == 3, na.rm = TRUE)
-
-# OpenTargets
-ot_gene_col  <- grep("gene_symbol|symbol", names(ot_drugs), ignore.case=TRUE, value=TRUE)[1]
-ot_drug_col  <- grep("drug.*name|pref_name|drug.*label", names(ot_drugs),
-                     ignore.case=TRUE, value=TRUE)[1]
-ot_n_genes   <- n_distinct(ot_drugs[[ot_gene_col]])
-ot_n_drugs   <- n_distinct(ot_drugs[[ot_drug_col]])
-
-# L2S2
-l2s2_pert_col <- grep("drug_name|pert$|pert_name", names(l2s2),
-                      ignore.case=TRUE, value=TRUE)[1]
-l2s2_n_drugs  <- n_distinct(l2s2[[l2s2_pert_col]])
-
-oe1_tab1 <- tibble(
-  `Base de datos`             = c("DGIdb v5", "ChEMBL 34", "Open Targets",  "L2S2"),
-  `Descripción`               = c(
-    "Drug-Gene Interaction Database — interacciones gen-fármaco consolidadas de ~30 fuentes",
-    "European Bioinformatics Institute — compuestos con mecanismo de acción curado",
-    "EBI/Sanger — evidencia multi-tipo para asociaciones gen-enfermedad",
-    "Library of Signatures and Similarities — conectividad transcriptómica inversa"
-  ),
-  `Genes DE consultados`      = n_de_genes,
-  `Genes con hits`            = c(dgi_n_genes, chmb_n_genes, ot_n_genes, NA_integer_),
-  `Fármacos/pert. únicos`     = c(dgi_n_drugs, NA_integer_, ot_n_drugs, l2s2_n_drugs),
-  `Pares gen-fármaco`         = c(dgi_n_pairs, nrow(chembl), nrow(ot_drugs), nrow(l2s2)),
-  `Criterio de filtro`        = c(
-    "Cualquier interacción reportada",
-    "Fase clínica >= 3 (Phase III o aprobado)",
-    "Cualquier fármaco conocido para el gen",
-    "Conectividad negativa (reversión de firma)"
-  ),
-  `Aprobados (Fase IV)`       = c(NA_integer_, chmb_n_approved, NA_integer_, NA_integer_),
-  `Fase III`                  = c(NA_integer_, chmb_n_phase3,   NA_integer_, NA_integer_)
-)
-save_tsv(oe1_tab1, "OE1_Tab1_resumen_bases_datos", out_main)
-
 # ── OE1_Tab2: Top candidatos por número de fuentes ───────────────────────────
-# Columnas útiles de la tabla multi_source
 multi_cols_querer <- c("drug_name_norm", "n_sources", "sources", "max_phase",
                         "is_approved", "hnscc_indication", "has_cancer_indication",
                         "chembl_id")
@@ -303,45 +193,6 @@ oe1_tab2 <- multi %>%
          `Indicación HNSCC`, `Indicación oncológica`,
          `ChEMBL ID` = any_of("chembl_id"))
 save_tsv(oe1_tab2, "OE1_Tab2_top_candidatos", out_main)
-
-# ── OE1_TabS1: Pares gen-fármaco DGIdb ───────────────────────────────────────
-oe1_tabs1 <- dgidb %>%
-  select(
-    Gen               = any_of(c("query_gene", "gene_symbol")),
-    `Fármaco`         = any_of(c("drug_name")),
-    `Tipo interacción` = any_of(c("interaction_types")),
-    `Score`           = any_of(c("interaction_score")),
-    `log2FC`          = any_of(c("logFC", "logFC_TVsS")),
-    `FDR`             = any_of(c("adj_pval", "adj.P.Val_TVsS")),
-    `Dirección DE`    = any_of(c("direction"))
-  ) %>%
-  mutate(across(where(is.numeric), ~round(.x, 3))) %>%
-  arrange(desc(abs(`log2FC`)))
-save_tsv(oe1_tabs1, "OE1_TabS1_dgidb_pares", out_supp)
-
-# ── OE1_TabS2: Fármacos ChEMBL ───────────────────────────────────────────────
-chembl_cols_querer <- c("gene_symbol", "pref_name", "max_phase", "phase_label",
-                         "first_approval", "molecule_type", "mechanisms",
-                         "n_up", "n_down")
-chembl_cols_exist  <- intersect(chembl_cols_querer, colnames(chembl))
-oe1_tabs2 <- chembl %>%
-  select(all_of(chembl_cols_exist)) %>%
-  rename_with(~c("Gen", "Fármaco", "Fase", "Fase (etiqueta)",
-                  "Año aprobación", "Tipo molécula", "Mecanismo",
-                  "Genes up", "Genes down")[seq_along(.)]) %>%
-  arrange(desc(Fase))
-save_tsv(oe1_tabs2, "OE1_TabS2_chembl_drugs", out_supp)
-
-# ── OE1_TabS3: Fármacos OpenTargets ──────────────────────────────────────────
-ot_cols_querer <- c("gene_symbol", "drug_name", "pref_name", "max_phase",
-                     "drug_type", "action_type", "indication", "logFC_TVsS",
-                     "direction")
-ot_cols_exist  <- intersect(ot_cols_querer, colnames(ot_drugs))
-oe1_tabs3 <- ot_drugs %>%
-  select(all_of(ot_cols_exist)) %>%
-  mutate(across(where(is.numeric), ~round(.x, 3))) %>%
-  arrange(desc(abs(logFC_TVsS)))
-save_tsv(oe1_tabs3, "OE1_TabS3_opentargets_drugs", out_supp)
 
 # =============================================================================
 # OE2 — TABLAS: Candidatos LOD-stable
@@ -489,52 +340,11 @@ cat(sprintf("  OE2_Tab2: %d drugs no-EGFR LOD-stable\n", nrow(oe2_tab2)))
 cat(sprintf("  OE2_TabS1: %d candidatos extendidos no-EGFR\n", nrow(oe2_tabs1)))
 
 # =============================================================================
-# EXCEL UNIFICADO
-# =============================================================================
-cat("\n-- Generando Excel unificado...\n")
-
-wb <- createWorkbook()
-
-# Función auxiliar para añadir hoja con formato básico
-add_sheet <- function(wb, df, sheet_name, title = NULL) {
-  addWorksheet(wb, sheet_name)
-  if (!is.null(title)) {
-    writeData(wb, sheet_name, x = title, startRow = 1, startCol = 1)
-    addStyle(wb, sheet_name,
-             style = createStyle(fontSize = 11, textDecoration = "bold"),
-             rows = 1, cols = 1)
-    writeDataTable(wb, sheet_name, x = df, startRow = 3, tableStyle = "TableStyleLight2")
-    setColWidths(wb, sheet_name, cols = 1:ncol(df), widths = "auto")
-  } else {
-    writeDataTable(wb, sheet_name, x = df, startRow = 1, tableStyle = "TableStyleLight2")
-    setColWidths(wb, sheet_name, cols = 1:ncol(df), widths = "auto")
-  }
-}
-
-add_sheet(wb, sec0_tab1,  "Sec0_Tab1",  "Resumen análisis DE — HNSCC Tumor vs. Tejido Normal")
-add_sheet(wb, sec0_tab2,  "Sec0_Tab2",  "Top 40 proteínas DE (20 sobreexpresadas + 20 subexpresadas)")
-add_sheet(wb, sec0_tabs1, "Sec0_TabS1", "Tabla completa — 666 proteínas DE significativas")
-add_sheet(wb, sec0_tabs2, "Sec0_TabS2", "GSEA Hallmarks MSigDB — todos los gene sets significativos")
-add_sheet(wb, oe1_tab1,   "OE1_Tab1",   "Resumen consulta a bases de datos farmacológicas")
-add_sheet(wb, oe1_tab2,   "OE1_Tab2",   "Top 30 candidatos por número de fuentes de respaldo")
-add_sheet(wb, oe1_tabs1,  "OE1_TabS1",  "Pares gen-fármaco DGIdb completo")
-add_sheet(wb, oe1_tabs2,  "OE1_TabS2",  "Fármacos ChEMBL fase >= 3")
-add_sheet(wb, oe1_tabs3,  "OE1_TabS3",  "Fármacos Open Targets")
-add_sheet(wb, oe2_tab1,   "OE2_Tab1",   "Candidatos EGFR LOD-stable — validación del método (26 fármacos)")
-add_sheet(wb, oe2_tab2,   "OE2_Tab2",   "Candidatos no-EGFR LOD-stable — repurposing real (6 fármacos)")
-add_sheet(wb, oe2_tabs1,  "OE2_TabS1",  "Candidatos extendidos no-EGFR — robustos a pesos, no LOD-stable")
-
-excel_path <- "results/tables/pub/HNSCC_DrugRepurposing_Tables_Sec0_OE1_OE2.xlsx"
-saveWorkbook(wb, excel_path, overwrite = TRUE)
-cat(sprintf("  Excel guardado: %s\n", excel_path))
-
-# =============================================================================
 # RESUMEN
 # =============================================================================
 cat("\n============================================================\n")
 cat("Script 18 COMPLETO\n")
 cat("Output main:  results/tables/pub/main/\n")
 cat("Output supp:  results/tables/pub/supp/\n")
-cat("Excel:        results/tables/pub/HNSCC_DrugRepurposing_Tables_Sec0_OE1_OE2.xlsx\n")
 cat(sprintf("Fin: %s\n", format(Sys.time())))
 sink()
