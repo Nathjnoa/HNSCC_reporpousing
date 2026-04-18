@@ -1,0 +1,14 @@
+# .claudeignore — reducir ruido para Claude
+logs/
+data/intermediate/
+results/tables/*.csv
+results/tables/*.tsv
+*.log
+__pycache__/
+.Rhistory
+.RData
+*.rds
+results/figures/*.tif
+results/figures/*.tiff
+results/figures/*.pdf
+*.ipynb_checkpoints/
