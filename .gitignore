@@ -1,3 +1,6 @@
+# Git worktrees
+.worktrees/
+
 # Data and logs (reproducible from scripts)
 data/
 logs/
