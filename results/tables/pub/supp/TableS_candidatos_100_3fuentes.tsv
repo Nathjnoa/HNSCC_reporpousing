@@ -1,0 +1,101 @@
+﻿farmaco	clase_regulatoria	n_fuentes	fuentes	fase_clinica_max
+AFATINIB	A: Aprobado en HNSCC	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+CETUXIMAB	A: Aprobado en HNSCC	3	ChEMBL|DGIdb|OpenTargets	4
+DACOMITINIB ANHYDROUS	A: Aprobado en HNSCC	3	ChEMBL|DGIdb|OpenTargets	4
+ERLOTINIB	A: Aprobado en HNSCC	3	DGIdb|L2S2|OpenTargets	4
+GEFITINIB	A: Aprobado en HNSCC	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+LAPATINIB	A: Aprobado en HNSCC	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+METFORMIN	C: Aprobado no oncológico	3	DGIdb|L2S2|OpenTargets	4
+NIMOTUZUMAB	A: Aprobado en HNSCC	3	ChEMBL|DGIdb|OpenTargets	4
+PANITUMUMAB	A: Aprobado en HNSCC	3	ChEMBL|DGIdb|OpenTargets	4
+VALPROIC ACID	A: Aprobado en HNSCC	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+ACETAZOLAMIDE	B: Aprobado en otros cánceres	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+AMIVANTAMAB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+AUMOLERTINIB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+AZACITIDINE	B: Aprobado en otros cánceres	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+BRIGATINIB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+CARFILZOMIB	B: Aprobado en otros cánceres	3	DGIdb|L2S2|OpenTargets	4
+CEDAZURIDINE	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+CRIZOTINIB	B: Aprobado en otros cánceres	3	DGIdb|L2S2|OpenTargets	4
+DACOMITINIB	B: Aprobado en otros cánceres	3	ChEMBL|L2S2|OpenTargets	4
+DECITABINE	B: Aprobado en otros cánceres	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+DIPYRIDAMOLE	B: Aprobado en otros cánceres	3	DGIdb|L2S2|OpenTargets	4
+DISULFIRAM	B: Aprobado en otros cánceres	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+DOXYCYCLINE	B: Aprobado en otros cánceres	3	ChEMBL|L2S2|OpenTargets	4
+ECULIZUMAB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+ENFORTUMAB VEDOTIN	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+ERLOTINIB HYDROCHLORIDE	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+FORODESINE HYDROCHLORIDE	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+ICOTINIB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+LAZERTINIB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+MOBOCERTINIB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+MOBOCERTINIB SUCCINATE	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+NECITUMUMAB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+NERATINIB	B: Aprobado en otros cánceres	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+NERATINIB MALEATE	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+OLMUTINIB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+OSIMERTINIB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+OSIMERTINIB MESYLATE	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+PENTOXIFYLLINE	B: Aprobado en otros cánceres	3	DGIdb|L2S2|OpenTargets	4
+PLITIDEPSIN	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+ROCILETINIB	B: Aprobado en otros cánceres	3	ChEMBL|DGIdb|OpenTargets	4
+THIOGUANINE	B: Aprobado en otros cánceres	3	DGIdb|L2S2|OpenTargets	4
+TRANYLCYPROMINE	B: Aprobado en otros cánceres	3	DGIdb|L2S2|OpenTargets	4
+VANDETANIB	B: Aprobado en otros cánceres	3	DGIdb|L2S2|OpenTargets	4
+ACETAZOLAMIDE SODIUM	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+BEPRIDIL	C: Aprobado no oncológico	3	DGIdb|L2S2|OpenTargets	4
+BETIBEGLOGENE AUTOTEMCEL	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+BIVALIRUDIN	C: Aprobado no oncológico	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+BRINZOLAMIDE	C: Aprobado no oncológico	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+CROVALIMAB	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+DABIGATRAN	C: Aprobado no oncológico	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+DEFIBROTIDE	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+DICHLORPHENAMIDE	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+DIGITOXIN	C: Aprobado no oncológico	3	DGIdb|L2S2|OpenTargets	4
+DIGOXIN	C: Aprobado no oncológico	3	DGIdb|L2S2|OpenTargets	4
+DORZOLAMIDE	C: Aprobado no oncológico	3	DGIdb|L2S2|OpenTargets	4
+DORZOLAMIDE HYDROCHLORIDE	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+DOXYCYCLINE CALCIUM	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+DROTRECOGIN ALFA (ACTIVATED)	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+IPTACOPAN	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+ISOCARBOXAZID	C: Aprobado no oncológico	3	DGIdb|L2S2|OpenTargets	4
+METHAZOLAMIDE	C: Aprobado no oncológico	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+MINAPRINE	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+MINAPRINE HYDROCHLORIDE	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+MITAPIVAT	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+MITAPIVAT SULFATE	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+MOCLOBEMIDE	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+PERHEXILINE MALEATE	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+PHENELZINE	C: Aprobado no oncológico	3	DGIdb|L2S2|OpenTargets	4
+POLMACOXIB	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+POZELIMAB	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+PROXIBARBAL	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+RAVULIZUMAB	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+TOLOXATONE	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+TOPIRAMATE	C: Aprobado no oncológico	4	ChEMBL|DGIdb|L2S2|OpenTargets	4
+VILOBELIMAB	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+ZILUCOPLAN	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+ZILUCOPLAN SODIUM	C: Aprobado no oncológico	3	ChEMBL|DGIdb|OpenTargets	4
+ABIVERTINIB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+ABIVERTINIB MALEATE	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+ANDECALIXIMAB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+BAPINEUZUMAB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+BELORANIB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+CANERTINIB DIHYDROCHLORIDE	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+DEPATUXIZUMAB MAFODOTIN	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+FIRMONERTINIB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+FORIGERIMOD ACETATE	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+FUTUXIMAB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+MARIMASTAT	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+NAQUOTINIB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+NOMACOPAN	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+PEXELIZUMAB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+PYROTINIB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+RINDOPEPIMUT	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+RUSERONTINIB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+SIMOTINIB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+SOLANEZUMAB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+TESEVATINIB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+VALILTRAMIPROSATE	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+VERDIPERSTAT	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
+ZALUTUMUMAB	D: Experimental	3	ChEMBL|DGIdb|OpenTargets	3
