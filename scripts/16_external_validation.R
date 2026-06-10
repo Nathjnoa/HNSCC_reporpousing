@@ -200,6 +200,8 @@ cat("Muestras TCGA:", ncol(se), "\n")
 
 # =============================================================================
 # SECCION 3: DE ANALYSIS TCGA TUMOR VS NORMAL (DESeq2, con cache)
+# Diseño: ~condition (todos tumor vs normal, sin bloqueo por paciente)
+# Más rápido que diseño pareado; válido para concordancia de direcciones.
 # =============================================================================
 cache_de <- "data/intermediate/tcga/tcga_hnsc_deseq2_results.tsv"
 
@@ -207,69 +209,42 @@ if (file.exists(cache_de)) {
   cat("\n--- Cargando DE TCGA desde cache ---\n")
   de_tcga <- read_tsv(cache_de, show_col_types = FALSE)
 } else {
-  cat("\n--- Corriendo DESeq2 en TCGA tumor vs normal ---\n")
+  cat("\n--- Corriendo DESeq2 en TCGA tumor vs normal (~10 min) ---\n")
 
-  # Tipo de muestra: 01=tumor, 11=solid normal
+  # Seleccionar solo muestras tumor (01) y normal (11)
   sample_type <- substr(colnames(se), 14, 15)
-  se_matched  <- se[, sample_type %in% c("01", "11")]
+  se_tn       <- se[, sample_type %in% c("01", "11")]
+  condition   <- factor(ifelse(substr(colnames(se_tn), 14, 15) == "01",
+                               "Tumor", "Normal"),
+                        levels = c("Normal", "Tumor"))
+  cat("Muestras: Tumor =", sum(condition == "Tumor"),
+      " Normal =", sum(condition == "Normal"), "\n")
 
-  # Solo pacientes con AMBOS tipos (pares concordantes)
-  patient_ids  <- substr(colnames(se_matched), 1, 12)
-  patient_type <- sample_type[sample_type %in% c("01", "11")]
-  matched_pts  <- names(table(patient_ids)[table(patient_ids) == 2])
+  # Gene names desde rowData (columna gene_name confirmada)
+  gene_names <- rowData(se_tn)$gene_name
 
-  idx_matched <- which(patient_ids %in% matched_pts)
-  se_pairs    <- se_matched[, idx_matched]
-  cat("Pares concordantes tumor/normal:", length(matched_pts), "\n")
+  counts_mat <- assay(se_tn, "unstranded")
+  rownames(counts_mat) <- gene_names
 
-  # Metadatos para DESeq2
-  col_data <- data.frame(
-    condition = factor(ifelse(substr(colnames(se_pairs), 14, 15) == "01",
-                              "Tumor", "Normal"),
-                       levels = c("Normal", "Tumor")),
-    patient   = substr(colnames(se_pairs), 1, 12),
-    row.names = colnames(se_pairs)
-  )
-
-  # Extraer counts (STAR unstranded)
-  counts_mat <- assay(se_pairs, "unstranded")
+  col_data <- data.frame(condition = condition, row.names = colnames(se_tn))
 
   dds <- DESeqDataSetFromMatrix(
     countData = counts_mat,
     colData   = col_data,
-    design    = ~ patient + condition
+    design    = ~ condition
   )
-  dds <- dds[rowSums(counts(dds) >= 10) >= 5, ]  # filtro basico
-  dds <- DESeq(dds)
-  res <- results(dds, contrast = c("condition", "Tumor", "Normal"),
-                 alpha = 0.05)
+  # Filtro: al menos 10 counts en al menos 5 muestras
+  dds <- dds[rowSums(counts(dds) >= 10) >= 5, ]
+  cat("Genes tras filtro:", nrow(dds), "\n")
+
+  dds <- DESeq(dds, parallel = FALSE)
+  res <- results(dds, contrast = c("condition", "Tumor", "Normal"), alpha = 0.05)
 
   de_tcga <- as.data.frame(res) |>
-    rownames_to_column("gene_id") |>
-    mutate(
-      gene_symbol = str_extract(gene_id, "(?<=\\|)[^|]+$"),
-      gene_symbol = if_else(is.na(gene_symbol), gene_id, gene_symbol)
-    ) |>
-    filter(!is.na(log2FoldChange)) |>
-    select(gene_symbol, logFC_tcga = log2FoldChange, adjP_tcga = padj,
-           baseMean) |>
-    filter(!is.na(gene_symbol), gene_symbol != "")
-
-  # Si gene_id es ENSG format, extraer nombre de los rowData
-  if (all(str_detect(de_tcga$gene_symbol[1:5], "^ENSG"))) {
-    gene_info   <- as.data.frame(rowData(se_pairs))
-    gene_lookup <- gene_info |>
-      select(gene_id   = gene_id,
-             gene_name = gene_name) |>
-      distinct()
-    de_tcga <- de_tcga |>
-      rename(gene_id_raw = gene_symbol) |>
-      left_join(gene_lookup, by = c("gene_id_raw" = "gene_id")) |>
-      mutate(gene_symbol = coalesce(gene_name, gene_id_raw)) |>
-      select(gene_symbol, logFC_tcga, adjP_tcga, baseMean)
-  }
-
-  de_tcga <- de_tcga |>
+    rownames_to_column("gene_symbol") |>
+    filter(!is.na(log2FoldChange), gene_symbol != "") |>
+    select(gene_symbol, logFC_tcga = log2FoldChange,
+           adjP_tcga = padj, baseMean) |>
     distinct(gene_symbol, .keep_all = TRUE)
 
   write_tsv(de_tcga, cache_de)
@@ -405,86 +380,45 @@ figA <- ggplot(conc, aes(x = logFC_our, y = logFC_tcga)) +
 # =============================================================================
 cat("\n--- Preparando datos de supervivencia ---\n")
 
-# Matriz de expresion normalizada (vst o log-normalized) en muestras tumorales
+# Muestras tumorales (tipo 01)
 se_tumor <- se[, substr(colnames(se), 14, 15) == "01"]
 cat("Muestras tumorales para supervivencia:", ncol(se_tumor), "\n")
 
-# Obtener counts normalizados (usar assay "fpkm_unstrand" si disponible,
-# si no, rlog/vst sobre unstranded)
-avail_assays <- assayNames(se_tumor)
-cat("Assays disponibles:", paste(avail_assays, collapse = ", "), "\n")
+# Log2 FPKM (confirmado disponible en SE) — rápido, sin re-modelado
+expr_mat           <- log2(assay(se_tumor, "fpkm_unstrand") + 0.1)
+rownames(expr_mat) <- rowData(se_tumor)$gene_name   # gene_name confirmado en rowData
 
-if ("fpkm_unstrand" %in% avail_assays) {
-  expr_mat <- log2(assay(se_tumor, "fpkm_unstrand") + 1)
-} else {
-  cat("Calculando VST (puede tardar ~5 min)...\n")
-  dds_full <- DESeqDataSetFromMatrix(
-    countData = assay(se_tumor, "unstranded"),
-    colData   = DataFrame(condition = rep("Tumor", ncol(se_tumor))),
-    design    = ~ 1
-  )
-  dds_full  <- estimateSizeFactors(dds_full)
-  expr_mat  <- log2(counts(dds_full, normalized = TRUE) + 1)
-}
-
-# Mapear rownames a gene symbols
-if (all(str_detect(rownames(expr_mat)[1:5], "^ENSG"))) {
-  gene_info <- as.data.frame(rowData(se_tumor))
-  name_col  <- intersect(c("gene_name", "external_gene_name", "hgnc_symbol"),
-                         colnames(gene_info))[1]
-  if (!is.na(name_col)) {
-    new_names          <- gene_info[[name_col]]
-    new_names[is.na(new_names) | new_names == ""] <- rownames(expr_mat)[
-      is.na(new_names) | new_names == ""]
-    rownames(expr_mat) <- new_names
-  }
-}
-
-# Datos clinicos de supervivencia
-# Extraer de colData del SE o del objeto clin descargado
+# Datos clinicos desde colData del SE (columnas confirmadas)
 col_df <- as.data.frame(colData(se_tumor))
-
-# Columnas OS en TCGA: vital_status, days_to_death, days_to_last_follow_up
-os_cols <- intersect(
-  c("vital_status", "days_to_death", "days_to_last_follow_up",
-    "days_to_last_known_disease_status"),
-  colnames(col_df)
-)
-cat("Columnas OS encontradas:", paste(os_cols, collapse = ", "), "\n")
+cat("Columnas OS disponibles: vital_status, days_to_death, days_to_last_follow_up\n")
 
 surv_df <- col_df |>
-  rownames_to_column("barcode") |>
   mutate(
-    patient_id  = substr(barcode, 1, 12),
-    # OS event: 1=muerto, 0=censurado
-    os_event    = as.integer(tolower(vital_status) == "dead"),
-    # OS time en dias
-    os_time     = if_else(os_event == 1,
-                          suppressWarnings(as.numeric(days_to_death)),
-                          suppressWarnings(as.numeric(days_to_last_follow_up)))
+    patient_id = patient,    # columna 'patient' confirmada en colData
+    os_event   = as.integer(tolower(vital_status) == "dead"),
+    os_time    = if_else(os_event == 1,
+                         suppressWarnings(as.numeric(days_to_death)),
+                         suppressWarnings(as.numeric(days_to_last_follow_up)))
   ) |>
   filter(!is.na(os_time), os_time > 0) |>
-  select(barcode, patient_id, os_event, os_time) |>
+  select(patient_id, os_event, os_time) |>
   distinct(patient_id, .keep_all = TRUE)
 
 cat("Pacientes con datos de supervivencia:", nrow(surv_df), "\n")
 
-# Agregar expresion de genes de interes
+# Agregar expresion de genes de interes (usando patient_id de colData)
 surv_genes_data <- surv_df
 
 for (gene in LABEL_GENES) {
   if (gene %in% rownames(expr_mat)) {
-    gene_expr     <- expr_mat[gene, ]
-    gene_df       <- data.frame(
-      barcode    = names(gene_expr),
+    gene_expr <- expr_mat[gene, ]
+    gene_df   <- data.frame(
+      patient_id = col_df$patient,
       expr       = as.numeric(gene_expr),
       stringsAsFactors = FALSE
     ) |>
-      mutate(patient_id = substr(barcode, 1, 12)) |>
       group_by(patient_id) |>
-      slice_max(order_by = expr, n = 1, with_ties = FALSE) |>
-      ungroup() |>
-      select(patient_id, !!gene := expr)
+      summarise(!!gene := mean(expr, na.rm = TRUE), .groups = "drop")
 
     surv_genes_data <- surv_genes_data |>
       left_join(gene_df, by = "patient_id")
