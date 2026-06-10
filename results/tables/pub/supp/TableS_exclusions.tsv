@@ -1,0 +1,42 @@
+drug_name	primary_target_gene	exclusion_type	reason
+FOMEPIZOLE	ADH1B	drug_name	Antídoto metanol; mecanismo sin plausibilidad antitumoral en HNSCC
+ADUCANUMAB	APP	drug_name	Anticuerpo anti-amiloide para Alzheimer; sin relevancia oncológica
+LECANEMAB	APP	drug_name	Anticuerpo anti-amiloide para Alzheimer; sin relevancia oncológica
+DONANEMAB	APP	drug_name	Anticuerpo anti-amiloide para Alzheimer; sin relevancia oncológica
+TRAMIPROSATE	APP	drug_name	Agente anti-amiloide para Alzheimer; sin relevancia oncológica
+CRENEZUMAB	APP	drug_name	Anticuerpo anti-amiloide para Alzheimer; sin relevancia oncológica
+GANTENERUMAB	APP	drug_name	Anticuerpo anti-amiloide para Alzheimer; sin relevancia oncológica
+PREGABALIN	CACNA2D1	drug_name	Gabapentinoide analgésico; sin mecanismo antitumoral
+GABAPENTIN ENACARBIL	CACNA2D1	drug_name	Gabapentinoide analgésico; sin mecanismo antitumoral
+GABAPENTIN	CACNA2D1	drug_name	Gabapentinoide analgésico; sin mecanismo antitumoral
+SULOCTIDIL	CACNA2D1	drug_name	Vasodilatador/gabapentinoide; sin mecanismo antitumoral
+ARGATROBAN	F2	drug_name	Anticoagulante (trombina); manejo sintomático, sin mecanismo antitumoral HNSCC
+ANTITHROMBIN ALFA	F2	drug_name	Anticoagulante (trombina); manejo sintomático, sin mecanismo antitumoral HNSCC
+DESIRUDIN	F2	drug_name	Anticoagulante (trombina); manejo sintomático, sin mecanismo antitumoral HNSCC
+LEPIRUDIN	F2	drug_name	Anticoagulante (trombina); manejo sintomático, sin mecanismo antitumoral HNSCC
+DABIGATRAN ETEXILATE MESYLATE	F2	drug_name	Anticoagulante (trombina); manejo sintomático, sin mecanismo antitumoral HNSCC
+XIMELAGATRAN	F2	drug_name	Anticoagulante (trombina); manejo sintomático, sin mecanismo antitumoral HNSCC
+COLLAGENASE CLOSTRIDIUM HISTOLYTICUM	COL genes	drug_name	Enzima tópica para Dupuytren; no administración sistémica ni oncológica
+OCRIPLASMIN	VTN/FN1	drug_name	Proteasa intravítrea; no oncológico
+TECHNETIUM TC 99M SUCCIMER	imaging	drug_name	Agente diagnóstico de imagen; no terapéutico
+MAVACAMTEN	MYH7	drug_name	Inhibidor miosina cardíaca; target muscular — artefacto tisular HNSCC
+OMECAMTIV MECARBIL	MYH7	drug_name	Activador miosina cardíaca; target muscular — artefacto tisular HNSCC
+DANICAMTIV	MYH7	drug_name	Activador miosina esquelética; target muscular — artefacto tisular HNSCC
+RELDESEMTIV	TNNT3	drug_name	Activador troponina esquelética; target muscular — artefacto tisular HNSCC
+TIRASEMTIV	TNNT3	drug_name	Activador troponina esquelética; target muscular — artefacto tisular HNSCC
+LEVOSIMENDAN	TNNI3/TNC	drug_name	Sensibilizador calcio; target muscular — artefacto tisular HNSCC
+CAPLACIZUMAB	VWF	drug_name	Anti-VWF (trombosis TTP); proteína plasmática — sin mecanismo antitumoral
+VON WILLEBRAND FACTOR HUMAN	VWF	drug_name	Reemplazo proteico VWF; coagulopatía — no oncológico
+VONICOG ALFA	VWF	drug_name	Reemplazo proteico VWF; coagulopatía — no oncológico
+EGAPTIVON PEGOL	VWF	drug_name	Anti-VWF aptámero experimental; sin mecanismo antitumoral
+ALFIMEPRASE	FGA/FGB/FGG	drug_name	Fibrinolítico; señal de contaminación plasmática en biopsia DIA — no oncológico
+ANCROD	FGA/FGB/FGG	drug_name	Veneno de serpiente desfibrinogenante; señal contaminación plasmática — no oncológico
+FIBRINOGEN, HUMAN	FGA/FGB/FGG	drug_name	Reemplazo proteico hemostático; señal contaminación plasmática — no oncológico
+PLASMINOGEN	FGA	drug_name	Precursor plasmina; manejo trombosis — sin mecanismo antitumoral HNSCC
+TIROFIBAN	FGA/integrina	drug_name	Antiagregante plaquetario; manejo SCA — sin mecanismo antitumoral HNSCC
+EPTIFIBATIDE	FGA/integrina	drug_name	Antiagregante plaquetario; manejo SCA — sin mecanismo antitumoral HNSCC
+ALL drugs targeting F2 only	F2	gene_exclusion	Trombina — anticoagulantes; manejo sintomático sin relevancia oncológica
+ALL drugs targeting APP only	APP	gene_exclusion	Amiloide — anticuerpos Alzheimer; sin relevancia oncológica
+ALL drugs targeting CACNA2D1 only	CACNA2D1	gene_exclusion	Canal calcio α2δ — gabapentinoides analgésicos
+ALL drugs targeting ADH1B only	ADH1B	gene_exclusion	Alcohol deshidrogenasa — antídotos; sin relevancia oncológica
+ALL drugs targeting C5 only	C5	gene_exclusion	Complemento C5 — anticuerpos anti-C5; artefacto plasmático/contaminación; sin mecanismo antitumoral en HNSCC

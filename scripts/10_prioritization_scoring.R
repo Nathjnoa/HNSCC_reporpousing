@@ -6,12 +6,12 @@
 # Objetivo: Calcular un score compuesto para cada farmaco candidato usando
 #           6 dimensiones independientes. Seleccionar top 20 para validacion.
 #
-# Dimensiones de scoring (pesos en config/analysis_params.yaml):
-#   1. score_pi_stat       (0.325): pi-stat = sign(logFC)*|logFC|*(-log10 adj.P)
-#   2. score_clinical      (0.200): fase clinica maxima del farmaco
-#   3. score_cmap          (0.130): connectivity reversal score L2S2/LINCS (reversal)
-#   4. score_pathway       (0.150): proporcion genes diana en vias enriquecidas
-#   5. score_network       (0.195): centralidad + diversidad de modulos en red PPI
+# Dimensiones de scoring (pesos en config/analysis_params.yaml, suma = 1.00):
+#   1. score_pi_stat       (0.40): pi-stat = sign(logFC)*|logFC|*(-log10 adj.P)
+#   2. score_clinical      (0.20): fase clinica maxima del farmaco (FDA)
+#   3. score_pathway       (0.15): proporcion genes diana en vias enriquecidas en HNSCC
+#   4. score_network       (0.15): centralidad + diversidad de modulos en red PPI
+#   5. score_cmap          (0.10): connectivity reversal score L2S2/LINCS (reversal)
 # NOTA v2: score_evidence eliminado del composite (sesgo publicacion + circularidad
 #          con revision manual del grupo). Se mantiene como columna descriptiva.
 #

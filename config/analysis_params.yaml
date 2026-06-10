@@ -34,11 +34,13 @@ network:
   hub_percentile: 90                  # Top 10% por grado de nodo = hub
 
 # --- Priorización multi-criterio (script 10) ---
-# CAMBIO v2: weight_evidence eliminado (sesgo de publicación + circularidad con revisión manual).
-# El 15% se redistribuyó proporcionalmente entre los 3 componentes de datos propios:
-#   pi_stat (proteómica): 0.25 + 0.075 = 0.325
-#   network_centrality:   0.15 + 0.045 = 0.195
-#   cmap_connectivity:    0.10 + 0.030 = 0.130
+# Esquema de pesos v2 (suma = 1.00):
+#   pi_stat (proteómica):     0.40  — señal directa de sobreexpresión tumoral
+#   clinical_phase (FDA):     0.20  — seguridad/traslación independiente de indicación
+#   pathway_relevance:        0.15  — blanco en vías enriquecidas en HNSCC
+#   network_centrality:       0.15  — posición topológica en red PPI STRING
+#   cmap_connectivity (L2S2): 0.10  — reversión transcriptómica (peso menor; datos en líneas celulares)
+# Nota: weight_evidence eliminado en v2 (sesgo publicación + circularidad con revisión manual).
 scoring:
   weight_pi_stat: 0.40           # señal proteómica (logFC × significancia)
   weight_clinical_phase: 0.20    # fase FDA (independiente de literatura HNSCC)

@@ -120,7 +120,7 @@ Rscript scripts/09_string_network.R
 #      Pool top 35 para análisis LOD
 Rscript scripts/10_prioritization_scoring.R
 # Output: results/tables/10_all_candidates_scored.tsv
-# Pesos: pi_stat=0.325, clinical=0.20, network=0.195, pathway=0.15, cmap=0.13
+# Pesos: pi_stat=0.40, clinical=0.20, pathway=0.15, network=0.15, cmap=0.10
 ```
 
 ### Fase 4: Validación de robustez (R)

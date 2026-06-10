@@ -77,11 +77,11 @@ five dimensions with the following weights (all configurable in
 
 | Dimension | Weight | Description |
 | --- | --- | --- |
-| π-statistic | 0.325 | sign(logFC) × \|logFC\| × −log10(adj.P), directional |
-| Clinical phase | 0.200 | Approved=1, Phase III=0.75, Phase II=0.5, Phase I=0.25 |
-| Network centrality | 0.195 | Betweenness centrality of primary target (normalized) |
-| Pathway relevance | 0.150 | Target present in a significantly enriched pathway |
-| L2S2 reversal | 0.130 | Connectivity score (more negative = better reversal) |
+| π-statistic | 0.40 | sign(logFC) × \|logFC\| × −log10(adj.P), directional |
+| Clinical phase | 0.20 | Approved=1, Phase III=0.75, Phase II=0.5, Phase I=0.25 |
+| Pathway relevance | 0.15 | Target present in a significantly enriched pathway |
+| Network centrality | 0.15 | Betweenness centrality of primary target (normalized) |
+| L2S2 reversal | 0.10 | Connectivity score (more negative = better reversal) |
 
 The top 35 candidates by composite score were retained as the candidate pool
 for sensitivity analysis. The final panel was defined by LOD stability
@@ -95,9 +95,10 @@ Robustness of the drug ranking was assessed through three approaches:
 
 1. **Weight sensitivity**: six alternative weight configurations spanning
    plausible ranges for each scoring dimension.
-2. **Leave-One-Database (LOD) analysis**: the scoring procedure was repeated
-   five times, each time excluding one of the five scoring sources. A drug was
-   classified as LOD-stable if it remained in the top 35 in all five LOD runs.
+2. **Leave-one-database-out (LOD) analysis**: the scoring procedure was repeated
+   four times, each time dropping one of the four pharmacological databases
+   (DGIdb, ChEMBL, OpenTargets, L2S2) from the candidate input. A drug was
+   classified as LOD-stable if it remained in the top 35 in all four LOD runs.
    LOD stability was the primary criterion for inclusion in the final candidate
    panel (32 LOD-stable candidates).
 3. **Permutation test**: composite scores were recomputed 1,000 times with

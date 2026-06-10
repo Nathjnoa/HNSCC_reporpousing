@@ -135,7 +135,7 @@ normal.  Se  identificaron  proteínas  diferencialmente  expresadas  (FDR  <  0
 
 interrogadas  en  plataformas  de  conectividad  farmacológica  (L2S2).  Se
 realizaron análisis de enriquecimiento funcional (FGSEA), mapeo fármaco–diana
-(DrugBank,  ChEMBL,  OpenTargets)  y  análisis  de  redes.  Los  candidatos  se
+(DGIdb,  ChEMBL,  OpenTargets,  L2S2)  y  análisis  de  redes.  Los  candidatos  se
 priorizaron  mediante  un  modelo  multicriterio  integrando  conectividad,  soporte
 mecanístico y factibilidad clínica.
 
@@ -399,7 +399,7 @@ contribuye  evidencia  de  reversión  farmacológica  de  la  firma  molecular,
 recibió un peso menor dado que opera sobre transcriptómica de líneas celulares,
 una  capa  de  datos  más  distal  a  la  proteómica  tisular  del  estudio.  Los  pesos
 fueron fijados a priori antes de ordenar los candidatos y su robustez fue evaluada
-mediante análisis de sensibilidad de pesos y análisis leave-one-dimension-out
+mediante análisis de sensibilidad de pesos y análisis leave-one-database-out
 (LOD).
 
 Tabla  X.  Dimensiones  y  pesos  del  puntaje  compuesto  de  priorización  de
