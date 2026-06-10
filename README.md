@@ -58,6 +58,7 @@ hnscc_drug_repurposing/
 | `11_clinicaltrials_pubmed.py` | supp | omics-py | ClinicalTrials.gov + PubMed top 20 candidatos |
 | `12_cosmic_overlap.py` | supp | omics-py | Overlap drivers cancerígenos COSMIC/IntOGen/NCG |
 | `15_sensitivity_analysis.R` | 5 | omics-R | LOD + 6 configs pesos + permutation test |
+| `16_external_validation.R` | 5b | omics-R | Concordancia TCGA proteomics vs RNA-seq + KM supervivencia |
 | `17_pub_figures.R` | 6 | omics-R | Figuras de publicación (PDF + PNG 300 DPI) |
 | `18_pub_tables.R` | 6 | omics-R | Tablas de publicación (TSV) |
 

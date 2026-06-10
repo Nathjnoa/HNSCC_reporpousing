@@ -167,7 +167,23 @@ python scripts/12_cosmic_overlap.py
 # Output: results/tables/cosmic_overlap/
 ```
 
-### Fase 5: Outputs de publicación (R)
+### Fase 5: Validación externa TCGA (R)
+
+```bash
+conda activate omics-R
+
+# 16 - Concordancia proteómica vs TCGA-HNSC RNA-seq + KM supervivencia
+#      PRIMERA EJECUCION: descarga ~800 MB desde GDC (cache en data/intermediate/tcga/)
+#      Dependencias: BiocManager::install(c("TCGAbiolinks","DESeq2"))
+#                    install.packages(c("survival","survminer"))
+Rscript scripts/16_external_validation.R
+# Output: results/figures/pub/main/OE3_FigA_tcga_concordance.{pdf,png}
+#         results/figures/pub/main/OE3_FigB_survival.{pdf,png}
+#         results/tables/pub/main/OE3_Tab_concordance_summary.tsv
+#         results/tables/pub/supp/OE3_TabS_survival_genes.tsv
+```
+
+### Fase 6: Outputs de publicación (R)
 
 ```bash
 conda activate omics-R
@@ -192,8 +208,10 @@ Rscript scripts/18_pub_tables.R
 01 → 02 → 03 (pathway enrichment, produce s_pathway para 10 y FigD para 17)
        ↓
       04, 05, 06, 07 (paralelos)
-               → 08 → 09 → 10 → 15 → 17, 17c
-                                     18
+               → 08 → 09 → 10 → 15 → 16 (validacion TCGA)
+                                     ↓
+                                    17, 17c
+                                    18
 
 Opcional (independientes, no bloquean el pipeline):
 10 → 11 (ClinicalTrials/PubMed para top candidatos)
@@ -234,6 +252,7 @@ Opcional (independientes, no bloquean el pipeline):
 - [ ] Datos en `data/raw/` (3 archivos)
 - [ ] `config/analysis_params.yaml` revisado
 - [ ] Scripts 01–03, 04–10, 15 ejecutados en orden sin errores
+- [ ] Script 16 ejecutado (validación TCGA; requiere internet en primera ejecución)
 - [ ] Scripts 17, 17c y 18 ejecutados para outputs de publicación
 - [ ] Scripts 11, 12 ejecutados si se necesita evidencia clínica/COSMIC (suplementario)
 - [ ] Logs verificados en `logs/`
