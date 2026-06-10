@@ -37,8 +37,9 @@ from pathlib import Path
 # ── Configuración ────────────────────────────────────────────────────────────
 SCRIPT_DIR  = Path(__file__).resolve().parent
 PROJ_DIR    = SCRIPT_DIR.parent
-INPUT_TOP20 = PROJ_DIR / "results/tables/10_top20_candidates.tsv"
-OUT_DIR     = PROJ_DIR / "results/tables/evidence"
+INPUT_SCORED   = PROJ_DIR / "results/tables/10_all_candidates_scored.tsv"
+INPUT_LOD      = PROJ_DIR / "results/tables/15_lod_stability.tsv"
+OUT_DIR        = PROJ_DIR / "results/tables/evidence"
 FIG_DIR     = PROJ_DIR / "results/figures/evidence"
 LOG_DIR     = PROJ_DIR / "logs"
 
@@ -75,9 +76,16 @@ HNSCC_CT_TERMS = [
     "oral cancer",
     "oropharyngeal cancer",
 ]
-HNSCC_PUBMED_TERM = ("(head neck squamous[MeSH Major Topic] OR HNSCC[Title/Abstract] "
-                      "OR \"head and neck cancer\"[Title/Abstract] "
-                      "OR \"squamous cell carcinoma\"[Title/Abstract])")
+# Fix B3-1: removed bare "squamous cell carcinoma"[Title/Abstract] —
+# it captures SCC of lung/cervix/esophagus/skin. SCC must be qualified
+# with "head and neck" or "HNSCC" explicitly.
+HNSCC_PUBMED_TERM = (
+    "(\"head and neck squamous cell carcinoma\"[Title/Abstract] "
+    "OR \"head and neck cancer\"[Title/Abstract] "
+    "OR \"head and neck neoplasms\"[MeSH Terms] "
+    "OR HNSCC[Title/Abstract] "
+    "OR \"squamous cell carcinoma of the head and neck\"[Title/Abstract])"
+)
 
 REQUEST_DELAY = 0.35   # segundos entre llamadas (NCBI permite ~3/s)
 
@@ -151,9 +159,18 @@ def query_clinicaltrials(drug_name: str) -> Dict:
             for arm in inter.get("interventions", []):
                 interventions.append(arm.get("name", "").lower())
 
-            drug_confirmed = any(
-                drug_name.lower().split()[0] in iv for iv in interventions
-            ) if interventions else True   # si no hay detalle, asumir confirmado
+            # Fix B3-3: do NOT assume confirmed when interventions list is empty —
+            # that inflates counts with unrelated trials that just lack detail.
+            if not interventions:
+                drug_confirmed = False
+            else:
+                name_lower = drug_name.lower()
+                # Match any word from the drug name (handles salts/suffixes)
+                drug_words = [w for w in name_lower.split() if len(w) > 3]
+                drug_confirmed = any(
+                    any(word in iv for word in drug_words)
+                    for iv in interventions
+                )
 
             all_trials.append({
                 "nct_id": nct_id,
@@ -260,13 +277,36 @@ def main():
     log.info("=" * 60)
     log.info(f"NCBI email: {NCBI_EMAIL}")
 
-    # Cargar top 20
-    if not INPUT_TOP20.exists():
-        log.error(f"No encontrado: {INPUT_TOP20}")
+    # Fix B3-4: use LOD-stable panel from 15_lod_stability.tsv
+    # (replaces non-existent 10_top20_candidates.tsv)
+    if not INPUT_SCORED.exists():
+        log.error(f"No encontrado: {INPUT_SCORED}")
         sys.exit(1)
 
-    top20 = pd.read_csv(INPUT_TOP20, sep="\t")
-    log.info(f"Top 20 candidatos cargados: {len(top20)} filas")
+    all_scored = pd.read_csv(INPUT_SCORED, sep="\t")
+    log.info(f"Candidatos scored cargados: {len(all_scored)} filas")
+
+    if INPUT_LOD.exists():
+        lod = pd.read_csv(INPUT_LOD, sep="\t")
+        lod_stable_col = next(
+            (c for c in ["lod_stable", "stable", "is_stable"] if c in lod.columns), None
+        )
+        name_col_lod = next(
+            (c for c in ["drug_name_norm", "drug_name", "name"] if c in lod.columns), None
+        )
+        if lod_stable_col and name_col_lod:
+            stable_drugs = lod.loc[lod[lod_stable_col].astype(bool), name_col_lod].tolist()
+            top20 = all_scored[all_scored["drug_name_norm"].isin(stable_drugs)].copy()
+            log.info(f"Panel LOD-estable: {len(top20)} candidatos (de {len(stable_drugs)} en lod_stability)")
+        else:
+            log.warning("lod_stability.tsv sin columna 'lod_stable' o 'drug_name_norm' — usando top 32 por score")
+            top20 = all_scored.sort_values("final_score", ascending=False).head(32).copy()
+    else:
+        log.warning(f"No encontrado: {INPUT_LOD} — usando top 32 por final_score")
+        top20 = all_scored.sort_values("final_score", ascending=False).head(32).copy()
+
+    QUERY_DATE = datetime.datetime.now().strftime("%Y-%m-%d")
+    log.info(f"Fecha de consulta (snapshot): {QUERY_DATE}")
     log.info(f"Columnas: {list(top20.columns)}")
 
     # Identificar columna de nombre de fármaco
@@ -311,22 +351,18 @@ def main():
                                 "NOT_YET_RECRUITING", "ENROLLING_BY_INVITATION"}
         )
 
-        # Score de evidencia clínica (simple)
-        evidence_score = (
-            min(ct["hnscc_trials"] / 5.0, 1.0) * 0.5 +   # hasta 5 trials = max
-            min(pm["pubmed_hnscc"] / 50.0, 1.0) * 0.3 +  # hasta 50 papers = max
-            min(active_trials / 2.0, 1.0) * 0.2           # trials activos
-        )
-
         row = top20.iloc[i].to_dict()
         row.update({
-            "ct_total_trials": ct["total_trials"],
-            "ct_hnscc_trials": ct["hnscc_trials"],
+            "ct_total_trials":  ct["total_trials"],
+            "ct_hnscc_trials":  ct["hnscc_trials"],
             "ct_active_trials": active_trials,
-            "ct_phases_hnscc": phase_str,
-            "pubmed_total": pm["pubmed_total"],
-            "pubmed_hnscc": pm["pubmed_hnscc"],
-            "evidence_score": round(evidence_score, 3),
+            "ct_phases_hnscc":  phase_str,
+            "pubmed_total":     pm["pubmed_total"],
+            "pubmed_hnscc":     pm["pubmed_hnscc"],
+            # NOTE: evidence_score removed from composite scoring (B3 plan) —
+            # arbitrary denominators + circular with publication bias.
+            # Kept here as a DESCRIPTIVE column only; NOT used for ranking.
+            "query_date":       QUERY_DATE,
         })
         results.append(row)
 
@@ -337,7 +373,9 @@ def main():
 
     # ── Exportar tablas ───────────────────────────────────────────────────────
     df_evidence = pd.DataFrame(results)
-    df_evidence = df_evidence.sort_values("evidence_score", ascending=False)
+    # Sort by LOD-stable ranking (final_score), not by evidence_score
+    sort_col = "final_score" if "final_score" in df_evidence.columns else df_evidence.columns[0]
+    df_evidence = df_evidence.sort_values(sort_col, ascending=False)
 
     out_evidence = OUT_DIR / "11_clinical_evidence.tsv"
     df_evidence.to_csv(out_evidence, sep="\t", index=False)
@@ -465,9 +503,9 @@ def main():
     log.info(f"Con ensayos HNSCC:      {(df_evidence['ct_hnscc_trials'] > 0).sum()}")
     log.info(f"Con trials activos:     {(df_evidence['ct_active_trials'] > 0).sum()}")
     log.info(f"Con papers HNSCC:       {(df_evidence['pubmed_hnscc'] > 0).sum()}")
-    log.info("\nTop 10 por evidencia_score:")
-    cols_show = [name_col, "ct_hnscc_trials", "ct_active_trials",
-                 "pubmed_hnscc", "evidence_score"]
+    log.info(f"\nSnapshot date: {QUERY_DATE}")
+    log.info(f"\nTop 10 por {sort_col} (LOD-stable ranking):")
+    cols_show = [name_col, "ct_hnscc_trials", "ct_active_trials", "pubmed_hnscc", sort_col]
     cols_show = [c for c in cols_show if c in df_evidence.columns]
     log.info("\n" + df_evidence[cols_show].head(10).to_string(index=False))
     log.info(f"\nOutputs:\n  {out_evidence}\n  {out_bubble}\n  {out_bars}")
