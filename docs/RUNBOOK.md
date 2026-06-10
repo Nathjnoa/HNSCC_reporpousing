@@ -1,8 +1,11 @@
 # RUNBOOK — HNSCC Drug Repurposing Pipeline
 
-Guía paso a paso para reproducir el análisis completo (12 scripts: 01–02, 04–10, 15, 17–18).
+Guía paso a paso para reproducir el análisis completo.
 
-Última actualización: 2026-04-18 — Pipeline reducido a 12 scripts; panel final = 32 candidatos LOD-stable
+Pipeline principal (13 scripts): 01–03, 04–10, 15, 17–18
+Scripts suplementarios/auxiliares: 11, 12, supp/{13,14,17b}, 17c
+
+Última actualización: 2026-06-10 — Reorientado a artículo internacional; tesis archivada en docs/thesis/
 
 ---
 
@@ -12,8 +15,8 @@ Guía paso a paso para reproducir el análisis completo (12 scripts: 01–02, 04
 
 | Ambiente | Scripts | Propósito |
 | --- | --- | --- |
-| `omics-R` | 01, 02, 08, 09, 10, 15, 17, 18 | Análisis proteómica, red, scoring, sensibilidad, figuras, tablas |
-| `omics-py` | 04, 05, 06, 07 | Consultas a bases de datos de fármacos |
+| `omics-R` | 01, 02, 03, 08, 09, 10, 15, 17, 17c, 18, supp/{13,14,17b} | Análisis proteómica, enriquecimiento, red, scoring, sensibilidad, figuras, tablas |
+| `omics-py` | 04, 05, 06, 07, 11, 12 | Consultas a bases de datos de fármacos; evidencia clínica; COSMIC |
 
 ### Paquetes adicionales (instalar una sola vez)
 
@@ -148,6 +151,22 @@ Rscript scripts/15_sensitivity_analysis.R
 #         results/tables/15_lod_stability.tsv      ← criterio de inclusión en panel final
 ```
 
+### Fase 4b: Evidencia externa (Python, opcional)
+
+Estos scripts son independientes del pipeline principal y producen material suplementario.
+
+```bash
+conda activate omics-py
+
+# 11 - ClinicalTrials.gov + PubMed mining para los top 20 candidatos
+python scripts/11_clinicaltrials_pubmed.py
+# Output: results/tables/clinical_evidence/ (trials activos, abstracts PubMed)
+
+# 12 - Overlap con drivers cancerígenos (COSMIC/IntOGen/NCG)
+python scripts/12_cosmic_overlap.py
+# Output: results/tables/cosmic_overlap/
+```
+
 ### Fase 5: Outputs de publicación (R)
 
 ```bash
@@ -170,9 +189,15 @@ Rscript scripts/18_pub_tables.R
 ## Dependencias entre scripts
 
 ```text
-01 → 02 → 04, 05, 06, 07 (paralelos)
-               → 08 → 09 → 10 → 15 → 17
+01 → 02 → 03 (pathway enrichment, produce s_pathway para 10 y FigD para 17)
+       ↓
+      04, 05, 06, 07 (paralelos)
+               → 08 → 09 → 10 → 15 → 17, 17c
                                      18
+
+Opcional (independientes, no bloquean el pipeline):
+10 → 11 (ClinicalTrials/PubMed para top candidatos)
+10 → 12 (COSMIC/driver overlap)
 ```
 
 ---
@@ -208,6 +233,7 @@ Rscript scripts/18_pub_tables.R
 - [ ] Ambientes `omics-R` y `omics-py` con paquetes instalados
 - [ ] Datos en `data/raw/` (3 archivos)
 - [ ] `config/analysis_params.yaml` revisado
-- [ ] Scripts 01–02, 04–10, 15 ejecutados en orden sin errores
-- [ ] Scripts 17 y 18 ejecutados para outputs de publicación
+- [ ] Scripts 01–03, 04–10, 15 ejecutados en orden sin errores
+- [ ] Scripts 17, 17c y 18 ejecutados para outputs de publicación
+- [ ] Scripts 11, 12 ejecutados si se necesita evidencia clínica/COSMIC (suplementario)
 - [ ] Logs verificados en `logs/`
