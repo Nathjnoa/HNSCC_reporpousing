@@ -11,6 +11,14 @@ de:
   imputation_method: "MinProb"   # Opciones: MinProb, QRILC, kNN
   normalization: "median"        # Opciones: median, vsn, quantile
 
+# --- Pathway enrichment (script 03) ---
+pathway:
+  pval_cutoff:    0.05    # p.adjust umbral para ORA y GSEA
+  qval_cutoff:    0.20    # q-value umbral ORA
+  min_gs_size:    10      # Tamaño mínimo de gene set
+  max_gs_size:    500     # Tamaño máximo de gene set
+  simplify_cutoff: 0.70   # Similitud semántica para simplify() GO BP
+
 # --- ChEMBL (script 05) ---
 chembl:
   min_phase: 3                        # Fase clínica mínima (3=Fase III, 4=Aprobado)

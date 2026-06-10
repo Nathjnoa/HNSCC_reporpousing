@@ -8,6 +8,7 @@
 # Figuras generadas (results/figures/pub/main/):
 #   Sec0_FigB_volcano          — Volcano plot Tumor vs. Adjacent Normal
 #   Sec0_FigC_heatmap_topDE    — Heatmap top 40 proteínas DE × 20 muestras
+#   Sec0_FigD_hallmarks_gsea   — Hallmarks GSEA dotplot (desde 03_Hallmarks_GSEA.tsv)
 #   OE1_FigA_drug_sources_bar  — Nº candidatos por fuente de BD
 #   OE1_FigB_drug_phase_dist   — Distribución fases clínicas (multi-fuente)
 #   OE2_FigA_ppi_network       — Red PPI de proteínas DE (degree > 8 | hub)
@@ -342,6 +343,73 @@ ht_de <- Heatmap(
 
 save_ch(ht_de, "Sec0_FigC_heatmap_topDE", "double_col", h_add = 50)
 cat("  Sec0_FigC: Heatmap top DE — OK\n")
+
+# =============================================================================
+# Sec0_FigD — HALLMARKS GSEA (MSigDB)
+# =============================================================================
+cat("\n--- Sec0_FigD: Hallmarks GSEA dotplot ---\n")
+
+hallmarks_file <- "results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv"
+if (!file.exists(hallmarks_file)) {
+  cat("  WARN: Hallmarks GSEA table missing — run script 03 first. Skipping FigD.\n")
+} else {
+  gsea_h <- read.delim(hallmarks_file, stringsAsFactors = FALSE)
+  n_sets <- nrow(gsea_h)
+  cat(sprintf("  Gene sets significativos: %d\n", n_sets))
+
+  if (n_sets >= 3) {
+    # Selección balanceada: top 10 activados + top 10 suprimidos por p.adjust
+    gsea_h$Description <- gsub("^HALLMARK_", "", gsea_h$Description)
+    gsea_h$Description <- gsub("_", " ", gsea_h$Description)
+    gsea_h$Description <- tools::toTitleCase(tolower(gsea_h$Description))
+
+    n_each <- min(10, floor(n_sets / 2))
+    top_act  <- gsea_h[gsea_h$NES > 0, ]
+    top_act  <- top_act[order(top_act$p.adjust), ][seq_len(min(n_each, nrow(top_act))), ]
+    top_supp <- gsea_h[gsea_h$NES < 0, ]
+    top_supp <- top_supp[order(top_supp$p.adjust), ][seq_len(min(n_each, nrow(top_supp))), ]
+    plot_df  <- rbind(top_act, top_supp)
+    plot_df  <- plot_df[order(plot_df$NES), ]
+    plot_df$Description <- factor(plot_df$Description, levels = plot_df$Description)
+
+    GSEA_COLS <- c("#D55E00", "#0072B2")  # activated / suppressed
+
+    p_gsea <- ggplot(plot_df,
+                     aes(x = NES, y = Description,
+                         size = setSize, color = p.adjust)) +
+      geom_point() +
+      geom_vline(xintercept = 0, linewidth = 0.4,
+                 color = "grey50", linetype = "dashed") +
+      scale_color_gradient(
+        low  = "#D55E00", high = "#56B4E9",
+        name = "FDR", trans = "log10",
+        guide = guide_colorbar(reverse = TRUE,
+                               barwidth = unit(3, "mm"), barheight = unit(18, "mm"))
+      ) +
+      scale_size_continuous(
+        name = "Set size", range = c(1.5, 5),
+        guide = guide_legend(override.aes = list(color = "grey50"))
+      ) +
+      labs(
+        title    = "MSigDB Hallmarks — GSEA (Tumor vs. Adjacent Normal)",
+        subtitle = sprintf("Ranked by π-statistic | %d gene sets (FDR < 0.05)", n_sets),
+        x        = "Normalized Enrichment Score (NES)",
+        y        = NULL
+      ) +
+      theme_pub() +
+      theme(
+        axis.text.y = element_text(size = 7.5),
+        legend.position = "right"
+      )
+
+    n_rows <- nrow(plot_df)
+    save_pub(p_gsea, "Sec0_FigD_hallmarks_gsea", "double_col",
+             h_add = max(0, (n_rows - 10) * 5))
+    cat(sprintf("  Sec0_FigD: Hallmarks GSEA (%d sets) — OK\n", n_rows))
+  } else {
+    cat(sprintf("  FigD omitida: solo %d gene sets (requiere >= 3)\n", n_sets))
+  }
+}
 
 # =============================================================================
 # OE1_FigA — CANDIDATOS POR FUENTE DE BASE DE DATOS

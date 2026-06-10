@@ -79,6 +79,19 @@ Rscript scripts/02_id_mapping.R
 # Output: data/intermediate/id_mapping/02_uniprot_to_ids.tsv
 ```
 
+### Fase 1b: Enriquecimiento de vías (R)
+
+```bash
+conda activate omics-R
+
+# 03 - ORA (GO/KEGG/Reactome) + GSEA (Hallmarks + GO BP + KEGG + Reactome)
+#      Produce tablas que usa script 10 para s_pathway
+#      Produce 03_Hallmarks_GSEA.tsv que usa script 17 para Sec0_FigD
+Rscript scripts/03_pathway_enrichment.R
+# Output: results/tables/pathway_enrichment/03_*.tsv
+#         results/figures/pathway_enrichment/03_*.pdf
+```
+
 ### Fase 2: Consultar bases de datos de fármacos (Python)
 
 Los scripts 04, 05, 06 son independientes y pueden ejecutarse en paralelo.
