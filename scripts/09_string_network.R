@@ -28,17 +28,9 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
-# --- Establecer working directory (desde ruta del script) -------------------
-args <- commandArgs(trailingOnly = FALSE)
-script_flag <- args[grep("^--file=", args)]
-if (length(script_flag) > 0) {
-  script_path <- normalizePath(sub("^--file=", "", script_flag))
-  proj_dir    <- dirname(dirname(script_path))   # scripts/ -> proyecto/
-  if (file.exists(file.path(proj_dir, "config/analysis_params.yaml"))) {
-    setwd(proj_dir)
-  }
-}
-cat("Working dir:", getwd(), "\n")
+# --- Working directory (raíz del proyecto vía scripts/_setup.R) --------------
+source(here::here("scripts", "_setup.R"))
+setup_project()
 
 # --- Log setup ---------------------------------------------------------------
 dir.create("logs",                   showWarnings = FALSE)

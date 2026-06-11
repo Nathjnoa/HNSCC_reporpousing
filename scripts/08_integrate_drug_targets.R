@@ -32,6 +32,10 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
+# --- Working directory (raíz del proyecto vía scripts/_setup.R) --------------
+source(here::here("scripts", "_setup.R"))
+setup_project()
+
 # --- Log setup ---------------------------------------------------------------
 dir.create("logs",    showWarnings = FALSE)
 dir.create("results/tables/drug_targets", showWarnings = FALSE, recursive = TRUE)

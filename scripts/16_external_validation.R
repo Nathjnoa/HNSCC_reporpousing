@@ -11,10 +11,10 @@
 #             (representatives of EGFR, Proteasome, Epigenetic, OXPHOS modules)
 #
 # Outputs:
-#   results/figures/pub/main/OE3_FigA_tcga_concordance.{pdf,png}
-#   results/figures/pub/main/OE3_FigB_survival.{pdf,png}
-#   results/tables/pub/main/OE3_Tab_concordance_summary.tsv
-#   results/tables/pub/supp/OE3_TabS_survival_genes.tsv
+#   results/figures/pub/main/Fig6A_tcga_concordance.{pdf,png}
+#   results/figures/pub/main/Fig6B_survival.{pdf,png}
+#   results/tables/pub/main/Tab6_concordance_summary.tsv
+#   results/tables/pub/supp/TabS2_survival_genes.tsv
 #
 # Data cache: data/intermediate/tcga/  (populated on first run, ~800 MB)
 #   Skip re-download if cache present.
@@ -42,18 +42,10 @@ suppressPackageStartupMessages({
   library(stringr)
 })
 
-# ── Detectar directorio del proyecto ─────────────────────────────────────────
-args        <- commandArgs(trailingOnly = FALSE)
-script_flag <- args[grep("^--file=", args)]
-if (length(script_flag) > 0) {
-  script_path <- normalizePath(sub("^--file=", "", script_flag))
-  proj_dir    <- dirname(dirname(script_path))
-  if (file.exists(file.path(proj_dir, "config/analysis_params.yaml")))
-    setwd(proj_dir)
-}
-
+# ── Working directory (raíz del proyecto vía scripts/_setup.R) ───────────────
 cat("=== 16_external_validation.R ===\n")
-cat("Working directory:", getwd(), "\n")
+source(here::here("scripts", "_setup.R"))
+setup_project()
 timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
 # ── Directorios ───────────────────────────────────────────────────────────────
@@ -306,7 +298,7 @@ summary_tbl <- tibble(
     round(mean(conc$concord_class == "Concordant down") * 100, 1)
   )
 )
-write_tsv(summary_tbl, "results/tables/pub/main/OE3_Tab_concordance_summary.tsv")
+write_tsv(summary_tbl, "results/tables/pub/main/Tab6_concordance_summary.tsv")
 cat("Tabla concordancia guardada.\n")
 
 # =============================================================================
@@ -437,7 +429,7 @@ for (gene in LABEL_GENES) {
 }
 
 write_tsv(surv_genes_data,
-          "results/tables/pub/supp/OE3_TabS_survival_genes.tsv")
+          "results/tables/pub/supp/TabS2_survival_genes.tsv")
 cat("Tabla supervivencia guardada.\n")
 
 # =============================================================================
@@ -516,17 +508,17 @@ if (length(km_plots_ok) >= 1) {
 # =============================================================================
 cat("\n--- Guardando figuras ---\n")
 
-save_fig(figA, "OE3_FigA_tcga_concordance", preset = "double_col")
+save_fig(figA, "Fig6A_tcga_concordance", preset = "double_col")
 
 p_surv <- PRESETS$double_col
 figB_wide <- figB
-ggsave("results/figures/pub/main/OE3_FigB_survival.pdf",
+ggsave("results/figures/pub/main/Fig6B_survival.pdf",
        figB_wide, width = p_surv$w, height = p_surv$h,
        units = "mm", dpi = 300)
-ggsave("results/figures/pub/main/OE3_FigB_survival.png",
+ggsave("results/figures/pub/main/Fig6B_survival.png",
        figB_wide, width = p_surv$w, height = p_surv$h,
        units = "mm", dpi = 300, bg = "white")
-cat("Saved: results/figures/pub/main/OE3_FigB_survival\n")
+cat("Saved: results/figures/pub/main/Fig6B_survival\n")
 
 # =============================================================================
 # SECCION 9: RESUMEN
@@ -540,9 +532,9 @@ cat(sprintf("Pearson r (logFC proteomics vs RNA):  %.3f (p = %.2e)\n",
             pearson_r, pearson_p))
 cat(sprintf("Pacientes para supervivencia:         %d\n", nrow(surv_df)))
 cat("\nOutputs:\n")
-cat("  results/figures/pub/main/OE3_FigA_tcga_concordance.{pdf,png}\n")
-cat("  results/figures/pub/main/OE3_FigB_survival.{pdf,png}\n")
-cat("  results/tables/pub/main/OE3_Tab_concordance_summary.tsv\n")
-cat("  results/tables/pub/supp/OE3_TabS_survival_genes.tsv\n")
+cat("  results/figures/pub/main/Fig6A_tcga_concordance.{pdf,png}\n")
+cat("  results/figures/pub/main/Fig6B_survival.{pdf,png}\n")
+cat("  results/tables/pub/main/Tab6_concordance_summary.tsv\n")
+cat("  results/tables/pub/supp/TabS2_survival_genes.tsv\n")
 cat("\nFin:", format(Sys.time()), "\n")
 sink()

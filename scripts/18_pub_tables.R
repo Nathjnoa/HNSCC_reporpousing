@@ -7,13 +7,13 @@
 #
 # Tablas generadas (results/tables/pub/):
 #   main/
-#     Sec0_Tab1_resumen_DE.tsv          — Resumen estadístico del análisis DE
-#     Sec0_Tab2_top_proteinas.tsv       — Top proteínas DE (20 up + 20 down)
-#     OE1_Tab2_top_candidatos.tsv       — Top 30 candidatos por n_fuentes
-#     OE2_Tab1_EGFR_LOD_stable.tsv      — Candidatos EGFR LOD-stable
-#     OE2_Tab2_noEGFR_LOD_stable.tsv    — Candidatos no-EGFR LOD-stable
+#     Tab1_resumen_DE.tsv          — Resumen estadístico del análisis DE
+#     Tab2_top_proteinas.tsv       — Top proteínas DE (20 up + 20 down)
+#     Tab3_top_candidatos.tsv       — Top 30 candidatos por n_fuentes
+#     Tab4_EGFR_LOD_stable.tsv      — Candidatos EGFR LOD-stable
+#     Tab5_noEGFR_LOD_stable.tsv    — Candidatos no-EGFR LOD-stable
 #   supp/
-#     OE2_TabS1_candidatos_extendidos_noEGFR.tsv — Candidatos robustos a pesos, no LOD-stable
+#     TabS1_candidatos_extendidos_noEGFR.tsv — Candidatos robustos a pesos, no LOD-stable
 #
 # Ambiente: omics-R
 # Ejecución:
@@ -29,18 +29,10 @@ suppressPackageStartupMessages({
   library(stringr)
 })
 
-# ── Directorio del proyecto ───────────────────────────────────────────────────
-args <- commandArgs(trailingOnly = FALSE)
-script_flag <- args[grep("^--file=", args)]
-if (length(script_flag) > 0) {
-  script_path <- normalizePath(sub("^--file=", "", script_flag))
-  proj_dir    <- dirname(dirname(script_path))
-  if (file.exists(file.path(proj_dir, "config/analysis_params.yaml")))
-    setwd(proj_dir)
-}
-
+# ── Working directory (raíz del proyecto vía scripts/_setup.R) ───────────────
 cat("=== 18_pub_tables.R ===\n")
-cat("Working directory:", getwd(), "\n")
+source(here::here("scripts", "_setup.R"))
+setup_project()
 timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
 # ── Lista curada: aprobación regulatoria real en HNSCC ───────────────────────
@@ -83,10 +75,10 @@ de_all   <- read_tsv("results/tables/de_limma/01_TVsS_all_proteins.tsv",
                      show_col_types = FALSE)
 de_sig   <- read_tsv("results/tables/de_limma/01_TVsS_significant.tsv",
                      show_col_types = FALSE)
-de_up    <- read_tsv("results/tables/de_limma/01_TVsS_upregulated.tsv",
-                     show_col_types = FALSE)
-de_down  <- read_tsv("results/tables/de_limma/01_TVsS_downregulated.tsv",
-                     show_col_types = FALSE)
+# up/down se derivan de de_all (los splits separados son intermedios redundantes,
+# eliminados en la limpieza); filtro idéntico al que aplicaba el script 01.
+de_up    <- de_all %>% filter(sig.FDR_TVsS ==  1)
+de_down  <- de_all %>% filter(sig.FDR_TVsS == -1)
 multi    <- read_tsv("results/tables/drug_targets/08_multi_source_candidates.tsv",
                      show_col_types = FALSE)
 
@@ -97,7 +89,7 @@ cat("  Datos cargados OK\n")
 # =============================================================================
 cat("\n--- Sección 0: Tablas proteómica diferencial ---\n")
 
-# ── Sec0_Tab1: Resumen del análisis DE ───────────────────────────────────────
+# ── Tab1: Resumen del análisis DE ───────────────────────────────────────
 sec0_tab1 <- tibble(
   Parámetro   = c(
     "Proteínas cuantificadas (total)",
@@ -133,9 +125,9 @@ sec0_tab1 <- tibble(
     "M1, M2, M4, M8"
   )
 )
-save_tsv(sec0_tab1, "Sec0_Tab1_resumen_DE", out_main)
+save_tsv(sec0_tab1, "Tab1_resumen_DE", out_main)
 
-# ── Sec0_Tab2: Top proteínas DE ──────────────────────────────────────────────
+# ── Tab2: Top proteínas DE ──────────────────────────────────────────────
 top_up_tab <- de_up %>%
   arrange(desc(logFC_TVsS)) %>%
   slice_head(n = 20) %>%
@@ -158,14 +150,14 @@ sec0_tab2 <- bind_rows(top_up_tab, top_down_tab) %>%
     `log2FC`      = round(`log2FC`, 3),
     `FDR (adj.p)` = signif(`FDR (adj.p)`, 3)
   )
-save_tsv(sec0_tab2, "Sec0_Tab2_top_proteinas", out_main)
+save_tsv(sec0_tab2, "Tab2_top_proteinas", out_main)
 
 # =============================================================================
 # OE1 — TABLAS
 # =============================================================================
 cat("\n--- OE1: Tablas bases de datos de fármacos ---\n")
 
-# ── OE1_Tab2: Top candidatos por número de fuentes ───────────────────────────
+# ── Tab3: Top candidatos por número de fuentes ───────────────────────────
 multi_cols_querer <- c("drug_name_norm", "n_sources", "sources", "max_phase",
                         "is_approved", "hnscc_indication", "has_cancer_indication",
                         "chembl_id")
@@ -192,7 +184,7 @@ oe1_tab2 <- multi %>%
   select(`Fármaco`, `N fuentes`, `Fuentes`, `Fase clínica máx.`,
          `Indicación HNSCC`, `Indicación oncológica`,
          `ChEMBL ID` = any_of("chembl_id"))
-save_tsv(oe1_tab2, "OE1_Tab2_top_candidatos", out_main)
+save_tsv(oe1_tab2, "Tab3_top_candidatos", out_main)
 
 # =============================================================================
 # OE2 — TABLAS: Candidatos LOD-stable
@@ -240,7 +232,7 @@ oe2_base <- scored %>%
     )
   )
 
-# ── OE2_Tab1: LOD-stable EGFR — validación del método ───────────────────────
+# ── Tab4: LOD-stable EGFR — validación del método ───────────────────────
 oe2_tab1 <- oe2_base %>%
   filter(!is.na(egfr_subclass)) %>%
   arrange(egfr_subclass, desc(composite_score)) %>%
@@ -258,9 +250,9 @@ oe2_tab1 <- oe2_base %>%
     `Composite score`,
     `N fuentes`         = n_sources
   )
-save_tsv(oe2_tab1, "OE2_Tab1_EGFR_LOD_stable", out_main)
+save_tsv(oe2_tab1, "Tab4_EGFR_LOD_stable", out_main)
 
-# ── OE2_Tab2: LOD-stable no-EGFR — candidatos de repurposing ─────────────────
+# ── Tab5: LOD-stable no-EGFR — candidatos de repurposing ─────────────────
 mecanismo_map <- c(
   "DECITABINE"      = "Inhibidor DNMT",
   "AZACITIDINE"     = "Inhibidor DNMT",
@@ -296,9 +288,9 @@ oe2_tab2 <- oe2_base %>%
     `Composite score`,
     `N fuentes`         = n_sources
   )
-save_tsv(oe2_tab2, "OE2_Tab2_noEGFR_LOD_stable", out_main)
+save_tsv(oe2_tab2, "Tab5_noEGFR_LOD_stable", out_main)
 
-# ── OE2_TabS1: Candidatos extendidos no-EGFR (robustos a pesos, no LOD) ──────
+# ── TabS1: Candidatos extendidos no-EGFR (robustos a pesos, no LOD) ──────
 # Drogas que aparecen en ≥5/6 configuraciones de pesos (top-35)
 # pero NO son LOD-stable (sensibles al tamaño del pool de corte)
 oe2_tabs1 <- sens_ranks %>%
@@ -333,11 +325,11 @@ oe2_tabs1 <- sens_ranks %>%
     `Composite score`,
     `N fuentes`         = n_sources
   )
-save_tsv(oe2_tabs1, "OE2_TabS1_candidatos_extendidos_noEGFR", out_supp)
+save_tsv(oe2_tabs1, "TabS1_candidatos_extendidos_noEGFR", out_supp)
 
-cat(sprintf("  OE2_Tab1: %d drugs EGFR LOD-stable\n",  nrow(oe2_tab1)))
-cat(sprintf("  OE2_Tab2: %d drugs no-EGFR LOD-stable\n", nrow(oe2_tab2)))
-cat(sprintf("  OE2_TabS1: %d candidatos extendidos no-EGFR\n", nrow(oe2_tabs1)))
+cat(sprintf("  Tab4: %d drugs EGFR LOD-stable\n",  nrow(oe2_tab1)))
+cat(sprintf("  Tab5: %d drugs no-EGFR LOD-stable\n", nrow(oe2_tab2)))
+cat(sprintf("  TabS1: %d candidatos extendidos no-EGFR\n", nrow(oe2_tabs1)))
 
 # =============================================================================
 # RESUMEN

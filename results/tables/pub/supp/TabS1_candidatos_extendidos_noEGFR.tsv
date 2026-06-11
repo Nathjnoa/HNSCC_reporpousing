@@ -1,21 +1,17 @@
 Fármaco	Target primario	N configs (de 6)	Fase clínica máx.	Composite score	N fuentes
-Tenatumomab	TNC	6	Fase III	0.662	2
+Bortezomib D-Mannitol	PSMA1	6	Aprobado (Fase IV)	0.662	2
+Ataluren	RPL12	6	Aprobado (Fase IV)	0.658	2
 Pabinafusp Alfa	TFRC	6	Aprobado (Fase IV)	0.652	2
-Andecaliximab	MMP9	6	Fase III	0.636	3
-Ixazomib	EML4	6	Aprobado (Fase IV)	0.635	2
-Pargyline	MAOA	6	Aprobado (Fase IV)	0.632	2
-Sigvotatug Vedotin	ITGB6	6	Fase III	0.631	2
-Bortezomib D-Mannitol	PSMA1	6	Aprobado (Fase IV)	0.63	2
+Glembatumumab Vedotin	GPNMB	6	Aprobado (Fase IV)	0.648	2
+Mitapivat	PKLR	6	Aprobado (Fase IV)	0.648	3
+Alectinib	EML4	6	Aprobado (Fase IV)	0.641	2
 Digoxin	ATP1A1	6	Aprobado (Fase IV)	0.626	3
-Forigerimod	HSPA8	6	Fase III	0.625	3
-Valproic Acid	ALDH5A1	6	Aprobado (Fase IV)	0.622	4
-Mizoribine	IMPDH2	5	Aprobado (Fase IV)	0.601	2
-Mycophenolate	IMPDH2	5	Aprobado (Fase IV)	0.601	2
-Mycophenolate Mofetil	IMPDH2	5	Aprobado (Fase IV)	0.601	2
-Thioguanine	GGH	5	Aprobado (Fase IV)	0.589	3
-Perhexiline	CPT2	5	Aprobado (Fase IV)	0.589	3
+Topiramate	CA2	6	Aprobado (Fase IV)	0.625	4
+Pargyline	MAOA	5	Aprobado (Fase IV)	0.632	2
+Disulfiram	ALDH1A1	5	Aprobado (Fase IV)	0.625	4
+Acetazolamide	CA2	5	Aprobado (Fase IV)	0.625	4
+Valproic Acid	ALDH5A1	5	Aprobado (Fase IV)	0.622	4
+Methazolamide	CA2	5	Aprobado (Fase IV)	0.617	4
+Phenelzine	GNA11	5	Aprobado (Fase IV)	0.616	3
 Isocarboxazid	MAOA	5	Aprobado (Fase IV)	0.588	3
-Disulfiram	ALDH1A1	5	Aprobado (Fase IV)	0.588	4
-Volanesorsen	APOC3	5	Aprobado (Fase IV)	0.584	2
 Digitoxin	ATP1A1	5	Aprobado (Fase IV)	0.576	3
-Acetazolamide	CA2	5	Aprobado (Fase IV)	0.575	4

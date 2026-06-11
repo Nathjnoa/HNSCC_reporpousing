@@ -12,6 +12,8 @@ results/figures/drug_targets/
 results/figures/08_*.pdf
 results/figures/09_*.pdf
 results/figures/10_*.pdf
+results/figures/15_*.pdf
+results/figures/pathway_enrichment/
 results/tables/de_limma/01_TVsS_downregulated.tsv
 results/tables/de_limma/01_TVsS_upregulated.tsv
 results/tables/de_limma/01_missingness_analysis.tsv

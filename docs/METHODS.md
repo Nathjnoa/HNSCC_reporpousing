@@ -1,130 +1,126 @@
 # Methods — HNSCC Drug Repurposing Pipeline
 
+*Generated automatically by 14_methods_summary.R on 2026-06-11*
+
 ---
 
 ## Data
 
 Quantitative proteomics data (Data-Independent Acquisition, DIA) from 10 paired
-tumor/adjacent normal tissue samples from head and neck squamous cell carcinoma (HNSCC)
+tumor/normal tissue samples from head and neck squamous cell carcinoma (HNSCC)
 patients (n=20 total; 6 HPV-positive, 4 HPV-negative pairs) were processed
 with MaxQuant and differential expression analysis performed using proteoDA
-(a limma wrapper). The primary comparison was Tumor vs. Adjacent Normal (TVsS).
-Proteins were considered significantly differentially expressed at |log2FC| > 1
-and adjusted P-value (Benjamini-Hochberg) < 0.05.
+(a limma wrapper). The primary comparison was Tumor vs. Adjacent Normal (TVsS), averaging
+over HPV status (TVsS = Tumor vs. Sano/Adjacent Normal, column suffix in all
+output files). Proteins were considered significantly differentially expressed
+at |log2FC| > 1 and adjusted P-value
+(Benjamini-Hochberg) < 0.05.
 
 ---
 
 ## Phase 1: Data Preparation
 
-### Differential expression model (Script 01)
-
-The proteoDA output (limma TVsS contrast, HPV-adjusted with `duplicateCorrelation()`
-for the paired tumor/normal design) was parsed to extract proteins in three tiers:
-all quantified proteins, significantly DE proteins, and directional subsets
-(upregulated / downregulated in tumor). Total: 666 significant proteins
-(329 up, 337 down) from 3,352 quantified.
-
 ### Identifier mapping (Script 02)
 
 UniProt IDs were mapped to Entrez gene IDs and HGNC gene symbols using
-`org.Hs.eg.db` via `bitr()` in the clusterProfiler package. 3,262 of 3,352
-proteins were mapped (97.3%).
+`org.Hs.eg.db` via `bitr()` in the clusterProfiler package.
 
 ---
 
-## Phase 2: Drug-Target Database Queries (Scripts 04–07)
+## Phase 2: Functional Enrichment Analysis (Script 03)
 
-Four independent pharmacological databases were queried against all 666
-significantly DE proteins:
+Gene Set Enrichment Analysis (GSEA) was performed using `clusterProfiler`
+(v4.14.6) with proteins ranked by a pi-statistic
+(sign(log2FC) x |log2FC| x -log10(adjusted P)). Gene set collections: MSigDB
+Hallmarks, Gene Ontology Biological Process, KEGG pathways, and Reactome
+pathways (ReactomePA). Parameters: minGSSize=10, maxGSSize=500, P-adjusted < 0.05 (Benjamini-Hochberg). A fixed random seed
+(set.seed(42), seed=TRUE) was used for reproducible permutation results.
 
-- **DGIdb v5**: GraphQL API; all reported drug-gene interactions.
-- **ChEMBL 34**: REST API; drugs in clinical phase ≥ 3 (approved or Phase III).
-- **Open Targets Platform**: GraphQL API (api.platform.opentargets.org); drug
-  candidates via `drugAndClinicalCandidates` field (API v4, April 2026);
-  approval detected by `maximumClinicalStage = "APPROVAL"`.
-- **L2S2 (LINCS L1000 Signature Search)**: public GraphQL API
-  (l2s2.maayanlab.cloud); bidirectional enrichment (top 150 proteins UP vs.
-  drug DOWN signatures, and vice versa); `filterFda=TRUE`, P < 0.001;
-  1,044 FDA-approved drugs across 248 cell lines. Reversal score =
-  −log10(best_p) × mean_log2(OR) × log2(n_sigs+1), normalized to [−1, 0].
+The Hallmarks GSEA result is presented as the narrative enrichment figure
+(Fig. 2C). The pooled leading-edge genes of the significant GO BP + KEGG +
+Reactome GSEA sets feed the pathway-relevance dimension of the prioritization
+score (Script 10). Over-representation analysis (ORA) was not used.
+
+---
+
+## Phase 3: Drug-Target Database Queries (Scripts 04-07)
+
+- **DGIdb**: GraphQL API v5, all 520 DE genes queried.
+- **ChEMBL**: REST API v33, drugs in clinical phase >= 3.
+- **Open Targets**: GraphQL API, HNSCC association (EFO_0000181) + known drugs.
+- **L2S2 (LINCS L1000 Signature Search)**: API GraphQL publica (l2s2.maayanlab.cloud);
+  enriquecimiento bidireccional: top 150 proteinas UP vs firmas DOWN del farmaco + top 150 DOWN vs firmas UP;
+  filtro filterFda=TRUE; pvalue < 0.001; 248 lineas celulares; 1,044 drugs FDA-aprobados evaluados;
+  reversal_score = -log10(best_p) x mean_log2(OR) x log2(n_sigs+1), normalizado a [-1, 0].
 
 ---
 
 ## Phase 3: Drug Integration (Script 08)
 
-Outputs from all four databases were unified into a master table and each drug
-classified as: A (approved for HNSCC), B (approved for another cancer),
-C (approved non-oncology), or D (experimental). Candidates present in ≥ 2
-databases were prioritized as multi-source candidates.
+Four sources unified; drugs classified A (HNSCC-approved), B (other cancer),
+C (non-oncology), D (experimental). Multi-source candidates (>= 2 databases)
+prioritized for scoring.
 
 ---
 
-## Phase 4: PPI Network Analysis (Script 09)
+## Phase 4: PPI Network (Script 09)
 
-A protein-protein interaction (PPI) network was constructed using the STRING v12
-REST API (combined_score ≥ 700, high confidence). Community detection was
-performed with the Louvain algorithm. Hub proteins were defined as the top 10%
-by betweenness centrality within each module. Network metrics (degree,
-betweenness, eigenvector centrality) were computed with igraph v2.2.2.
+STRING v12 REST API queried for DE proteins; combined_score >= 700 (high confidence).
+Metrics: degree, betweenness, eigenvector centrality (igraph v2.2.2). Hubs: top 10% by degree.
 
 ---
 
-## Phase 5: Multi-Criteria Scoring (Script 10)
+## Phase 4: Multi-Criteria Scoring (Script 10)
 
-A composite score was computed for each multi-source drug candidate using
-five dimensions with the following weights (all configurable in
-`config/analysis_params.yaml`):
+Six-dimension composite score:
+- |log2FC| (w=0.2)
+- Significance (w=0.15)
+- Clinical phase (w=0.2)
+- L2S2 reversal (w=0.1)
+- Pathway relevance (w=0.15): fraction of drug DE targets in the pooled GSEA leading-edge (GO BP + KEGG + Reactome)
+- Network centrality (w=0.15)
 
-| Dimension | Weight | Description |
-| --- | --- | --- |
-| π-statistic | 0.40 | sign(logFC) × \|logFC\| × −log10(adj.P), directional |
-| Clinical phase | 0.20 | Approved=1, Phase III=0.75, Phase II=0.5, Phase I=0.25 |
-| Pathway relevance | 0.15 | Target present in a significantly enriched pathway |
-| Network centrality | 0.15 | Betweenness centrality of primary target (normalized) |
-| L2S2 reversal | 0.10 | Connectivity score (more negative = better reversal) |
-
-The top 35 candidates by composite score were retained as the candidate pool
-for sensitivity analysis. The final panel was defined by LOD stability
-(see Phase 6).
+Top 20 selected with diversity filter (max 3 per primary target gene).
 
 ---
 
-## Phase 6: Sensitivity Analysis (Script 15)
+## Phase 5: Sensitivity & LOD Stability (Script 15)
 
-Robustness of the drug ranking was assessed through three approaches:
+Weight-perturbation sensitivity analysis and limit-of-detection (LOD) stability
+of the candidate ranking; candidates stable across LOD scenarios define the final
+panel (`15_lod_stability.tsv`).
 
-1. **Weight sensitivity**: six alternative weight configurations spanning
-   plausible ranges for each scoring dimension.
-2. **Leave-one-database-out (LOD) analysis**: the scoring procedure was repeated
-   four times, each time dropping one of the four pharmacological databases
-   (DGIdb, ChEMBL, OpenTargets, L2S2) from the candidate input. A drug was
-   classified as LOD-stable if it remained in the top 35 in all four LOD runs.
-   LOD stability was the primary criterion for inclusion in the final candidate
-   panel (32 LOD-stable candidates).
-3. **Permutation test**: composite scores were recomputed 1,000 times with
-   randomly permuted drug-gene assignments to derive an empirical null
-   distribution. Observed scores above the 95th percentile of the null were
-   considered non-random.
+---
+
+## Phase 6: External Validation (Script 16)
+
+Differential expression concordance against TCGA-HNSC (TCGAbiolinks, DESeq2):
+tumor-vs-normal log2FC correlation between the proteomic cohort and TCGA-HNSC.
 
 ---
 
 ## Software
 
-**R** (v4.4.3, 2025-02-28)
+**R** (R version 4.4.3 (2025-02-28))
 
-Key packages: limma v3.62.2, clusterProfiler v4.14.6, igraph v2.2.2,
-ggraph v2.2.2, ComplexHeatmap v2.22.0, httr2, jsonlite, openxlsx v4.2.8.1,
-dplyr, ggplot2.
+Key R packages:
+- limma v3.62.2
+- clusterProfiler v4.14.6
+- ReactomePA v1.50.0
+- igraph v2.2.2
+- ggraph v2.2.2
+- openxlsx v4.2.8.1
+- ComplexHeatmap v2.22.0
 
-**Python 3** (scripts 04–07)
+**Python 3** (scripts 04, 05, 06, 11, 12)
+Key packages: requests, pandas, numpy, matplotlib
 
-Key packages: requests, pandas, numpy.
+**Databases:** DGIdb v5, ChEMBL v33, Open Targets (Mar 2026),
+L2S2 LINCS L1000 (l2s2.maayanlab.cloud, Evangelista et al. 2025), STRING v12, ClinicalTrials.gov API v2,
+NCBI PubMed, MSigDB Hallmark, NCG7
 
-**Databases:** DGIdb v5, ChEMBL 34, Open Targets Platform (April 2026),
-L2S2 LINCS L1000 (l2s2.maayanlab.cloud), STRING v12.
+**Analysis date:** 2026-06-11
 
-**Analysis date:** 2026-04-11
+**Reproducibility:** Parameters in `config/analysis_params.yaml`;
+scripts 01-14 in `scripts/`; execution order in `docs/RUNBOOK.md`.
 
-**Reproducibility:** All parameters in `config/analysis_params.yaml`.
-Scripts 01–02, 04–10, 15, 17–18 in `scripts/`; execution order in
-`docs/RUNBOOK.md`.

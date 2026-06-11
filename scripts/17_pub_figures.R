@@ -6,14 +6,14 @@
 # (HNSCC_DrugRepurposing_Figuras_reviewed.docx).
 #
 # Figuras generadas (results/figures/pub/main/):
-#   Sec0_FigB_volcano          — Volcano plot Tumor vs. Adjacent Normal
-#   Sec0_FigC_heatmap_topDE    — Heatmap top 40 proteínas DE × 20 muestras
-#   Sec0_FigD_hallmarks_gsea   — Hallmarks GSEA dotplot (desde 03_Hallmarks_GSEA.tsv)
-#   OE1_FigA_drug_sources_bar  — Nº candidatos por fuente de BD
-#   OE1_FigB_drug_phase_dist   — Distribución fases clínicas (multi-fuente)
-#   OE2_FigA_ppi_network       — Red PPI de proteínas DE (degree > 8 | hub)
-#   OE2_FigB_module_barplot    — Candidatos aprobados por módulo PPI
-#   OE2_FigC_class_distribution — Clasificación clínico-regulatoria (A/B/C/D)
+#   Fig2A_volcano          — Volcano plot Tumor vs. Adjacent Normal
+#   Fig2B_heatmap_topDE    — Heatmap top 40 proteínas DE × 20 muestras
+#   Fig2C_hallmarks_gsea   — Hallmarks GSEA dotplot (desde 03_Hallmarks_GSEA.tsv)
+#   Fig3A_drug_sources_bar  — Nº candidatos por fuente de BD
+#   Fig3B_drug_phase_dist   — Distribución fases clínicas (multi-fuente)
+#   Fig4A_ppi_network       — Red PPI de proteínas DE (degree > 8 | hub)
+#   Fig4B_module_barplot    — Candidatos aprobados por módulo PPI
+#   Fig4C_class_distribution — Clasificación clínico-regulatoria (A/B/C/D)
 #
 # Ambiente: omics-R
 # Ejecución:
@@ -39,18 +39,10 @@ suppressPackageStartupMessages({
   library(tidygraph)
 })
 
-# ── Detectar directorio del proyecto ─────────────────────────────────────────
-args <- commandArgs(trailingOnly = FALSE)
-script_flag <- args[grep("^--file=", args)]
-if (length(script_flag) > 0) {
-  script_path <- normalizePath(sub("^--file=", "", script_flag))
-  proj_dir    <- dirname(dirname(script_path))
-  if (file.exists(file.path(proj_dir, "config/analysis_params.yaml")))
-    setwd(proj_dir)
-}
-
+# ── Working directory (raíz del proyecto vía scripts/_setup.R) ───────────────
 cat("=== 17_pub_figures.R ===\n")
-cat("Working directory:", getwd(), "\n")
+source(here::here("scripts", "_setup.R"))
+setup_project()
 timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
 # ── Directorio de salida ──────────────────────────────────────────────────────
@@ -225,9 +217,9 @@ expr_mat <- de %>%
   as.matrix()
 
 # =============================================================================
-# Sec0_FigB — VOLCANO PLOT (Tumor vs. Adjacent Normal)
+# Fig2A — VOLCANO PLOT (Tumor vs. Adjacent Normal)
 # =============================================================================
-cat("\n--- Sec0_FigB: Volcano plot ---\n")
+cat("\n--- Fig2A: Volcano plot ---\n")
 
 force_label_genes <- c("EGFR", "PSMB5", "PSMB2", "PSMA1", "PSMD11",
                         "DNMT1", "TOP2A", "NDUFA9", "NDUFS3", "NDUFB3")
@@ -268,13 +260,13 @@ p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
   theme_pub() +
   theme(legend.position = c(0.82, 0.88))
 
-save_pub(p_volcano, "Sec0_FigB_volcano")
-cat("  Sec0_FigB: Volcano — OK\n")
+save_pub(p_volcano, "Fig2A_volcano")
+cat("  Fig2A: Volcano — OK\n")
 
 # =============================================================================
-# Sec0_FigC — HEATMAP TOP 40 PROTEÍNAS DE
+# Fig2B — HEATMAP TOP 40 PROTEÍNAS DE
 # =============================================================================
-cat("\n--- Sec0_FigC: Heatmap top DE ---\n")
+cat("\n--- Fig2B: Heatmap top DE ---\n")
 
 de_detected <- de %>%
   mutate(n_detected = rowSums(!is.na(across(all_of(sample_cols))))) %>%
@@ -341,13 +333,13 @@ ht_de <- Heatmap(
   )
 )
 
-save_ch(ht_de, "Sec0_FigC_heatmap_topDE", "double_col", h_add = 50)
-cat("  Sec0_FigC: Heatmap top DE — OK\n")
+save_ch(ht_de, "Fig2B_heatmap_topDE", "double_col", h_add = 50)
+cat("  Fig2B: Heatmap top DE — OK\n")
 
 # =============================================================================
-# Sec0_FigD — HALLMARKS GSEA (MSigDB)
+# Fig2C — HALLMARKS GSEA (MSigDB)
 # =============================================================================
-cat("\n--- Sec0_FigD: Hallmarks GSEA dotplot ---\n")
+cat("\n--- Fig2C: Hallmarks GSEA dotplot ---\n")
 
 hallmarks_file <- "results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv"
 if (!file.exists(hallmarks_file)) {
@@ -403,18 +395,18 @@ if (!file.exists(hallmarks_file)) {
       )
 
     n_rows <- nrow(plot_df)
-    save_pub(p_gsea, "Sec0_FigD_hallmarks_gsea", "double_col",
+    save_pub(p_gsea, "Fig2C_hallmarks_gsea", "double_col",
              h_add = max(0, (n_rows - 10) * 5))
-    cat(sprintf("  Sec0_FigD: Hallmarks GSEA (%d sets) — OK\n", n_rows))
+    cat(sprintf("  Fig2C: Hallmarks GSEA (%d sets) — OK\n", n_rows))
   } else {
     cat(sprintf("  FigD omitida: solo %d gene sets (requiere >= 3)\n", n_sets))
   }
 }
 
 # =============================================================================
-# OE1_FigA — CANDIDATOS POR FUENTE DE BASE DE DATOS
+# Fig3A — CANDIDATOS POR FUENTE DE BASE DE DATOS
 # =============================================================================
-cat("\n--- OE1_FigA: Drug sources bar ---\n")
+cat("\n--- Fig3A: Drug sources bar ---\n")
 
 source_long <- drug_sum %>%
   select(drug_name_norm, sources) %>%
@@ -442,13 +434,13 @@ p_sources <- ggplot(source_long,
   theme(legend.position = "none",
         axis.line.y = element_blank(), axis.ticks.y = element_blank())
 
-save_pub(p_sources, "OE1_FigA_drug_sources_bar")
-cat("  OE1_FigA: Drug sources bar — OK\n")
+save_pub(p_sources, "Fig3A_drug_sources_bar")
+cat("  Fig3A: Drug sources bar — OK\n")
 
 # =============================================================================
-# OE1_FigB — DISTRIBUCIÓN FASES CLÍNICAS (candidatos multi-fuente)
+# Fig3B — DISTRIBUCIÓN FASES CLÍNICAS (candidatos multi-fuente)
 # =============================================================================
-cat("\n--- OE1_FigB: Phase distribution ---\n")
+cat("\n--- Fig3B: Phase distribution ---\n")
 
 phase_df <- multi_src %>%
   mutate(
@@ -487,13 +479,13 @@ p_phase <- ggplot(phase_df,
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 25, hjust = 1))
 
-save_pub(p_phase, "OE1_FigB_drug_phase_dist")
-cat("  OE1_FigB: Phase distribution — OK\n")
+save_pub(p_phase, "Fig3B_drug_phase_dist")
+cat("  Fig3B: Phase distribution — OK\n")
 
 # =============================================================================
-# OE2_FigA — RED PPI DE PROTEÍNAS DE
+# Fig4A — RED PPI DE PROTEÍNAS DE
 # =============================================================================
-cat("\n--- OE2_FigA: Red PPI ---\n")
+cat("\n--- Fig4A: Red PPI ---\n")
 
 # Helper para construir y graficar red PPI
 build_network_fig <- function(gene_set, edge_tbl, node_meta, hub_genes,
@@ -598,13 +590,13 @@ p_net_v1 <- build_network_fig(
   layout_algo = "stress",
   title_sfx   = " — all DE proteins (degree > 8 or hub)"
 )
-save_pub(p_net_v1, "OE2_FigA_ppi_network", "double_col", w_add = 60, h_add = 90)
-cat("  OE2_FigA: PPI network — OK\n")
+save_pub(p_net_v1, "Fig4A_ppi_network", "double_col", w_add = 60, h_add = 90)
+cat("  Fig4A: PPI network — OK\n")
 
 # =============================================================================
-# OE2_FigB — CANDIDATOS APROBADOS POR MÓDULO BIOLÓGICO
+# Fig4B — CANDIDATOS APROBADOS POR MÓDULO BIOLÓGICO
 # =============================================================================
-cat("\n--- OE2_FigB: Module barplot ---\n")
+cat("\n--- Fig4B: Module barplot ---\n")
 
 MODULE_LABELS <- c(
   "8"  = "OXPHOS",
@@ -658,13 +650,13 @@ p_module_bar <- ggplot(drug_per_module,
     legend.position = "right"
   )
 
-save_pub(p_module_bar, "OE2_FigB_module_barplot", "double_col", h_add = 0)
-cat("  OE2_FigB: Module barplot — OK\n")
+save_pub(p_module_bar, "Fig4B_module_barplot", "double_col", h_add = 0)
+cat("  Fig4B: Module barplot — OK\n")
 
 # =============================================================================
-# OE2_FigC — CLASIFICACIÓN CLÍNICO-REGULATORIA (A/B/C/D)
+# Fig4C — CLASIFICACIÓN CLÍNICO-REGULATORIA (A/B/C/D)
 # =============================================================================
-cat("\n--- OE2_FigC: Class distribution ---\n")
+cat("\n--- Fig4C: Class distribution ---\n")
 
 drug_class_counts <- master_tbl %>%
   filter(gene_symbol %in% drg_hubs$gene_symbol) %>%
@@ -698,8 +690,8 @@ p_class_bar <- ggplot(drug_class_counts,
     plot.subtitle = element_text(size = 6.5)
   )
 
-save_pub(p_class_bar, "OE2_FigC_class_distribution", "double_col", h_add = 10)
-cat("  OE2_FigC: Class distribution — OK\n")
+save_pub(p_class_bar, "Fig4C_class_distribution", "double_col", h_add = 10)
+cat("  Fig4C: Class distribution — OK\n")
 
 # =============================================================================
 # RESUMEN FINAL

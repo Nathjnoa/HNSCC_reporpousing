@@ -9,7 +9,8 @@
 # Dimensiones de scoring (pesos en config/analysis_params.yaml, suma = 1.00):
 #   1. score_pi_stat       (0.40): pi-stat = sign(logFC)*|logFC|*(-log10 adj.P)
 #   2. score_clinical      (0.20): fase clinica maxima del farmaco (FDA)
-#   3. score_pathway       (0.15): proporcion genes diana en vias enriquecidas en HNSCC
+#   3. score_pathway       (0.15): proporcion genes diana en leading-edge GSEA
+#                                   (GO BP + KEGG + Reactome) enriquecido en HNSCC
 #   4. score_network       (0.15): centralidad + diversidad de modulos en red PPI
 #   5. score_cmap          (0.10): connectivity reversal score L2S2/LINCS (reversal)
 # NOTA v2: score_evidence eliminado del composite (sesgo publicacion + circularidad
@@ -19,9 +20,9 @@
 #         results/tables/drug_targets/08_multi_source_candidates.tsv
 #         results/tables/de_limma/02_TVsS_significant_with_ids.tsv
 #         results/tables/network/09_network_node_metrics.tsv
-#         results/tables/pathway_enrichment/03_GO_BP_ORA_simplified.tsv
-#         results/tables/pathway_enrichment/03_KEGG_ORA.tsv
-#         results/tables/pathway_enrichment/03_Reactome_ORA.tsv
+#         results/tables/pathway_enrichment/03_GO_BP_GSEA.tsv
+#         results/tables/pathway_enrichment/03_KEGG_GSEA.tsv
+#         results/tables/pathway_enrichment/03_Reactome_GSEA.tsv
 #         config/analysis_params.yaml
 #
 # Output: results/tables/10_top20_candidates.tsv
@@ -40,16 +41,9 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
-# --- Working directory -------------------------------------------------------
-args <- commandArgs(trailingOnly = FALSE)
-script_flag <- args[grep("^--file=", args)]
-if (length(script_flag) > 0) {
-  script_path <- normalizePath(sub("^--file=", "", script_flag))
-  proj_dir    <- dirname(dirname(script_path))
-  if (file.exists(file.path(proj_dir, "config/analysis_params.yaml")))
-    setwd(proj_dir)
-}
-cat("Working dir:", getwd(), "\n")
+# --- Working directory (raíz del proyecto vía scripts/_setup.R) --------------
+source(here::here("scripts", "_setup.R"))
+setup_project()
 
 # --- Log setup ---------------------------------------------------------------
 dir.create("logs",   showWarnings = FALSE)
@@ -159,23 +153,41 @@ net_metrics <- read.delim("results/tables/network/09_network_node_metrics.tsv",
                           stringsAsFactors = FALSE) %>%
   select(gene_symbol, degree, betweenness_norm, eigenvector)
 
-# Genes en vias enriquecidas (script 03)
-# Extraer todos los gene symbols de los resultados ORA
-load_pathway_genes <- function(file) {
-  # clusterProfiler con readable=TRUE escribe gene SYMBOLS separados por "/"
-  if (!file.exists(file)) return(character(0))
+# Genes en vias enriquecidas (script 03) — leading-edge de GSEA sobre las bases
+# de vías canónicas GO BP + KEGG + Reactome (sets FDR<cutoff). Se usa GSEA (no
+# ORA) por consistencia metodológica con el manuscrito; la presentación narrativa
+# (Fig2C) usa Hallmarks, pero para la dimensión de scoring "diana en vía
+# enriquecida" se requieren bases con vías de señalización (GO/KEGG/Reactome),
+# donde EGFR sí aparece en el leading-edge (ausente en Hallmarks por diseño).
+# La columna `core_enrichment` viene en Entrez en gseGO (readable=FALSE) y en
+# symbol en gseKEGG/gsePathway tras setReadable (readable=TRUE). Falla explícita
+# si falta el input (sin fallback silencioso).
+load_gsea_leading_edge <- function(file, entrez2symbol, readable, padj_cutoff = 0.05) {
+  if (!file.exists(file))
+    stop("Falta input de enriquecimiento GSEA: ", file,
+         " — ejecuta scripts/03_pathway_enrichment.R primero")
   df <- read.delim(file, stringsAsFactors = FALSE)
-  if (!"geneID" %in% colnames(df)) return(character(0))
-  genes <- unlist(strsplit(df$geneID, "/"))
-  unique(trimws(genes))
+  if (!"core_enrichment" %in% colnames(df))
+    stop("Columna 'core_enrichment' ausente en ", file)
+  if ("p.adjust" %in% colnames(df))
+    df <- df[is.finite(df$p.adjust) & df$p.adjust < padj_cutoff, , drop = FALSE]
+  ids <- unique(trimws(unlist(strsplit(df$core_enrichment, "/"))))
+  syms <- if (readable) ids else entrez2symbol[ids]   # GO BP viene en Entrez
+  unique(syms[!is.na(syms) & syms != ""])
 }
 
-pathway_syms_go    <- load_pathway_genes("results/tables/pathway_enrichment/03_GO_BP_ORA_simplified.tsv")
-pathway_syms_kegg  <- load_pathway_genes("results/tables/pathway_enrichment/03_KEGG_ORA.tsv")
-pathway_syms_react <- load_pathway_genes("results/tables/pathway_enrichment/03_Reactome_ORA.tsv")
-pathway_syms_all   <- unique(c(pathway_syms_go, pathway_syms_kegg, pathway_syms_react))
+entrez2symbol    <- setNames(sig$symbol_org, as.character(sig$entrez_id))
+gsea_padj_cutoff <- params$pathway$pval_cutoff %||% 0.05
+gsea_pathway_files <- list(
+  list(file = "results/tables/pathway_enrichment/03_GO_BP_GSEA.tsv",   readable = FALSE),
+  list(file = "results/tables/pathway_enrichment/03_KEGG_GSEA.tsv",    readable = TRUE),
+  list(file = "results/tables/pathway_enrichment/03_Reactome_GSEA.tsv", readable = TRUE)
+)
+pathway_syms_all <- unique(unlist(lapply(gsea_pathway_files, function(x)
+  load_gsea_leading_edge(x$file, entrez2symbol, x$readable, gsea_padj_cutoff))))
 
-cat(sprintf("Genes en vias enriquecidas (ORA): %d\n", length(pathway_syms_all)))
+cat(sprintf("Genes leading-edge en GSEA GO_BP+KEGG+Reactome (FDR<%.2f): %d\n",
+            gsea_padj_cutoff, length(pathway_syms_all)))
 
 # =============================================================================
 # HELPER: genes diana de un farmaco

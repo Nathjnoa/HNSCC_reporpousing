@@ -22,17 +22,9 @@ suppressPackageStartupMessages({
   library(fs)
 })
 
-# ── Detectar directorio del proyecto ─────────────────────────────────────────
-args <- commandArgs(trailingOnly = FALSE)
-script_flag <- args[grep("^--file=", args)]
-if (length(script_flag) > 0) {
-  script_path <- normalizePath(sub("^--file=", "", script_flag))
-  proj_dir    <- dirname(dirname(script_path))
-  if (file.exists(file.path(proj_dir, "config/analysis_params.yaml")))
-    setwd(proj_dir)
-}
-
-cat("Working directory:", getwd(), "\n")
+# ── Working directory (raíz del proyecto vía scripts/_setup.R) ───────────────
+source(here::here("scripts", "_setup.R"))
+setup_project()
 timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
 log_dir   <- "logs"
 dir.create(log_dir, showWarnings = FALSE)
@@ -90,17 +82,19 @@ UniProt IDs were mapped to Entrez gene IDs and HGNC gene symbols using
 
 ## Phase 2: Functional Enrichment Analysis (Script 03)
 
-Over-representation analysis (ORA) was performed using `clusterProfiler`
-(v', pkg_versions["clusterProfiler"], ') for Gene Ontology (BP, MF, CC),
-KEGG pathways, and Reactome pathways (ReactomePA). Background: all quantified
-proteins with Entrez IDs (n=3,262). Significance thresholds: P-adjusted < ',
-cfg$pathway$pval_cutoff %||% 0.05, ', Q-value < ', cfg$pathway$qval_cutoff %||% 0.20, '.
-GO BP terms were simplified using `simplify()` (semantic similarity cutoff=',
-cfg$pathway$simplify_cutoff %||% 0.70, ').
+Gene Set Enrichment Analysis (GSEA) was performed using `clusterProfiler`
+(v', pkg_versions["clusterProfiler"], ') with proteins ranked by a pi-statistic
+(sign(log2FC) x |log2FC| x -log10(adjusted P)). Gene set collections: MSigDB
+Hallmarks, Gene Ontology Biological Process, KEGG pathways, and Reactome
+pathways (ReactomePA). Parameters: minGSSize=', cfg$pathway$min_gs_size %||% 10,
+', maxGSSize=', cfg$pathway$max_gs_size %||% 500, ', P-adjusted < ',
+cfg$pathway$pval_cutoff %||% 0.05, ' (Benjamini-Hochberg). A fixed random seed
+(set.seed(42), seed=TRUE) was used for reproducible permutation results.
 
-GSEA was performed against GO BP terms and MSigDB Hallmark gene sets.
-Parameters: minGSSize=', cfg$pathway$min_gs_size %||% 10, ', maxGSSize=',
-cfg$pathway$max_gs_size %||% 500, ', permutations=1000.
+The Hallmarks GSEA result is presented as the narrative enrichment figure
+(Fig. 2C). The pooled leading-edge genes of the significant GO BP + KEGG +
+Reactome GSEA sets feed the pathway-relevance dimension of the prioritization
+score (Script 10). Over-representation analysis (ORA) was not used.
 
 ---
 
@@ -141,25 +135,25 @@ Six-dimension composite score:
 - Significance (w=', cfg$scoring$weight_significance %||% 0.15, ')
 - Clinical phase (w=', cfg$scoring$weight_clinical_phase %||% 0.20, ')
 - L2S2 reversal (w=', cfg$scoring$weight_cmap_connectivity %||% 0.15, ')
-- Pathway relevance (w=', cfg$scoring$weight_pathway_relevance %||% 0.15, ')
+- Pathway relevance (w=', cfg$scoring$weight_pathway_relevance %||% 0.15, '): fraction of drug DE targets in the pooled GSEA leading-edge (GO BP + KEGG + Reactome)
 - Network centrality (w=', cfg$scoring$weight_network_centrality %||% 0.15, ')
 
 Top 20 selected with diversity filter (max 3 per primary target gene).
 
 ---
 
-## Phase 5: Evidence Validation (Scripts 11-12)
+## Phase 5: Sensitivity & LOD Stability (Script 15)
 
-- **ClinicalTrials.gov API v2**: drug + HNSCC keyword search per candidate.
-- **PubMed E-utilities**: drug name (salt-simplified) + HNSCC MeSH query.
-- **Cancer driver overlap**: COSMIC CGC (if available), NCG7, HNSCC literature.
+Weight-perturbation sensitivity analysis and limit-of-detection (LOD) stability
+of the candidate ranking; candidates stable across LOD scenarios define the final
+panel (`15_lod_stability.tsv`).
 
 ---
 
-## Phase 5: Final Integration (Script 13)
+## Phase 6: External Validation (Script 16)
 
-Combined rank score = 0.60 x multi-criteria score + 0.40 x clinical evidence score.
-Evidence levels 1-4 based on drug approval status and HNSCC indication.
+Differential expression concordance against TCGA-HNSC (TCGAbiolinks, DESeq2):
+tumor-vs-normal log2FC correlation between the proteomic cohort and TCGA-HNSC.
 
 ---
 
@@ -197,10 +191,10 @@ cat_files <- function(dir_path, indent = "") {
   paste0(indent, "- `", rel_paths, "` (", format(sizes, units = "auto"), ")")
 }
 
-# Archivos de priorización y evidencia (scripts 10-13) en results/tables raíz
+# Archivos de priorización (script 10) y sensibilidad (script 15) en results/tables raíz
 tables_prioritization <- {
   all_table_files <- cat_files("results/tables")
-  grep("/(10_|11_|12_|13_)", all_table_files, value = TRUE)
+  grep("/(10_|15_)", all_table_files, value = TRUE)
 }
 
 outputs_text <- paste0(
@@ -224,8 +218,11 @@ outputs_text <- paste0(
 ### Network (script 09)
 ", paste(cat_files("results/tables/network"), collapse = "\n"), "
 
-### Prioritization & Evidence (scripts 10-13)
-", paste(c(cat_files("results/tables/evidence"), tables_prioritization), collapse = "\n"), "
+### Prioritization & Sensitivity (scripts 10, 15)
+", paste(tables_prioritization, collapse = "\n"), "
+
+### Publication Tables (script 18)
+", paste(c(cat_files("results/tables/pub/main"), cat_files("results/tables/pub/supp")), collapse = "\n"), "
 
 ---
 
@@ -243,22 +240,17 @@ outputs_text <- paste0(
 ### Network Figures (script 09)
 ", paste(cat_files("results/figures/network"), collapse = "\n"), "
 
-### Evidence Figures (scripts 11-12)
-", paste(cat_files("results/figures/evidence"), collapse = "\n"), "
-
-### Final Figures (script 13)
-", paste(cat_files("results/figures/final"), collapse = "\n"), "
+### Publication Figures (scripts 16-19)
+", paste(cat_files("results/figures/pub/main"), collapse = "\n"), "
 
 ---
 
-## Key Output File
+## Key Output Files
 
-`results/tables/13_FINAL_drug_candidates.xlsx` — Master results file with 5 sheets:
-1. **Top20_Final**: Top 20 candidates with all evidence integrated
-2. **Todos_Candidatos**: All 187 multi-source candidates with scores
-3. **Evidencia_Matriz**: Binary evidence matrix (10 dimensions x 20 candidates)
-4. **Ensayos_Clinicos**: ClinicalTrials.gov results per candidate
-5. **Metodologia**: Pipeline summary with result counts per step
+- `results/tables/10_top20_candidates.tsv` — Top 20 prioritized candidates with composite scores
+- `results/tables/15_lod_stability.tsv` — LOD-stability panel (sensitivity analysis)
+- `results/tables/pub/main/` — Publication tables (DE summary, top candidates, LOD-stable panels, TCGA concordance)
+- `results/figures/pub/main/` — Publication figures (volcano, GSEA, candidates, TCGA validation)
 
 ---
 

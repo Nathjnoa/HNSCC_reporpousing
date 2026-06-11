@@ -1,13 +1,13 @@
 #!/usr/bin/env Rscript
 # =============================================================================
-# 17c_pub_figD_gsea.R — Sec0_FigD: Hallmarks GSEA dotplot (publication figure)
+# 17c_pub_figD_gsea.R — Fig2C: Hallmarks GSEA dotplot (publication figure)
 # =============================================================================
 # Standalone script: only requires 03_Hallmarks_GSEA.tsv from script 03.
 # Does NOT require intermediate pipeline files (network, drug_targets).
 #
 # Input:  results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv
-# Output: results/figures/pub/main/Sec0_FigD_hallmarks_gsea.pdf
-#         results/figures/pub/main/Sec0_FigD_hallmarks_gsea.png
+# Output: results/figures/pub/main/Fig2C_hallmarks_gsea.pdf
+#         results/figures/pub/main/Fig2C_hallmarks_gsea.png
 #
 # Ambiente: omics-R
 # Ejecución:
@@ -22,18 +22,10 @@ suppressPackageStartupMessages({
   library(tools)
 })
 
-# ── Detectar directorio del proyecto ─────────────────────────────────────────
-args <- commandArgs(trailingOnly = FALSE)
-script_flag <- args[grep("^--file=", args)]
-if (length(script_flag) > 0) {
-  script_path <- normalizePath(sub("^--file=", "", script_flag))
-  proj_dir    <- dirname(dirname(script_path))
-  if (file.exists(file.path(proj_dir, "config/analysis_params.yaml")))
-    setwd(proj_dir)
-}
-
+# ── Working directory (raíz del proyecto vía scripts/_setup.R) ───────────────
 cat("=== 17c_pub_figD_gsea.R ===\n")
-cat("Working directory:", getwd(), "\n")
+source(here::here("scripts", "_setup.R"))
+setup_project()
 
 # ── Directorios ───────────────────────────────────────────────────────────────
 pub_dir <- "results/figures/pub/main"
@@ -142,7 +134,7 @@ p_gsea <- ggplot(plot_df,
 
 n_rows <- nrow(plot_df)
 h_extra <- max(0, (n_rows - 10) * 6)
-save_pub(p_gsea, "Sec0_FigD_hallmarks_gsea", h_add = h_extra)
+save_pub(p_gsea, "Fig2C_hallmarks_gsea", h_add = h_extra)
 
-cat("\nSec0_FigD_hallmarks_gsea — OK\n")
+cat("\nFig2C_hallmarks_gsea — OK\n")
 cat("Fin:", format(Sys.time()), "\n")

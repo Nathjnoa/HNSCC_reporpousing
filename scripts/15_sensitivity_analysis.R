@@ -24,18 +24,11 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
-# --- Working directory -------------------------------------------------------
-args <- commandArgs(trailingOnly = FALSE)
-script_flag <- args[grep("^--file=", args)]
-if (length(script_flag) > 0) {
-  script_path <- normalizePath(sub("^--file=", "", script_flag))
-  proj_dir    <- dirname(dirname(script_path))
-  if (file.exists(file.path(proj_dir, "config/analysis_params.yaml")))
-    setwd(proj_dir)
-}
-WEIGHT_TOLERANCE <- 0.001  # acceptable deviation from sum-to-1 for scoring weights
+# --- Working directory (raíz del proyecto vía scripts/_setup.R) --------------
+source(here::here("scripts", "_setup.R"))
+setup_project()
 
-cat("Working dir:", getwd(), "\n")
+WEIGHT_TOLERANCE <- 0.001  # acceptable deviation from sum-to-1 for scoring weights
 
 # --- Log setup ---------------------------------------------------------------
 dir.create("logs",   showWarnings = FALSE)

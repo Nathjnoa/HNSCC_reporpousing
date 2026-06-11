@@ -88,9 +88,9 @@ Rscript scripts/02_id_mapping.R
 ```bash
 conda activate omics-R
 
-# 03 - ORA (GO/KEGG/Reactome) + GSEA (Hallmarks + GO BP + KEGG + Reactome)
-#      Produce tablas que usa script 10 para s_pathway
-#      Produce 03_Hallmarks_GSEA.tsv que usa script 17 para Sec0_FigD
+# 03 - GSEA (Hallmarks + GO BP + KEGG + Reactome). Semilla fija (set.seed 42).
+#      03_{GO_BP,KEGG,Reactome}_GSEA.tsv -> leading-edge para s_pathway (script 10)
+#      03_Hallmarks_GSEA.tsv -> figura narrativa Sec0_FigD (script 17/17c)
 Rscript scripts/03_pathway_enrichment.R
 # Output: results/tables/pathway_enrichment/03_*.tsv
 #         results/figures/pathway_enrichment/03_*.pdf
@@ -152,20 +152,18 @@ Rscript scripts/15_sensitivity_analysis.R
 #         results/tables/15_lod_stability.tsv      ← criterio de inclusión en panel final
 ```
 
-### Fase 4b: Evidencia externa (Python, opcional)
+### Fase 4b: Evidencia clínica + reporte final (LEGACY — archivado)
 
-Estos scripts son independientes del pipeline principal y producen material suplementario.
+> Esta capa (scripts 11, 12, 13) quedó **fuera del manuscrito actual** y se movió
+> a `scripts/archive/`. Sus outputs (ensayos clínicos, drivers, Excel maestro
+> `13_FINAL_drug_candidates.xlsx`, figuras de evidencia) no alimentan ninguna
+> figura/tabla de publicación. Se conserva como referencia histórica. Para
+> revivirla habría que regenerar sus inputs y reconectar rutas.
 
 ```bash
-conda activate omics-py
-
-# 11 - ClinicalTrials.gov + PubMed mining para los top 20 candidatos
-python scripts/11_clinicaltrials_pubmed.py
-# Output: results/tables/clinical_evidence/ (trials activos, abstracts PubMed)
-
-# 12 - Overlap con drivers cancerígenos (COSMIC/IntOGen/NCG)
-python scripts/12_cosmic_overlap.py
-# Output: results/tables/cosmic_overlap/
+# scripts/archive/11_clinicaltrials_pubmed.py  — ClinicalTrials.gov + PubMed mining
+# scripts/archive/12_cosmic_overlap.py         — overlap con drivers (COSMIC/NCG)
+# scripts/archive/13_evidence_summary.R        — integración + reporte final
 ```
 
 ### Fase 5: Validación externa TCGA (R)

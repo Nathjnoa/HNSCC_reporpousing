@@ -1,7 +1,10 @@
 Fármaco	Mecanismo	Target primario	Indicación actual	Fase clínica máx.	Composite score	N fuentes
 Decitabine	Inhibidor DNMT	DNMT1	Síndrome mielodisplásico / LMA	Aprobado (Fase IV)	0.715	4
-Azacitidine	Inhibidor DNMT	ALDH1A1	Síndrome mielodisplásico / LMA	Aprobado (Fase IV)	0.669	4
+Azacitidine	Inhibidor DNMT	ALDH1A1	Síndrome mielodisplásico / LMA	Aprobado (Fase IV)	0.699	4
+Thioguanine	NA	GGH	NA	Aprobado (Fase IV)	0.689	3
+Carfilzomib	Inhibidor de proteasoma	PSMA1	Mieloma múltiple	Aprobado (Fase IV)	0.689	3
+Doxycycline	NA	MMP8	NA	Aprobado (Fase IV)	0.684	3
+Lorlatinib	NA	EML4	NA	Aprobado (Fase IV)	0.683	2
+Ixazomib	NA	EML4	NA	Aprobado (Fase IV)	0.675	2
 Cedazuridine	Inhibidor desaminasa de citidina (potenciador DNMT)	CDA	Síndrome mielodisplásico (combinado con decitabine)	Aprobado (Fase IV)	0.662	3
-Carfilzomib	Inhibidor de proteasoma	PSMA1	Mieloma múltiple	Aprobado (Fase IV)	0.649	3
-Mitapivat	Activador piruvato quinasa (PK-R)	PKLR	Anemia hemolítica (deficiencia piruvato quinasa)	Aprobado (Fase IV)	0.648	3
 Tranylcypromine	Inhibidor LSD1/MAO (epigenético)	MAOA	Depresión / investigacional en oncología	Aprobado (Fase IV)	0.641	3
