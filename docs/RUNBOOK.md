@@ -4,8 +4,9 @@ Guía paso a paso para reproducir el análisis completo.
 
 Pipeline principal (13 scripts): 01–03, 04–10, 15, 17–18
 Scripts suplementarios/auxiliares: 11, 12, supp/{13,14,17b}, 17c
+Scripts de validación/análisis adicionales: 16, 19
 
-Última actualización: 2026-06-10 — Reorientado a artículo internacional; tesis archivada en docs/thesis/
+Última actualización: 2026-06-10 — Script 19 (metilación TCGA OE4) agregado
 
 ---
 
@@ -15,7 +16,7 @@ Scripts suplementarios/auxiliares: 11, 12, supp/{13,14,17b}, 17c
 
 | Ambiente | Scripts | Propósito |
 | --- | --- | --- |
-| `omics-R` | 01, 02, 03, 08, 09, 10, 15, 17, 17c, 18, supp/{13,14,17b} | Análisis proteómica, enriquecimiento, red, scoring, sensibilidad, figuras, tablas |
+| `omics-R` | 01, 02, 03, 08, 09, 10, 15, 16, 17, 17c, 18, 19, supp/{13,14,17b} | Análisis proteómica, enriquecimiento, red, scoring, sensibilidad, validación TCGA, metilación, figuras, tablas |
 | `omics-py` | 04, 05, 06, 07, 11, 12 | Consultas a bases de datos de fármacos; evidencia clínica; COSMIC |
 
 ### Paquetes adicionales (instalar una sola vez)
@@ -183,6 +184,30 @@ Rscript scripts/16_external_validation.R
 #         results/tables/pub/supp/OE3_TabS_survival_genes.tsv
 ```
 
+### Fase 5b: Metilación de promotores TCGA-HNSC (R, OE4)
+
+Reutiliza el caché TCGA creado por script 16. Agrega evidencia mecanística epigenética
+(DNMT1↑ → hipermetilación supresores → burden score ~ OS).
+
+```bash
+conda activate omics-R
+
+# Prerequisito (instalar una vez en omics-R):
+# BiocManager::install("IlluminaHumanMethylation450kanno.ilmn12.hg19")
+
+# 19 - DMPs tumor vs normal + correlación DNMT1 + burden score OS
+#      PRIMERA EJECUCION: descarga ~200 MB desde GDC (450K harmonized)
+#      Cache: data/intermediate/tcga/tcga_hnsc_meth450_se.rds
+#      Requiere: scripts/16 ejecutado antes (usa tcga_hnsc_se.rds para RNA)
+Rscript scripts/19_methylation_tcga.R
+# Output: results/figures/pub/main/OE4_FigA_dmp_volcano.{pdf,png}
+#         results/figures/pub/main/OE4_FigB_dnmt1_meth_expr.{pdf,png}
+#         results/figures/pub/main/OE4_FigC_survival_burden.{pdf,png}
+#         results/tables/pub/main/OE4_Tab1_dmps_promoter.tsv
+#         results/tables/pub/main/OE4_Tab2_meth_expr_corr.tsv
+#         results/tables/pub/supp/OE4_TabS_survival_burden.tsv
+```
+
 ### Fase 6: Outputs de publicación (R)
 
 ```bash
@@ -208,9 +233,9 @@ Rscript scripts/18_pub_tables.R
 01 → 02 → 03 (pathway enrichment, produce s_pathway para 10 y FigD para 17)
        ↓
       04, 05, 06, 07 (paralelos)
-               → 08 → 09 → 10 → 15 → 16 (validacion TCGA)
-                                     ↓
-                                    17, 17c
+               → 08 → 09 → 10 → 15 → 16 (validacion TCGA, OE3)
+                                     ↓         ↓
+                                    17, 17c    19 (metilacion OE4; requiere 16)
                                     18
 
 Opcional (independientes, no bloquean el pipeline):
@@ -224,8 +249,8 @@ Opcional (independientes, no bloquean el pipeline):
 
 | Archivo | Descripción |
 | --- | --- |
-| `results/figures/pub/main/` | 7 figuras de publicación (PDF + PNG) |
-| `results/tables/pub/main/` | 5 tablas de publicación (TSV) |
+| `results/figures/pub/main/` | 10 figuras de publicación (PDF + PNG; 7 base + 3 OE4) |
+| `results/tables/pub/main/` | 7 tablas de publicación (TSV; 5 base + 2 OE4) |
 | `results/tables/pub/supp/OE2_TabS1_*.tsv` | Tabla suplementaria |
 | `results/tables/15_lod_stability.tsv` | Panel final: 32 candidatos LOD-stable |
 | `results/tables/10_all_candidates_scored.tsv` | Todos los candidatos con scores |
@@ -243,6 +268,9 @@ Opcional (independientes, no bloquean el pipeline):
 | Script 06: error `Cannot query field 'knownDrugs'` | Verificar que se usa la versión actualizada del script (usa `drugAndClinicalCandidates`, no `knownDrugs`). |
 | Script 17: columna no encontrada | Verificar que scripts 01, 08, 09, 15 se ejecutaron sin errores antes de 17. |
 | Script 18: columna no encontrada | Verificar que scripts 01, 08, 10, 15 se ejecutaron sin errores antes de 18. |
+| Script 19: `platform` param error en GDCquery | Intentar sin `platform =` si la versión de TCGAbiolinks no lo acepta. |
+| Script 19: Sección 4 omitida | `tcga_hnsc_se.rds` no existe; ejecutar script 16 primero. |
+| Script 19: paquete anotación no encontrado | `BiocManager::install("IlluminaHumanMethylation450kanno.ilmn12.hg19")` en omics-R. |
 
 ---
 
@@ -253,6 +281,7 @@ Opcional (independientes, no bloquean el pipeline):
 - [ ] `config/analysis_params.yaml` revisado
 - [ ] Scripts 01–03, 04–10, 15 ejecutados en orden sin errores
 - [ ] Script 16 ejecutado (validación TCGA; requiere internet en primera ejecución)
+- [ ] Script 19 ejecutado (metilación OE4; requiere script 16 y paquete de anotación 450K)
 - [ ] Scripts 17, 17c y 18 ejecutados para outputs de publicación
 - [ ] Scripts 11, 12 ejecutados si se necesita evidencia clínica/COSMIC (suplementario)
 - [ ] Logs verificados en `logs/`

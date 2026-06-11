@@ -46,32 +46,34 @@ Candidates: Cancers, BMC Cancer, Frontiers in Oncology, Journal of Translational
 
 ## Análisis pendientes antes de submission
 
-### Script 19 — Metilación de promotores TCGA-HNSC (PROPUESTO, no iniciado)
+### Script 19 — Metilación de promotores TCGA-HNSC (IMPLEMENTADO 2026-06-10)
 
-**Propósito:** Convertir la correlación de expresión DNMT1 en evidencia mecanística epigenética.
-Eleva la narrativa de "DNMT1 sobreexpresado → hipótesis de inhibidores DNMT" a
-"DNMT1 sobreexpresado → hipermetilación de supresores → los inhibidores DNMT revierten ese fenotipo".
+**Propósito:** Convierte la correlación de expresión DNMT1 en evidencia mecanística epigenética.
+Narrativa: "DNMT1 sobreexpresado → hipermetilación de supresores → los inhibidores DNMT revierten ese fenotipo".
 
-**Datos:** Illumina HumanMethylation450K, TCGA-HNSC (~400 tumores + normales, GDC, público).
-Mismo cohort que el SE ya cacheado en `data/intermediate/tcga/`.
+**Archivo:** `scripts/19_methylation_tcga.R`
 
-**Tres partes del análisis:**
-1. **DMPs tumor vs normal** — β-values en regiones promotoras (islas CpG ±1500 bp TSS).
-   Mostrar hipermetilación diferencial en supresores conocidos (CDKN2A, CDH1, DAPK, RASSF1A).
-2. **Correlación DNMT1↑ ↔ silenciamiento epigenético** — Para genes con promotor hipermetilado,
-   correlacionar nivel de expresión RNA con β-value del promotor. Mostrar que la correlación
-   es más fuerte en pacientes con DNMT1 alto.
-3. **Methylation burden score ~ supervivencia** — Score agregado (media β en top DMPs) como
-   predictor de OS en TCGA-HNSC. Une el hallazgo epigenético con relevancia clínica.
+**Datos:** Illumina HumanMethylation450K, TCGA-HNSC, GDC β-values armonizados (~200 MB primera descarga).
+Cache: `data/intermediate/tcga/tcga_hnsc_meth450_se.rds`. Reutiliza SE RNA y clinical de script 16.
 
-**Stack técnico (todo disponible en omics-R):**
-- `TCGAbiolinks` — descarga array 450K desde GDC (~200 MB, mismo método que script 16)
-- `minfi` o `ChAMP` — normalización de β-values
-- `limma` — DMPs (differentially methylated positions)
-- Output esperado: `results/figures/pub/main/OE4_Fig*`, `results/tables/pub/main/OE4_Tab*`
+**Tres partes:**
+1. **OE4_FigA** — Volcán de DMPs (limma sobre M-values): islas CpG en TSS1500/TSS200, tumor vs normal.
+   Etiqueta CDKN2A, CDH1, DAPK1, RASSF1A (⚠️ claim literatura — ver CLINICAL_CRITERIA.md).
+2. **OE4_FigB** — Scatter β-promotor vs RNA-seq, facetado por supresor, estratificado por DNMT1 (median-split).
+   Spearman ρ por estrato en tabla `OE4_Tab2_meth_expr_corr.tsv`.
+3. **OE4_FigC** — Methylation burden score (media β top 100 DMPs) ~ OS: KM + log-rank (median-split),
+   idéntico a patrón OE3_FigB.
 
-**Impacto estimado:** Diferencia entre target Cancers/BMC Cancer vs Molecular Cancer/EBioMedicine.
-Revisor bio-pi: "mejor ratio impacto/costo de todos los análisis pendientes".
+**Stack:** `TCGAbiolinks`, `limma`, `IlluminaHumanMethylation450kanno.ilmn12.hg19`, `survival`, `survminer`.
+Prerequisito: `BiocManager::install("IlluminaHumanMethylation450kanno.ilmn12.hg19")` en omics-R.
 
-**Para iniciar en nueva sesión:** Crear `scripts/19_methylation_tcga.R` siguiendo el patrón de
-`scripts/16_external_validation.R` (cache GDC, secciones numeradas, log, figuras pub/main/).
+**Outputs:**
+- `results/figures/pub/main/OE4_FigA_dmp_volcano.{pdf,png}`
+- `results/figures/pub/main/OE4_FigB_dnmt1_meth_expr.{pdf,png}`
+- `results/figures/pub/main/OE4_FigC_survival_burden.{pdf,png}`
+- `results/tables/pub/main/OE4_Tab1_dmps_promoter.tsv`
+- `results/tables/pub/main/OE4_Tab2_meth_expr_corr.tsv`
+- `results/tables/pub/supp/OE4_TabS_survival_burden.tsv`
+
+**Pendiente antes de submission:** Verificar claim de literatura (CDKN2A/CDH1/DAPK1/RASSF1A hipermetilados
+en HNSCC) con PMIDs via @literature-scout y actualizar fila en CLINICAL_CRITERIA.md a ✅ VERIFICADO.
