@@ -93,10 +93,7 @@ p_gsea <- ggplot(plot_df,
     y        = NULL
   ) +
   theme_pub() +
-  theme(
-    axis.text.y     = element_text(size = 9.7),
-    legend.position = "right"
-  )
+  theme(legend.position = "right")   # fuente de ejes uniforme (theme_pub)
 
 n_rows <- nrow(plot_df)
 h_extra <- max(0, (n_rows - 10) * 6)

@@ -40,11 +40,11 @@ DE_COLS    <- c(up = "#D55E00", down = "#0072B2", ns = "#CCCCCC")
 COND_COLS  <- c(Tumor = "#D55E00", "Adjacent Normal" = "#0072B2")
 HPV_COLS   <- c("HPV+" = "#009E73", "HPV-" = "#E69F00")
 PHASE_COLS <- c(
-  "Aprobado"  = "#009E73",
-  "Fase III"  = "#56B4E9",
-  "Fase II"   = "#E69F00",
-  "Fase I"    = "#CC79A7",
-  "Sin datos" = "#CCCCCC"
+  "Approved"  = "#009E73",
+  "Phase III" = "#56B4E9",
+  "Phase II"  = "#E69F00",
+  "Phase I"   = "#CC79A7",
+  "No data"   = "#CCCCCC"
 )
 # Clase clínico-regulatoria (script 10 exporta drug_class = A/B/C/D)
 DRUG_CLASS_LABELS <- c(
@@ -137,6 +137,40 @@ save_tiff <- function(plot_obj, name, width_mm, height_mm,
   cat(sprintf("  Saved: %s + .pdf  (%g x %g mm, %d dpi TIFF/LZW)\n",
               basename(tif_path), width_mm, height_mm, dpi))
   invisible(tif_path)
+}
+
+# ── UpSet: dibujo con números sobre barras (decoración) ───────────────────────
+# El top annotation debe llamarse "Intersection size" (anno_barplot manual).
+# Se usa tanto en el guardado standalone como en el ensamblado multipanel, para
+# que los números aparezcan en ambos.
+draw_upset_panel <- function(ht, m) {
+  ComplexHeatmap::draw(ht)
+  cs  <- ComplexHeatmap::comb_size(m)
+  ord <- order(-cs)                       # mismo orden que comb_order del UpSet
+  cs_ord <- cs[ord]
+  ComplexHeatmap::decorate_annotation("Intersection size", {
+    n <- length(cs_ord)
+    grid::grid.text(cs_ord, x = seq_len(n),
+                    y = grid::unit(cs_ord, "native") + grid::unit(1, "mm"),
+                    just = "bottom", default.units = "native",
+                    gp = grid::gpar(fontsize = 6.5))
+  })
+}
+
+# Guardado de panel UpSet (PNG + PDF) con números, vía draw_upset_panel.
+save_upset <- function(ht, m, name, preset = "double_col", w_add = 0, h_add = 0,
+                       out_dir = "results/figures/pub/main") {
+  d <- PRESETS[[preset]]
+  w_in <- (d$w + w_add) / 25.4
+  h_in <- (d$h + h_add) / 25.4
+  pdf_path <- file.path(out_dir, paste0(name, ".pdf"))
+  png_path <- file.path(out_dir, paste0(name, ".png"))
+  cairo_pdf(pdf_path, width = w_in, height = h_in); draw_upset_panel(ht, m); dev.off()
+  png(png_path, width = (d$w + w_add) * 300 / 25.4,
+      height = (d$h + h_add) * 300 / 25.4, res = 300)
+  draw_upset_panel(ht, m); dev.off()
+  cat(sprintf("  Saved: %s (%.1f x %.1f in)\n", basename(pdf_path), w_in, h_in))
+  invisible(pdf_path)
 }
 
 # ── Directorio para serializar objetos de panel (insumo de multipaneles) ──────

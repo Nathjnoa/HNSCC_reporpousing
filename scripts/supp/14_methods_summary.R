@@ -113,8 +113,11 @@ prioritization score (Script 10). Over-representation analysis (ORA) was not use
 ## Phase 3: Drug Integration (Script 08)
 
 Four sources unified; drugs classified A (HNSCC-approved), B (other cancer),
-C (non-oncology), D (experimental). Multi-source candidates (>= 2 databases)
-prioritized for scoring.
+C (non-oncology), D (experimental). The candidate set entering downstream
+prioritization (n=458) comprises drugs supported by >= ', cfg$candidates$min_databases %||% 2, '
+databases OR already approved (class A/B retained even if single-source), after
+removing a curated exclusion list (config). This "multi-source or approved"
+criterion is depicted in the Figure 3 selection funnel and the UpSet panel.
 
 ---
 
@@ -174,7 +177,15 @@ grid.grabExpr() — and exported as 600-dpi LZW-compressed TIFF (journal submiss
 plus vector PDF. Figure 2 combines the differential-proteome volcano (panel A),
 the MSigDB Hallmarks GSEA dotplot (panel B) and the top-40 DE heatmap annotated by
 condition and HPV status (panel C); GSEA gene sets are ordered by the pi-statistic
-(sign(log2FC) x |log2FC| x -log10(FDR)).
+(sign(log2FC) x |log2FC| x -log10(FDR)). Figure 3 (drug landscape) combines a
+selection funnel (panel A: candidate drugs to LOD-stable panel), the regulatory
+class distribution of the multi-source set (panel B), and an UpSet plot of database
+overlap among the multi-source candidates (panel C); all three panels describe the
+same n=458 candidate set. Axis fonts and colorblind-safe palette are inherited
+uniformly from the shared style module; axis tick labels are kept horizontal
+(long categorical labels use horizontal bars rather than rotated text).
+Single-panel figures and a supplementary clinical-phase distribution are exported
+likewise. Scripts 17d/17e assemble the Figure 2/Figure 3 composites.
 
 ---
 

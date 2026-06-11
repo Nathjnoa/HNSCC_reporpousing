@@ -26,7 +26,7 @@ Candidates: Cancers, BMC Cancer, Frontiers in Oncology, Journal of Translational
 |--------|---------|--------|
 | Fig1 | Workflow / study design | Borrador (diagrama en español, pendiente EN) |
 | Fig2 | (A) volcano · (B) Hallmarks GSEA · (C) top-40 DE heatmap | ✅ Finalizada — multipanel TIFF 600 DPI |
-| Fig3 | Drug sources + phase + class | Pendiente revisión (hereda estilo nuevo) |
+| Fig3 | (A) funnel de selección · (B) clase regulatoria · (C) UpSet solapamiento de BD | ✅ Finalizada — multipanel TIFF 600 DPI; fase clínica → suppl. |
 | Fig4 | STRING PPI network + modules | Pendiente revisión |
 | Fig5 | Scores + LOD + sensitivity (EGFR vs non-EGFR) | Pendiente (paneles base en `results/figures/15_*`) |
 | Fig6 | External validation (CPTAC/TCGA concordance + survival) | Pendiente revisión |
@@ -36,10 +36,17 @@ el π-statistic = sign(log2FC) × |log2FC| × −log₁₀(FDR); incluir esta de
 la leyenda. Layout multipanel: A (volcano) arriba-izq · B (GSEA) arriba-der · C
 (heatmap, ancho completo) abajo. Estilo centralizado en `scripts/_fig_style.R`.
 
-**Convención de naming:** paneles individuales `Fig2A_*`/`Fig2B_*`/`Fig2C_*` (insumos);
-la figura publicable es `Fig2_multipanel.tif`. En el composite las letras de panel
-las define el ensamblado (A=volcano, B=GSEA, C=heatmap) — el sufijo de archivo de los
-paneles sueltos es solo organizativo.
+**Nota Fig3 (para figure legend):** "multi-source candidates" (n=458) = fármacos con
+soporte en ≥2 bases de datos **O** ya aprobados (clase A/B, conservados aun con una
+sola fuente), menos una lista de exclusión curada (`config`); definir así en la
+leyenda (no solo "≥2 BD"). Los 3 paneles describen el mismo set de 458. Layout: A
+(funnel) arriba-izq · B (clase) arriba-der · C (UpSet, ancho completo) abajo.
+
+**Convención de naming:** paneles individuales `Fig2A_*`/`Fig2B_*`/`Fig2C_*`,
+`Fig3A_*`/`Fig3B_*`/`Fig3C_*` (insumos); las figuras publicables son
+`Fig2_multipanel.tif` y `Fig3_multipanel.tif`. En el composite las letras de panel
+las define el ensamblado — el sufijo de archivo de los paneles sueltos es solo
+organizativo.
 
 ## Table plan
 

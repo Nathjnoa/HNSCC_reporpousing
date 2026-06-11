@@ -3,12 +3,13 @@
 Guía paso a paso para reproducir el análisis completo.
 
 Pipeline principal (13 scripts): 01–03, 04–10, 15, 17–18
-Figuras de publicación: 17 (paneles), 17c (GSEA), 17d (multipanel Fig2), módulo de estilo `_fig_style.R`
+Figuras de publicación: 17 (paneles), 17c (GSEA), 17d (multipanel Fig2), 17e (multipanel Fig3), módulo de estilo `_fig_style.R`
 Scripts suplementarios/auxiliares: 11, 12, supp/{13,14,17b}
 Scripts de validación/análisis adicionales: 16, 19
 
-Última actualización: 2026-06-11 — Sistema de estilo centralizado (`_fig_style.R`),
-multipanel Fig2 (`17d`) + export TIFF 600 DPI; naming canónico Fig*/Tab* en outputs de publicación
+Última actualización: 2026-06-11 — Fig2 (`17d`) y Fig3 (`17e`) multipanel + export TIFF 600 DPI;
+estilo centralizado (`_fig_style.R`): fuente de ejes y orientación (horizontal) uniformes;
+Fig3 = funnel + clase + UpSet (set de 458); fase clínica movida a suplementario
 
 ---
 
@@ -18,7 +19,7 @@ multipanel Fig2 (`17d`) + export TIFF 600 DPI; naming canónico Fig*/Tab* en out
 
 | Ambiente | Scripts | Propósito |
 | --- | --- | --- |
-| `omics-R` | 01, 02, 03, 08, 09, 10, 15, 16, 17, 17c, 17d, 18, 19, supp/{13,14,17b} | Análisis proteómica, enriquecimiento, red, scoring, sensibilidad, validación TCGA, metilación, figuras (paneles + multipanel), tablas |
+| `omics-R` | 01, 02, 03, 08, 09, 10, 15, 16, 17, 17c, 17d, 17e, 18, 19, supp/{13,14,17b} | Análisis proteómica, enriquecimiento, red, scoring, sensibilidad, validación TCGA, metilación, figuras (paneles + multipanel), tablas |
 | `omics-py` | 04, 05, 06, 07, 11, 12 | Consultas a bases de datos de fármacos; evidencia clínica; COSMIC |
 
 ### Paquetes adicionales (instalar una sola vez)
@@ -227,9 +228,9 @@ conda activate omics-R
 #      results/figures/pub/.objects/ para el ensamblado multipanel.
 Rscript scripts/17_pub_figures.R
 # Output: results/figures/pub/main/{Fig2A_volcano, Fig2B_heatmap_topDE,
-#                                   Fig3A_drug_sources_bar, Fig3B_drug_phase_dist,
-#                                   Fig4A_ppi_network, Fig4B_module_barplot,
-#                                   Fig4C_class_distribution}.{pdf,png}
+#                                   Fig3A_funnel, Fig3B_drug_class, Fig3C_upset_overlap,
+#                                   Fig4A_ppi_network, Fig4B_module_barplot}.{pdf,png}
+#         results/figures/pub/supp/FigS_drug_phase_dist.{pdf,png}   (fase clínica → supp)
 
 # 17c - Panel GSEA Hallmarks (todos los gene sets FDR<0.05; ordenados por π-statistic).
 #       CORRER DESPUÉS de 17 (sobrescribe Fig2C con la versión canónica) y cachea su objeto.
@@ -240,6 +241,12 @@ Rscript scripts/17c_pub_figD_gsea.R
 #       CORRER DESPUÉS de 17 y 17c. Layout: A volcano | B GSEA · C heatmap (ancho completo).
 Rscript scripts/17d_fig2_multipanel.R
 # Output: results/figures/pub/main/Fig2_multipanel.{tif,pdf,png}   (TIFF 600 DPI LZW)
+
+# 17e - Ensamblado multipanel Figura 3 (drug landscape; lee objetos cacheados).
+#       CORRER DESPUÉS de 17. Layout: A funnel | B clase · C UpSet (ancho completo).
+#       Los 3 paneles describen el mismo set de 458 (multi-source = ≥2 BD o aprobado).
+Rscript scripts/17e_fig3_multipanel.R
+# Output: results/figures/pub/main/Fig3_multipanel.{tif,pdf,png}   (TIFF 600 DPI LZW)
 
 # 18 - Tablas de publicación (TSV)
 Rscript scripts/18_pub_tables.R
@@ -260,10 +267,13 @@ Rscript scripts/18_pub_tables.R
                → 08 → 09 → 10 → 15 → 16 (validacion TCGA, Fig6)
                                      ↓         ↓
                                     17 → 17c → 17d (multipanel Fig2)    19 (metilacion; requiere 16)
+                                         └→ 17e (multipanel Fig3)
                                     18
 
-Figuras: 17 (paneles + cachea objetos) → 17c (GSEA, sobrescribe Fig2C) → 17d (ensambla Fig2 desde cache)
-Todos sourcean scripts/_fig_style.R (estilo único).
+Figuras: 17 (paneles + cachea objetos) → 17c (GSEA, sobrescribe Fig2C)
+         → 17d (ensambla Fig2 desde cache) · 17e (ensambla Fig3 desde cache)
+Todos sourcean scripts/_fig_style.R (estilo único: fuente de ejes y orientación
+horizontal uniformes; sin títulos embebidos).
 
 Opcional (independientes, no bloquean el pipeline):
 10 → 11 (ClinicalTrials/PubMed para top candidatos)
@@ -276,7 +286,7 @@ Opcional (independientes, no bloquean el pipeline):
 
 | Archivo | Descripción |
 | --- | --- |
-| `results/figures/pub/main/` | Figuras de publicación: paneles (PDF + PNG 300 DPI) + multipanel `Fig2_multipanel.tif` (TIFF 600 DPI) |
+| `results/figures/pub/main/` | Figuras de publicación: paneles (PDF + PNG 300 DPI) + multipaneles `Fig2_multipanel.tif`, `Fig3_multipanel.tif` (TIFF 600 DPI) |
 | `results/figures/pub/.objects/` | Caché de objetos de panel (`.rds`) — insumo de `17d`, regenerable, gitignored |
 | `results/tables/pub/main/` | Tablas de publicación Tab1–Tab6 (TSV) |
 | `results/tables/pub/supp/OE2_TabS1_*.tsv` | Tabla suplementaria |
@@ -312,6 +322,6 @@ Opcional (independientes, no bloquean el pipeline):
 - [ ] Scripts 01–03, 04–10, 15 ejecutados en orden sin errores
 - [ ] Script 16 ejecutado (validación TCGA; requiere internet en primera ejecución)
 - [ ] Script 19 ejecutado (metilación OE4; requiere script 16 y paquete de anotación 450K)
-- [ ] Scripts 17 → 17c → 17d ejecutados en orden (paneles → GSEA → multipanel Fig2 TIFF) y 18 (tablas)
+- [ ] Scripts 17 → 17c → 17d → 17e ejecutados en orden (paneles → GSEA → multipanel Fig2 → multipanel Fig3) y 18 (tablas)
 - [ ] Scripts 11, 12 ejecutados si se necesita evidencia clínica/COSMIC (suplementario)
 - [ ] Logs verificados en `logs/`

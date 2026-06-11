@@ -8,12 +8,12 @@
 # Figuras generadas (results/figures/pub/main/):
 #   Fig2A_volcano          — Volcano plot Tumor vs. Adjacent Normal
 #   Fig2B_heatmap_topDE    — Heatmap top 40 proteínas DE × 20 muestras
-#   Fig2C_hallmarks_gsea   — Hallmarks GSEA dotplot (desde 03_Hallmarks_GSEA.tsv)
-#   Fig3A_drug_sources_bar  — Nº candidatos por fuente de BD
-#   Fig3B_drug_phase_dist   — Distribución fases clínicas (multi-fuente)
-#   Fig4A_ppi_network       — Red PPI de proteínas DE (degree > 8 | hub)
-#   Fig4B_module_barplot    — Candidatos aprobados por módulo PPI
-#   Fig4C_class_distribution — Clasificación clínico-regulatoria (A/B/C/D)
+#   Fig2C_hallmarks_gsea   — Hallmarks GSEA dotplot (sobrescrito por 17c; versión canónica allí)
+#   Fig3A_funnel           — Embudo de filtrado de candidatos (3513 → 458 → 35 → 32)
+#   Fig3B_drug_class       — Clase clínico-regulatoria A/B/C/D sobre los 458 multi-fuente
+#   Fig4A_ppi_network      — Red PPI de proteínas DE (degree > 8 | hub)
+#   Fig4B_module_barplot   — Candidatos aprobados por módulo PPI
+#   (supp) FigS_drug_phase_dist — Fase clínica de los 458 multi-fuente (suplementario)
 #
 # Ambiente: omics-R
 # Ejecución:
@@ -85,6 +85,10 @@ net_edges    <- read_tsv("results/tables/network/09_network_edges.tsv",
 drg_hubs     <- read_tsv("results/tables/network/09_druggable_hubs.tsv",
                         show_col_types = FALSE)
 net_modules  <- read_tsv("results/tables/network/09_modules.tsv",
+                        show_col_types = FALSE)
+top_ranked   <- read_tsv("results/tables/10_top20_candidates.tsv",
+                        show_col_types = FALSE)
+lod_stab     <- read_tsv("results/tables/15_lod_stability.tsv",
                         show_col_types = FALSE)
 
 cat("  Datos cargados OK\n")
@@ -265,105 +269,78 @@ save_panel_obj(ht_de, "Fig2B_heatmap_topDE")   # insumo multipanel
 cat("  Fig2B: Heatmap top DE — OK\n")
 
 # =============================================================================
-# Fig2C — HALLMARKS GSEA (MSigDB)
+# Fig3A — FUNNEL DE FILTRADO DE CANDIDATOS
 # =============================================================================
-cat("\n--- Fig2C: Hallmarks GSEA dotplot ---\n")
+cat("\n--- Fig3A: Selection funnel ---\n")
 
-hallmarks_file <- "results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv"
-if (!file.exists(hallmarks_file)) {
-  cat("  WARN: Hallmarks GSEA table missing — run script 03 first. Skipping FigD.\n")
-} else {
-  gsea_h <- read.delim(hallmarks_file, stringsAsFactors = FALSE)
-  n_sets <- nrow(gsea_h)
-  cat(sprintf("  Gene sets significativos: %d\n", n_sets))
+n_total <- nrow(drug_sum)
+n_multi <- nrow(multi_src)
+n_top   <- nrow(top_ranked)
+n_lod   <- sum(lod_stab$lod_stable == TRUE, na.rm = TRUE)
+cat(sprintf("  Funnel: %d -> %d -> %d -> %d\n", n_total, n_multi, n_top, n_lod))
 
-  if (n_sets >= 3) {
-    # Selección balanceada: top 10 activados + top 10 suprimidos por p.adjust
-    gsea_h$Description <- gsub("^HALLMARK_", "", gsea_h$Description)
-    gsea_h$Description <- gsub("_", " ", gsea_h$Description)
-    gsea_h$Description <- tools::toTitleCase(tolower(gsea_h$Description))
+funnel_df <- tibble(
+  stage = c("Candidate drugs", "Multi-source candidates",
+            "Top-ranked", "LOD-stable panel"),
+  n     = c(n_total, n_multi, n_top, n_lod),
+  note  = c("across 4 databases",
+            "≥2 DB or approved", "composite score", "final panel")
+)
+nstg <- nrow(funnel_df)
 
-    n_each <- min(10, floor(n_sets / 2))
-    top_act  <- gsea_h[gsea_h$NES > 0, ]
-    top_act  <- top_act[order(top_act$p.adjust), ][seq_len(min(n_each, nrow(top_act))), ]
-    top_supp <- gsea_h[gsea_h$NES < 0, ]
-    top_supp <- top_supp[order(top_supp$p.adjust), ][seq_len(min(n_each, nrow(top_supp))), ]
-    plot_df  <- rbind(top_act, top_supp)
-    plot_df  <- plot_df[order(plot_df$NES), ]
-    plot_df$Description <- factor(plot_df$Description, levels = plot_df$Description)
+# Anchos decorativos (decrecientes pero suaves: el texto va DENTRO de cada banda;
+# bandas anchas para que las etiquetas no se desborden al escalar en el multipanel)
+w  <- c(1.00, 0.88, 0.78, 0.72)
+wn <- c(w, w[nstg])               # ancho inferior del último = su propio ancho
 
-    GSEA_COLS <- c("#D55E00", "#0072B2")  # activated / suppressed
+# Polígonos (trapecios encadenados → silueta de embudo)
+funnel_poly <- do.call(rbind, lapply(seq_len(nstg), function(k) {
+  ytop <- nstg - (k - 1); ybot <- nstg - k
+  data.frame(
+    id    = k,
+    stage = funnel_df$stage[k],
+    x     = c(-w[k] / 2, w[k] / 2, wn[k + 1] / 2, -wn[k + 1] / 2),
+    y     = c(ytop, ytop, ybot, ybot)
+  )
+}))
+funnel_poly$stage <- factor(funnel_poly$stage, levels = funnel_df$stage)
 
-    p_gsea <- ggplot(plot_df,
-                     aes(x = NES, y = Description,
-                         size = setSize, color = p.adjust)) +
-      geom_point() +
-      geom_vline(xintercept = 0, linewidth = 0.4,
-                 color = "grey50", linetype = "dashed") +
-      scale_color_gradient(
-        low  = "#D55E00", high = "#56B4E9",
-        name = "FDR", trans = "log10",
-        guide = guide_colorbar(reverse = TRUE,
-                               barwidth = unit(3, "mm"), barheight = unit(18, "mm"))
-      ) +
-      scale_size_continuous(
-        name = "Set size", range = c(1.5, 5),
-        guide = guide_legend(override.aes = list(color = "grey50"))
-      ) +
-      labs(
-        title    = "MSigDB Hallmarks — GSEA (Tumor vs. Adjacent Normal)",
-        subtitle = sprintf("Ranked by π-statistic | %d gene sets (FDR < 0.05)", n_sets),
-        x        = "Normalized Enrichment Score (NES)",
-        y        = NULL
-      ) +
-      theme_pub() +
-      theme(
-        axis.text.y = element_text(size = 7.5),
-        legend.position = "right"
-      )
+funnel_lab <- funnel_df %>%
+  mutate(ymid = nstg - row_number() + 0.5,
+         # texto uniforme negro: la paleta se aclaró para que el contraste sea correcto
+         txtcol = "grey15")
 
-    n_rows <- nrow(plot_df)
-    save_pub(p_gsea, "Fig2C_hallmarks_gsea", "double_col",
-             h_add = max(0, (n_rows - 10) * 5))
-    cat(sprintf("  Fig2C: Hallmarks GSEA (%d sets) — OK\n", n_rows))
-  } else {
-    cat(sprintf("  FigD omitida: solo %d gene sets (requiere >= 3)\n", n_sets))
-  }
-}
+FUNNEL_COLS <- c(
+  "Candidate drugs"         = "#D6E6F2",
+  "Multi-source candidates" = "#A9CCE3",
+  "Top-ranked"              = "#7FB3D5",
+  "LOD-stable panel"        = "#F5B36B"   # acento naranja claro: resalta el panel final
+)                                          # paleta aclarada → texto negro legible en las 4
 
-# =============================================================================
-# Fig3A — CANDIDATOS POR FUENTE DE BASE DE DATOS
-# =============================================================================
-cat("\n--- Fig3A: Drug sources bar ---\n")
-
-source_long <- drug_sum %>%
-  select(drug_name_norm, sources) %>%
-  mutate(
-    DGIdb       = str_detect(sources, "DGIdb"),
-    ChEMBL      = str_detect(sources, "ChEMBL"),
-    OpenTargets = str_detect(sources, "OpenTargets"),
-    L2S2        = str_detect(sources, "L2S2")
-  ) %>%
-  pivot_longer(c(DGIdb, ChEMBL, OpenTargets, L2S2),
-               names_to = "source", values_to = "present") %>%
-  filter(present) %>%
-  count(source, name = "n_drugs") %>%
-  mutate(source = factor(source, levels = c("DGIdb", "OpenTargets", "L2S2", "ChEMBL")))
-
-p_sources <- ggplot(source_long,
-                    aes(x = n_drugs, y = reorder(source, n_drugs), fill = source)) +
-  geom_col(width = 0.55) +
-  geom_text(aes(label = n_drugs), hjust = -0.25, size = 2.6) +
-  scale_fill_manual(values = OKB[1:4]) +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.18))) +
-  labs(title = "Drug candidates per database source",
-       x = "Number of drugs", y = NULL) +
-  theme_pub() +
+p_funnel <- ggplot() +
+  geom_polygon(data = funnel_poly,
+               aes(x = x, y = y, group = id, fill = stage),
+               color = "white", linewidth = 0.5) +
+  # Etiquetas DENTRO de cada banda (stage · conteo · nota), centradas.
+  # family="sans" explícito para igualar la tipografía de theme_pub() (otros paneles).
+  # color = txtcol → contraste adaptativo (scale_color_identity).
+  geom_text(data = funnel_lab, aes(x = 0, y = ymid + 0.19, label = stage, color = txtcol),
+            fontface = "bold", family = "sans", size = 3.1) +
+  geom_text(data = funnel_lab, aes(x = 0, y = ymid - 0.07, label = scales::comma(n), color = txtcol),
+            fontface = "bold", family = "sans", size = 4.4) +
+  geom_text(data = funnel_lab, aes(x = 0, y = ymid - 0.32, label = note, color = txtcol),
+            family = "sans", size = 2.4) +
+  scale_fill_manual(values = FUNNEL_COLS) +
+  scale_color_identity() +
+  coord_cartesian(xlim = c(-0.55, 0.55), clip = "off") +
+  labs(title = NULL, x = NULL, y = NULL) +
+  theme_void(base_family = "sans") +
   theme(legend.position = "none",
-        axis.line.y = element_blank(), axis.ticks.y = element_blank())
+        plot.margin = margin(6, 8, 6, 8, "mm"))
 
-save_pub(p_sources, "Fig3A_drug_sources_bar")
-cat("  Fig3A: Drug sources bar — OK\n")
+save_pub(p_funnel, "Fig3A_funnel")
+save_panel_obj(p_funnel, "Fig3A_funnel")
+cat("  Fig3A: Selection funnel — OK\n")
 
 # =============================================================================
 # Fig3B — DISTRIBUCIÓN FASES CLÍNICAS (candidatos multi-fuente)
@@ -373,42 +350,126 @@ cat("\n--- Fig3B: Phase distribution ---\n")
 phase_df <- multi_src %>%
   mutate(
     phase_label = case_when(
-      max_phase == 4                         ~ "Aprobado",
-      is_approved == TRUE & is.na(max_phase) ~ "Aprobado",
-      max_phase == 3                         ~ "Fase III",
-      max_phase == 2                         ~ "Fase II",
-      max_phase == 1                         ~ "Fase I",
-      TRUE                                   ~ "Sin datos"
+      max_phase == 4                         ~ "Approved",
+      is_approved == TRUE & is.na(max_phase) ~ "Approved",
+      max_phase == 3                         ~ "Phase III",
+      max_phase == 2                         ~ "Phase II",
+      max_phase == 1                         ~ "Phase I",
+      TRUE                                   ~ "No data"
     ),
     phase_label = factor(phase_label, levels = names(PHASE_COLS))
   ) %>%
   count(phase_label) %>%
   mutate(pct = round(n / sum(n) * 100, 1))
 
-cat(sprintf("  %d candidatos multi-fuente; %d aprobados (%.0f%%)\n",
+cat(sprintf("  %d multi-source candidates; %d approved (%.0f%%)\n",
             nrow(multi_src),
-            sum(phase_df$n[phase_df$phase_label == "Aprobado"]),
-            sum(phase_df$pct[phase_df$phase_label == "Aprobado"])))
+            sum(phase_df$n[phase_df$phase_label == "Approved"]),
+            sum(phase_df$pct[phase_df$phase_label == "Approved"])))
 
 p_phase <- ggplot(phase_df,
                   aes(x = phase_label, y = n, fill = phase_label)) +
   geom_col(width = 0.62) +
   geom_text(aes(label = sprintf("%d\n(%.0f%%)", n, pct)),
-            vjust = -0.3, size = 2.3, lineheight = 0.9) +
+            vjust = -0.3, size = 2.6, lineheight = 0.9) +
   scale_fill_manual(values = PHASE_COLS) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.22))) +
   labs(
-    title    = "Clinical phase of multi-source drug candidates",
-    subtitle = sprintf("n = %d candidatos con evidencia en \u22652 bases de datos  \u2022  Aprobado = Fase IV ChEMBL o aprobado en DGIdb",
-                       nrow(multi_src)),
-    x = NULL, y = "N\u00famero de f\u00e1rmacos"
+    title    = NULL,
+    x = NULL, y = "Number of drugs"
   ) +
   theme_pub() +
-  theme(legend.position = "none",
-        axis.text.x = element_text(angle = 25, hjust = 1))
+  theme(legend.position = "none")   # labels de eje horizontales (estándar uniforme)
 
-save_pub(p_phase, "Fig3B_drug_phase_dist")
-cat("  Fig3B: Phase distribution — OK\n")
+save_pub(p_phase, "FigS_drug_phase_dist", out_dir = "results/figures/pub/supp")
+cat("  FigS (supp): Phase distribution — OK\n")
+
+# =============================================================================
+# Fig3B — CLASE CLINICO-REGULATORIA (A/B/C/D) sobre los 458 multi-fuente
+# =============================================================================
+cat("\n--- Fig3C: Drug class distribution (multi-source) ---\n")
+
+class_df <- multi_src %>%
+  count(drug_class, name = "n_drugs") %>%
+  mutate(
+    class_label = DRUG_CLASS_LABELS[drug_class],
+    class_label = factor(class_label, levels = DRUG_CLASS_LABELS),
+    pct         = round(n_drugs / sum(n_drugs) * 100, 1)
+  )
+
+cat(sprintf("  Clases sobre %d multi-fuente: %s\n", nrow(multi_src),
+            paste(sprintf("%s=%d(%.0f%%)", class_df$drug_class,
+                          class_df$n_drugs, class_df$pct), collapse = " ")))
+
+CLASS_COLS <- setNames(OKB[1:4], DRUG_CLASS_LABELS)
+
+# Barras horizontales: categorías largas caben en el eje Y (sin solape, labels
+# horizontales como el panel C → orientación de eje uniforme).
+class_df <- class_df %>%
+  mutate(class_label = factor(class_label, levels = rev(DRUG_CLASS_LABELS)))
+
+p_class <- ggplot(class_df,
+                  aes(x = n_drugs, y = class_label, fill = class_label)) +
+  geom_col(width = 0.66) +
+  geom_text(aes(label = sprintf("%d (%.0f%%)", n_drugs, pct)),
+            hjust = -0.15, size = 2.6) +
+  scale_fill_manual(values = CLASS_COLS, guide = "none") +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.30))) +
+  labs(title = NULL, x = "Number of drugs", y = NULL) +
+  theme_pub()
+
+save_pub(p_class, "Fig3B_drug_class")
+save_panel_obj(p_class, "Fig3B_drug_class")
+cat("  Fig3B: Drug class distribution — OK\n")
+
+# =============================================================================
+# Fig3C — UpSet: solapamiento entre las 4 bases de datos (justifica filtro >=2)
+# =============================================================================
+cat("\n--- Fig3C: UpSet source overlap ---\n")
+
+# Construido sobre los 458 candidatos multi-fuente (mismo set que el funnel),
+# para consistencia entre paneles. Los 3 singletons son aprobados (clase A/B)
+# conservados por la regla "n_sources>=2 OR aprobado" del script 08.
+src_sets <- list(
+  DGIdb       = multi_src$drug_name_norm[str_detect(multi_src$sources, "DGIdb")],
+  ChEMBL      = multi_src$drug_name_norm[str_detect(multi_src$sources, "ChEMBL")],
+  OpenTargets = multi_src$drug_name_norm[str_detect(multi_src$sources, "OpenTargets")],
+  L2S2        = multi_src$drug_name_norm[str_detect(multi_src$sources, "L2S2")]
+)
+m <- make_comb_mat(src_sets)
+cat(sprintf("  Combinaciones: %d | drogas (suma = multi_src): %d\n",
+            length(comb_size(m)), sum(comb_size(m))))
+
+ht_upset <- UpSet(
+  m,
+  comb_order = order(-comb_size(m)),
+  set_order  = order(-set_size(m)),
+  pt_size    = unit(2.6, "mm"), lwd = 1.3,
+  comb_col   = "#0072B2",
+  # Top annotation manual: nombre "Intersection size" SIN \n (upset_top_annotation
+  # lo hardcodea en dos líneas), rotado 90° como título de eje Y de una sola línea.
+  top_annotation = HeatmapAnnotation(
+    "Intersection size" = anno_barplot(
+      comb_size(m), gp = gpar(fill = "#0072B2", col = NA),
+      border = FALSE,                       # sin recuadro alrededor del barplot
+      height = unit(42, "mm"),
+      axis_param = list(gp = gpar(fontsize = 7))
+    ),
+    annotation_name_gp   = gpar(fontsize = 8),
+    annotation_name_side = "left",
+    annotation_name_rot  = 90
+  ),
+  right_annotation = upset_right_annotation(
+    m, gp = gpar(fill = "grey55", col = NA),
+    width = unit(16, "mm"),
+    annotation_name_gp = gpar(fontsize = 8)
+  ),
+  row_names_gp = gpar(fontsize = 8.5)
+)
+
+save_upset(ht_upset, m, "Fig3C_upset_overlap", "double_col", h_add = -30)
+save_panel_obj(list(ht = ht_upset, m = m), "Fig3C_upset_overlap")  # ht + m para números en multipanel
+cat("  Fig3C: UpSet source overlap — OK\n")
 
 # =============================================================================
 # Fig4A — RED PPI DE PROTEÍNAS DE
@@ -573,53 +634,10 @@ p_module_bar <- ggplot(drug_per_module,
     x = "N\u00b0 drug candidates", y = NULL
   ) +
   theme_pub() +
-  theme(
-    axis.text.y     = element_text(size = 7.5),
-    legend.position = "right"
-  )
+  theme(legend.position = "right")   # fuente de ejes uniforme (theme_pub)
 
 save_pub(p_module_bar, "Fig4B_module_barplot", "double_col", h_add = 0)
 cat("  Fig4B: Module barplot — OK\n")
-
-# =============================================================================
-# Fig4C — CLASIFICACIÓN CLÍNICO-REGULATORIA (A/B/C/D)
-# =============================================================================
-cat("\n--- Fig4C: Class distribution ---\n")
-
-drug_class_counts <- master_tbl %>%
-  filter(gene_symbol %in% drg_hubs$gene_symbol) %>%
-  distinct(drug_name_norm, drug_class) %>%
-  count(drug_class, name = "n_drugs") %>%
-  mutate(
-    class_label = DRUG_CLASS_LABELS[drug_class],
-    class_label = factor(class_label, levels = DRUG_CLASS_LABELS),
-    pct         = round(n_drugs / sum(n_drugs) * 100, 1)
-  )
-
-CLASS_COLS_OE2 <- setNames(OKB[1:4], DRUG_CLASS_LABELS)
-
-p_class_bar <- ggplot(drug_class_counts,
-                      aes(x = class_label, y = n_drugs, fill = class_label)) +
-  geom_col(width = 0.58) +
-  geom_text(aes(label = paste0(n_drugs, "\n(", pct, "%)")),
-            vjust = -0.35, size = 2.8, lineheight = 1.1) +
-  scale_fill_manual(values = CLASS_COLS_OE2, guide = "none") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.20))) +
-  labs(
-    title    = "Clinical classification of hub-targeting candidates",
-    subtitle = paste0("N = ", sum(drug_class_counts$n_drugs),
-                      " unique candidates targeting druggable hub proteins"),
-    x = NULL, y = "N\u00b0 drug candidates"
-  ) +
-  theme_pub() +
-  theme(
-    axis.text.x  = element_text(angle = 35, hjust = 1, size = 7.5),
-    plot.title   = element_text(size = 8.5),
-    plot.subtitle = element_text(size = 6.5)
-  )
-
-save_pub(p_class_bar, "Fig4C_class_distribution", "double_col", h_add = 10)
-cat("  Fig4C: Class distribution — OK\n")
 
 # =============================================================================
 # RESUMEN FINAL
