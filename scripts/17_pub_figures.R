@@ -57,95 +57,13 @@ sink(log_file, split = TRUE)
 cat("Inicio:", format(Sys.time()), "\n\n")
 
 # =============================================================================
-# SISTEMA DE ESTILOS CENTRALIZADO
+# SISTEMA DE ESTILOS CENTRALIZADO (fuente única: scripts/_fig_style.R)
 # =============================================================================
-
-# ── Presets (dimensiones en mm) ───────────────────────────────────────────────
-PRESETS <- list(
-  double_col = list(w = 180, h = 120, base = 8.5, title = 10,
-                    axis = 8.5, leg = 7.5, tick = 7.5, lwd = 0.7, pt = 1.8),
-  single_col = list(w = 85,  h = 65,  base = 8.0, title = 9.0,
-                    axis = 8.0, leg = 7.0, tick = 7.0, lwd = 0.6, pt = 1.6)
-)
-
-# ── Paleta Okabe-Ito (colorblind-safe) ────────────────────────────────────────
-OKB       <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
-               "#0072B2", "#D55E00", "#CC79A7", "#000000")
-DE_COLS   <- c(up = "#D55E00", down = "#0072B2", ns = "#CCCCCC")
-COND_COLS <- c(Tumor = "#D55E00", "Adjacent Normal" = "#0072B2")
-PHASE_COLS <- c(
-  "Aprobado"   = "#009E73",
-  "Fase III"   = "#56B4E9",
-  "Fase II"    = "#E69F00",
-  "Fase I"     = "#CC79A7",
-  "Sin datos"  = "#CCCCCC"
-)
-
-# Etiquetas legibles de clase de fármaco (script 10 exporta drug_class = A/B/C/D)
-DRUG_CLASS_LABELS <- c(
-  A = "HNSCC-approved",
-  B = "Other cancer",
-  C = "Non-oncology",
-  D = "Experimental"
-)
-
-# ── Tema centralizado ─────────────────────────────────────────────────────────
-theme_pub <- function(preset = "double_col") {
-  p <- PRESETS[[preset]]
-  theme_classic(base_size = p$base, base_family = "sans") +
-    theme(
-      plot.title    = element_text(size = p$title, face = "bold", hjust = 0,
-                                   margin = margin(b = 2)),
-      plot.subtitle = element_text(size = p$base, color = "grey40"),
-      axis.title    = element_text(size = p$axis),
-      axis.text     = element_text(size = p$tick, color = "black"),
-      legend.title  = element_text(size = p$leg, face = "bold"),
-      legend.text   = element_text(size = p$leg),
-      legend.key.size    = unit(3, "mm"),
-      legend.background  = element_blank(),
-      strip.text         = element_text(size = p$base, face = "bold"),
-      strip.background   = element_blank(),
-      axis.line          = element_line(linewidth = p$lwd * 0.35, color = "black"),
-      axis.ticks         = element_line(linewidth = p$lwd * 0.35, color = "black"),
-      axis.ticks.length  = unit(1.5, "mm"),
-      plot.margin        = margin(4, 6, 4, 6, "mm")
-    )
-}
-
-# ── Funciones de guardado ─────────────────────────────────────────────────────
-save_pub <- function(p, name, preset = "double_col", w_add = 0, h_add = 0) {
-  d <- PRESETS[[preset]]
-  w <- d$w + w_add
-  h <- d$h + h_add
-  pdf_path <- file.path(pub_dir, paste0(name, ".pdf"))
-  png_path <- file.path(pub_dir, paste0(name, ".png"))
-  ggsave(pdf_path, p, width = w, height = h, units = "mm",
-         device = cairo_pdf, limitsize = FALSE)
-  ggsave(png_path, p, width = w, height = h, units = "mm",
-         dpi = 300, limitsize = FALSE)
-  cat(sprintf("  Saved: %s (%g x %g mm)\n", basename(pdf_path), w, h))
-  invisible(pdf_path)
-}
-
-# Para ComplexHeatmap (no usa ggsave)
-save_ch <- function(ht, name, preset = "double_col", w_add = 0, h_add = 0) {
-  d <- PRESETS[[preset]]
-  w_in <- (d$w + w_add) / 25.4
-  h_in <- (d$h + h_add) / 25.4
-  pdf_path <- file.path(pub_dir, paste0(name, ".pdf"))
-  png_path <- file.path(pub_dir, paste0(name, ".png"))
-  pdf(pdf_path, width = w_in, height = h_in)
-  draw(ht)
-  dev.off()
-  png(png_path,
-      width  = (d$w + w_add) * 300 / 25.4,
-      height = (d$h + h_add) * 300 / 25.4,
-      res    = 300)
-  draw(ht)
-  dev.off()
-  cat(sprintf("  Saved: %s (%.1f x %.1f in)\n", basename(pdf_path), w_in, h_in))
-  invisible(pdf_path)
-}
+# Provee PRESETS, OKB, DE_COLS, COND_COLS, HPV_COLS, PHASE_COLS,
+# DRUG_CLASS_LABELS, theme_pub(), save_pub(), save_ch(), save_tiff(),
+# save_panel_obj().  save_pub/save_ch escriben en results/figures/pub/main
+# por defecto (out_dir).
+source(here::here("scripts", "_fig_style.R"))
 
 # =============================================================================
 # CARGAR DATOS
@@ -175,7 +93,7 @@ cat("  Datos cargados OK\n")
 meta <- read_delim("data/raw/metadata.csv", delim = ";", show_col_types = FALSE) %>%
   mutate(hpv = ifelse(tolower(vph) == "positive", "HPV+", "HPV-"))
 hpv_lookup <- setNames(meta$hpv, meta$sample_id)
-HPV_COLS   <- c("HPV+" = "#009E73", "HPV-" = "#E69F00")
+# HPV_COLS proviene de _fig_style.R
 cat("  Metadata cargada OK —", sum(meta$hpv == "HPV+"), "HPV+,",
     sum(meta$hpv == "HPV-"), "HPV-\n")
 
@@ -239,11 +157,11 @@ p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
              linewidth = 0.4, color = "grey50") +
   geom_vline(xintercept = c(-1, 1), linetype = "dashed",
              linewidth = 0.35, color = "grey50") +
-  geom_label_repel(
+  geom_text_repel(
     data = top_vol, aes(label = gene_symbol),
-    size = 1.8, label.padding = 0.1, label.size = 0.15,
-    max.overlaps = 20, segment.size = 0.25,
-    min.segment.length = 0.2, show.legend = FALSE
+    size = 2.3, max.overlaps = 20, segment.size = 0.25,
+    min.segment.length = 0.2, show.legend = FALSE,
+    bg.color = "white", bg.r = 0.12          # halo en vez de recuadro
   ) +
   scale_color_manual(
     values = DE_COLS,
@@ -253,14 +171,18 @@ p_volcano <- ggplot(de, aes(x = logFC_TVsS, y = -log10(adj.P.Val_TVsS),
   ) +
   scale_alpha_manual(values = c(up = 0.85, down = 0.85, ns = 0.25),
                      guide = "none") +
-  labs(title = "Differential proteome — Tumor vs. Adjacent Normal",
-       x     = expression(log[2]~"Fold Change  (TVsS)"),
+  labs(title = NULL,
+       x     = expression(log[2]~"fold change"),
        y     = expression(-log[10]~"FDR"),
        color = NULL) +
   theme_pub() +
-  theme(legend.position = c(0.82, 0.88))
+  theme(legend.position  = c(0.22, 0.15),
+        legend.text      = element_text(size = 7),
+        legend.key.size  = unit(2.2, "mm"),
+        legend.background = element_rect(fill = alpha("white", 0.6), color = NA))
 
 save_pub(p_volcano, "Fig2A_volcano")
+save_panel_obj(p_volcano, "Fig2A_volcano")   # insumo multipanel
 cat("  Fig2A: Volcano — OK\n")
 
 # =============================================================================
@@ -299,8 +221,14 @@ ht_col_ann <- HeatmapAnnotation(
     Condition = c(Tumor = "#D55E00", "Adjacent Normal" = "#0072B2"),
     HPV       = HPV_COLS
   ),
-  annotation_name_gp = gpar(fontsize = 6.5),
-  simple_anno_size   = unit(3, "mm")
+  annotation_name_gp = gpar(fontsize = 8.5),
+  simple_anno_size   = unit(3, "mm"),
+  annotation_legend_param = list(
+    Condition = list(title_gp = gpar(fontsize = 9, fontface = "bold"),
+                     labels_gp = gpar(fontsize = 8.5)),
+    HPV       = list(title_gp = gpar(fontsize = 9, fontface = "bold"),
+                     labels_gp = gpar(fontsize = 8.5))
+  )
 )
 
 n_up_heat   <- sum(rownames(heat_z) %in% top_up)
@@ -321,19 +249,19 @@ ht_de <- Heatmap(
   cluster_rows       = TRUE,
   cluster_columns    = FALSE,
   show_column_names  = TRUE,
-  column_names_gp    = gpar(fontsize = 5.5),
-  row_names_gp       = gpar(fontsize = 6.5),
-  row_title_gp       = gpar(fontsize = 8, fontface = "bold"),
-  column_title       = "Top 40 differentially expressed proteins — Tumor vs. Adjacent Normal",
-  column_title_gp    = gpar(fontsize = 8, fontface = "bold"),
+  column_names_gp    = gpar(fontsize = 7.2),
+  row_names_gp       = gpar(fontsize = 8.5),
+  row_title_gp       = gpar(fontsize = 10.5, fontface = "bold"),
+  column_title       = NULL,
   rect_gp            = gpar(col = "grey90", lwd = 0.4),
   heatmap_legend_param = list(
-    title_gp  = gpar(fontsize = 7, fontface = "bold"),
-    labels_gp = gpar(fontsize = 6.5)
+    title_gp  = gpar(fontsize = 9, fontface = "bold"),
+    labels_gp = gpar(fontsize = 8.5)
   )
 )
 
 save_ch(ht_de, "Fig2B_heatmap_topDE", "double_col", h_add = 50)
+save_panel_obj(ht_de, "Fig2B_heatmap_topDE")   # insumo multipanel
 cat("  Fig2B: Heatmap top DE — OK\n")
 
 # =============================================================================

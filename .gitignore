@@ -48,3 +48,7 @@ notebooks/.ipynb_checkpoints/
 *.fastq
 *.fastq.gz
 *.fq.gz
+
+# Artefactos R y caches de figuras
+Rplots.pdf
+results/figures/pub/.objects/

@@ -91,10 +91,10 @@ pathways (ReactomePA). Parameters: minGSSize=', cfg$pathway$min_gs_size %||% 10,
 cfg$pathway$pval_cutoff %||% 0.05, ' (Benjamini-Hochberg). A fixed random seed
 (set.seed(42), seed=TRUE) was used for reproducible permutation results.
 
-The Hallmarks GSEA result is presented as the narrative enrichment figure
-(Fig. 2C). The pooled leading-edge genes of the significant GO BP + KEGG +
-Reactome GSEA sets feed the pathway-relevance dimension of the prioritization
-score (Script 10). Over-representation analysis (ORA) was not used.
+The Hallmarks GSEA result is presented as the narrative enrichment panel of
+Figure 2 (GSEA panel). The pooled leading-edge genes of the significant
+GO BP + KEGG + Reactome GSEA sets feed the pathway-relevance dimension of the
+prioritization score (Script 10). Over-representation analysis (ORA) was not used.
 
 ---
 
@@ -157,6 +157,27 @@ tumor-vs-normal log2FC correlation between the proteomic cohort and TCGA-HNSC.
 
 ---
 
+## Figure Generation (Scripts 17, 17c, 17d)
+
+Publication figures were produced in R (ggplot2 v3.x, ComplexHeatmap v',
+pkg_versions["ComplexHeatmap"], ') under a single centralized style module
+(`scripts/_fig_style.R`) sourced by every figure script, ensuring consistent
+typography, palette and export settings. A colorblind-safe Okabe-Ito palette was
+used throughout (up-regulated #D55E00, down-regulated #0072B2). Embedded plot
+titles were omitted; panel descriptions are carried in the figure legends.
+Individual panels (Script 17: volcano, top-40 differentially expressed protein
+heatmap, drug-source and clinical-phase bars, STRING PPI network, biological-module
+and drug-class bars; Script 17c: MSigDB Hallmarks GSEA dotplot) were exported as
+300-dpi PNG (review) and vector PDF. Multipanel composite figures (Script 17d)
+were assembled with patchwork — ComplexHeatmap panels captured as grobs via
+grid.grabExpr() — and exported as 600-dpi LZW-compressed TIFF (journal submission)
+plus vector PDF. Figure 2 combines the differential-proteome volcano (panel A),
+the MSigDB Hallmarks GSEA dotplot (panel B) and the top-40 DE heatmap annotated by
+condition and HPV status (panel C); GSEA gene sets are ordered by the pi-statistic
+(sign(log2FC) x |log2FC| x -log10(FDR)).
+
+---
+
 ## Software
 
 **R** (', R.version$version.string, ')
@@ -173,8 +194,8 @@ NCBI PubMed, MSigDB Hallmark, NCG7
 
 **Analysis date:** ', Sys.Date(), '
 
-**Reproducibility:** Parameters in `config/analysis_params.yaml`;
-scripts 01-14 in `scripts/`; execution order in `docs/RUNBOOK.md`.
+**Reproducibility:** Parameters in `config/analysis_params.yaml`; figure style
+centralized in `scripts/_fig_style.R`; execution order in `docs/RUNBOOK.md`.
 ')
 
 # Escribir METHODS.md

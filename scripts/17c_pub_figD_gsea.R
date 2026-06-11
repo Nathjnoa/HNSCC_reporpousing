@@ -31,45 +31,8 @@ setup_project()
 pub_dir <- "results/figures/pub/main"
 dir.create(pub_dir, showWarnings = FALSE, recursive = TRUE)
 
-# ── Estilos (coincide con 17_pub_figures.R) ───────────────────────────────────
-PRESETS <- list(
-  double_col = list(w = 180, h = 120, base = 8.5, title = 10,
-                    axis = 8.5, leg = 7.5, tick = 7.5, lwd = 0.7, pt = 1.8)
-)
-
-theme_pub <- function() {
-  p <- PRESETS$double_col
-  theme_classic(base_size = p$base, base_family = "sans") +
-    theme(
-      plot.title    = element_text(size = p$title, face = "bold", hjust = 0,
-                                   margin = margin(b = 2)),
-      plot.subtitle = element_text(size = p$base, color = "grey40"),
-      axis.title    = element_text(size = p$axis),
-      axis.text     = element_text(size = p$tick, color = "black"),
-      legend.title  = element_text(size = p$leg, face = "bold"),
-      legend.text   = element_text(size = p$leg),
-      legend.key.size    = unit(3, "mm"),
-      legend.background  = element_blank(),
-      axis.line          = element_line(linewidth = p$lwd * 0.35, color = "black"),
-      axis.ticks         = element_line(linewidth = p$lwd * 0.35, color = "black"),
-      axis.ticks.length  = unit(1.5, "mm"),
-      plot.margin        = margin(4, 6, 4, 6, "mm")
-    )
-}
-
-save_pub <- function(p, name, w_add = 0, h_add = 0) {
-  d <- PRESETS$double_col
-  w <- d$w + w_add
-  h <- d$h + h_add
-  pdf_path <- file.path(pub_dir, paste0(name, ".pdf"))
-  png_path <- file.path(pub_dir, paste0(name, ".png"))
-  ggsave(pdf_path, p, width = w, height = h, units = "mm",
-         device = cairo_pdf, limitsize = FALSE)
-  ggsave(png_path, p, width = w, height = h, units = "mm",
-         dpi = 300, limitsize = FALSE)
-  cat(sprintf("  Saved: %s (%g x %g mm)\n", basename(pdf_path), w, h))
-  invisible(pdf_path)
-}
+# ── Estilos (fuente única: scripts/_fig_style.R) ──────────────────────────────
+source(here::here("scripts", "_fig_style.R"))
 
 # ── Cargar datos ──────────────────────────────────────────────────────────────
 hallmarks_file <- "results/tables/pathway_enrichment/03_Hallmarks_GSEA.tsv"
@@ -91,15 +54,19 @@ gsea_h <- gsea_h %>%
     Description = toTitleCase(tolower(Description))
   )
 
-# Selección balanceada: hasta 10 activados (NES > 0) + 10 suprimidos (NES < 0)
-n_each <- min(10, floor(n_sets / 2))
-top_act  <- gsea_h %>% filter(NES > 0) %>% arrange(p.adjust) %>% slice_head(n = n_each)
-top_supp <- gsea_h %>% filter(NES < 0) %>% arrange(p.adjust) %>% slice_head(n = n_each)
-plot_df  <- bind_rows(top_act, top_supp) %>% arrange(NES)
+# Con <= 20 gene sets significativos se grafican TODOS (evita ocultar hallmarks
+# como EMT); si hubiera muchos, se toman top 10 activados + 10 suprimidos por p.adjust.
+if (n_sets <= 20) {
+  plot_df <- gsea_h %>% arrange(NES)
+} else {
+  top_act  <- gsea_h %>% filter(NES > 0) %>% arrange(p.adjust) %>% slice_head(n = 10)
+  top_supp <- gsea_h %>% filter(NES < 0) %>% arrange(p.adjust) %>% slice_head(n = 10)
+  plot_df  <- bind_rows(top_act, top_supp) %>% arrange(NES)
+}
 plot_df$Description <- factor(plot_df$Description, levels = plot_df$Description)
 
-cat(sprintf("Seleccionados: %d activados + %d suprimidos\n",
-            nrow(top_act), nrow(top_supp)))
+cat(sprintf("Graficados: %d activados + %d suprimidos (total %d)\n",
+            sum(plot_df$NES > 0), sum(plot_df$NES < 0), nrow(plot_df)))
 
 # ── Figura ────────────────────────────────────────────────────────────────────
 p_gsea <- ggplot(plot_df,
@@ -120,21 +87,21 @@ p_gsea <- ggplot(plot_df,
     guide = guide_legend(override.aes = list(color = "grey50"))
   ) +
   labs(
-    title    = "MSigDB Hallmarks — GSEA (Tumor vs. Adjacent Normal)",
-    subtitle = sprintf("Ranked by \u03c0-statistic (sign(logFC) \u00d7 |logFC| \u00d7 -log\u2081\u2080(FDR)) | %d gene sets FDR < 0.05",
-                       n_sets),
+    title    = NULL,
+    subtitle = NULL,
     x        = "Normalized Enrichment Score (NES)",
     y        = NULL
   ) +
   theme_pub() +
   theme(
-    axis.text.y     = element_text(size = 7.5),
+    axis.text.y     = element_text(size = 9.7),
     legend.position = "right"
   )
 
 n_rows <- nrow(plot_df)
 h_extra <- max(0, (n_rows - 10) * 6)
 save_pub(p_gsea, "Fig2C_hallmarks_gsea", h_add = h_extra)
+save_panel_obj(p_gsea, "Fig2C_hallmarks_gsea")   # insumo multipanel (canónico, 11 sets)
 
 cat("\nFig2C_hallmarks_gsea — OK\n")
 cat("Fin:", format(Sys.time()), "\n")
