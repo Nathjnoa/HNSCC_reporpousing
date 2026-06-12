@@ -455,14 +455,14 @@ ht_upset <- UpSet(
       height = unit(42, "mm"),
       axis_param = list(gp = gpar(fontsize = 7))
     ),
-    annotation_name_gp   = gpar(fontsize = 8),
+    annotation_name_gp   = gpar(fontsize = 11),   # = título de eje theme_pub
     annotation_name_side = "left",
     annotation_name_rot  = 90
   ),
   right_annotation = upset_right_annotation(
     m, gp = gpar(fill = "grey55", col = NA),
     width = unit(16, "mm"),
-    annotation_name_gp = gpar(fontsize = 8)
+    annotation_name_gp = gpar(fontsize = 11)
   ),
   row_names_gp = gpar(fontsize = 8.5)
 )
