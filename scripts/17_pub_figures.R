@@ -11,8 +11,9 @@
 #   Fig2C_hallmarks_gsea   — Hallmarks GSEA dotplot (sobrescrito por 17c; versión canónica allí)
 #   Fig3A_funnel           — Embudo de filtrado de candidatos (3513 → 458 → 35 → 32)
 #   Fig3B_drug_class       — Clase clínico-regulatoria A/B/C/D sobre los 458 multi-fuente
-#   Fig4A_ppi_network      — Red PPI de proteínas DE (degree > 8 | hub)
-#   Fig4B_module_barplot   — Candidatos aprobados por módulo PPI
+#   Fig4A_hub_subnetwork   — Subred de hubs druggables coloreada por módulo
+#   Fig4B_module_barplot   — Candidatos por módulo × clase (labels data-driven)
+#   Fig4C_module_enrichment — Enriquecimiento GO BP por módulo (valida nombres)
 #   (supp) FigS_drug_phase_dist — Fase clínica de los 458 multi-fuente (suplementario)
 #
 # Ambiente: omics-R
@@ -38,6 +39,8 @@ suppressPackageStartupMessages({
   library(ggraph)
   library(tidygraph)
 })
+# NOTA: clusterProfiler/org.Hs.eg.db NO se cargan con library() — entran en conflicto
+# con el dibujo de ComplexHeatmap (C stack). Se usan con `::` solo en Fig4C (al final).
 
 # ── Working directory (raíz del proyecto vía scripts/_setup.R) ───────────────
 cat("=== 17_pub_figures.R ===\n")
@@ -472,137 +475,117 @@ save_panel_obj(list(ht = ht_upset, m = m), "Fig3C_upset_overlap")  # ht + m para
 cat("  Fig3C: UpSet source overlap — OK\n")
 
 # =============================================================================
-# Fig4A — RED PPI DE PROTEÍNAS DE
+# MÓDULOS CLAVE — labels data-driven (validados por enriquecimiento GO BP) + colores
 # =============================================================================
-cat("\n--- Fig4A: Red PPI ---\n")
-
-# Helper para construir y graficar red PPI
-build_network_fig <- function(gene_set, edge_tbl, node_meta, hub_genes,
-                               drg_hub_genes, label_genes, layout_algo,
-                               seed = 42, title_sfx = "") {
-  e <- edge_tbl %>% filter(gene_A %in% gene_set, gene_B %in% gene_set)
-  n <- node_meta %>%
-    filter(gene_symbol %in% gene_set) %>%
-    mutate(
-      de_dir     = case_when(
-        logFC_TVsS > 0 & adj.P.Val_TVsS < 0.05 ~ "Up",
-        logFC_TVsS < 0 & adj.P.Val_TVsS < 0.05 ~ "Down",
-        TRUE                                     ~ "NS"
-      ),
-      de_dir     = factor(de_dir, levels = c("Up", "Down", "NS")),
-      is_drg_hub = gene_symbol %in% drg_hub_genes,
-      nd_size    = log1p(degree),
-      nd_alpha   = ifelse(de_dir == "NS", 0.20, 0.82),
-      nd_stroke  = ifelse(is_drg_hub, 0.7, 0.0),
-      nd_color   = ifelse(is_drg_hub, "black",
-                   ifelse(de_dir == "Up",  "#D55E00",
-                   ifelse(de_dir == "Down","#0072B2", "#AAAAAA")))
-    )
-
-  g <- graph_from_data_frame(e, directed = FALSE, vertices = n$gene_symbol)
-  for (col in c("de_dir","is_drg_hub","nd_size","nd_alpha","nd_stroke","nd_color","degree")) {
-    vertex_attr(g, col) <- n[[col]][match(V(g)$name, n$gene_symbol)]
-  }
-  tg <- as_tbl_graph(g)
-
-  set.seed(seed)
-  lay <- create_layout(tg, layout = layout_algo)
-
-  lbl_df <- lay %>%
-    filter(name %in% label_genes[label_genes %in% gene_set]) %>%
-    select(x, y, name, de_dir)
-
-  p <- ggraph(lay) +
-    geom_edge_link(color = "grey78", alpha = 0.28, linewidth = 0.14) +
-    geom_node_point(
-      aes(fill = de_dir, size = nd_size, alpha = nd_alpha,
-          color = nd_color, stroke = nd_stroke),
-      shape = 21
-    ) +
-    ggrepel::geom_label_repel(
-      data          = lbl_df,
-      aes(x = x, y = y, label = name, fill = de_dir),
-      color         = "black",
-      size          = 2.6,
-      fontface      = "plain",
-      label.size    = 0.18,
-      label.padding = unit(0.11, "lines"),
-      box.padding   = unit(0.28, "lines"),
-      segment.size  = 0.25,
-      segment.color = "grey40",
-      max.overlaps  = 30,
-      alpha         = 0.88,
-      show.legend   = FALSE
-    ) +
-    scale_fill_manual(
-      values = c(Up = "#D55E00", Down = "#0072B2", NS = "#CCCCCC"),
-      name   = "DE direction",
-      guide  = guide_legend(override.aes = list(size = 3.5, alpha = 0.92,
-                                                stroke = 0, shape = 21))
-    ) +
-    scale_color_identity() +
-    scale_size_continuous(range = c(0.7, 5.0), guide = "none") +
-    scale_alpha_identity(guide = "none") +
-    labs() +
-    theme_graph(base_family = "sans", base_size = 8) +
-    theme(
-      legend.title    = element_text(size = 7.5, face = "bold"),
-      legend.text     = element_text(size = 7),
-      legend.position = c(0.02, 0.10),
-      plot.margin     = margin(4, 4, 4, 4, "mm")
-    )
-  p
-}
-
-hub_label_genes <- c(
-  "EGFR", "PSMB3", "PSMA2", "MMP9", "CASP3", "ENO1",
-  "NDUFS3", "NDUFS2", "NDUFV1", "ATP5F1C", "SDHA", "UQCRC2", "NDUFA9"
-)
-
-g_full <- graph_from_data_frame(net_edges, directed = FALSE,
-                                vertices = net_nodes$gene_symbol)
-comp        <- components(g_full)
-giant_genes <- names(comp$membership[comp$membership == which.max(comp$csize)])
-
-core_genes_v1 <- net_nodes %>%
-  filter(gene_symbol %in% giant_genes,
-         degree > 8 | is_hub == TRUE) %>%
-  pull(gene_symbol)
-
-p_net_v1 <- build_network_fig(
-  gene_set    = core_genes_v1,
-  edge_tbl    = net_edges,
-  node_meta   = net_nodes,
-  hub_genes   = net_nodes %>% filter(is_hub) %>% pull(gene_symbol),
-  drg_hub_genes = drg_hubs$gene_symbol,
-  label_genes = hub_label_genes,
-  layout_algo = "stress",
-  title_sfx   = " — all DE proteins (degree > 8 or hub)"
-)
-save_pub(p_net_v1, "Fig4A_ppi_network", "double_col", w_add = 60, h_add = 90)
-cat("  Fig4A: PPI network — OK\n")
-
-# =============================================================================
-# Fig4B — CANDIDATOS APROBADOS POR MÓDULO BIOLÓGICO
-# =============================================================================
-cat("\n--- Fig4B: Module barplot ---\n")
-
+# M2 NO es "EGFR/Signaling" (su GO es adhesión/membrana); EGFR es un hub dentro
+# de ese módulo y se discute en el texto, no se fuerza el nombre.
 MODULE_LABELS <- c(
   "8"  = "OXPHOS",
-  "4"  = "Proteasoma",
-  "2"  = "EGFR / Señalización",
-  "5"  = "Resp. inmune / ECM",
-  "14" = "Metab. peq. mol."
+  "4"  = "Proteasome",
+  "5"  = "Immune response",
+  "14" = "Amino acid metabolism",
+  "2"  = "Cell adhesion / membrane"
 )
-KEY_MODULES <- c(8, 2, 4, 5, 14)
+KEY_MODULES  <- as.integer(names(MODULE_LABELS))
+MODULE_ORDER <- c("OXPHOS", "Proteasome", "Cell adhesion / membrane",
+                  "Immune response", "Amino acid metabolism")
+MODULE_COLS  <- c(
+  "OXPHOS"                   = "#D55E00",
+  "Proteasome"               = "#0072B2",
+  "Cell adhesion / membrane" = "#E69F00",
+  "Immune response"          = "#009E73",
+  "Amino acid metabolism"    = "#CC79A7",
+  "Other"                    = "#BDBDBD"   # gris visible: contexto, secundario a módulos
+)
+
+# =============================================================================
+# Fig4A — RED COMPLETA (giant component) COLOREADA POR MÓDULO
+# =============================================================================
+# Layout sobre la red donde se DEFINIERON los módulos (Louvain, script 09) → las
+# comunidades aparecen como clusters espaciales reales. No-hubs en gris/tenue;
+# hubs druggables resaltados (tamaño + borde) y etiquetados (top-3 por degree).
+cat("\n--- Fig4A: Full network colored by module ---\n")
+
+hub_set <- drg_hubs$gene_symbol
+g_all <- graph_from_data_frame(net_edges, directed = FALSE,
+                               vertices = net_nodes$gene_symbol)
+comp   <- components(g_all)
+giant  <- names(comp$membership[comp$membership == which.max(comp$csize)])
+
+n_all <- net_nodes %>%
+  filter(gene_symbol %in% giant) %>%
+  mutate(
+    module_lab  = ifelse(as.character(module_id) %in% names(MODULE_LABELS),
+                         MODULE_LABELS[as.character(module_id)], "Other"),
+    module_lab  = factor(module_lab, levels = names(MODULE_COLS)),
+    is_drug_hub = gene_symbol %in% hub_set,
+    nd_size     = ifelse(is_drug_hub, log1p(degree) + 1, log1p(degree))
+  )
+e_all <- net_edges %>% filter(gene_A %in% giant, gene_B %in% giant)
+cat(sprintf("  Giant component: %d nodos, %d aristas | %d hubs druggables\n",
+            nrow(n_all), nrow(e_all), sum(n_all$is_drug_hub)))
+
+# Labels: top-3 druggable hubs por módulo clave, por DEGREE (EGFR sale #1 de M2)
+hub_label_genes <- drg_hubs %>%
+  filter(module_id %in% KEY_MODULES) %>%
+  group_by(module_id) %>%
+  slice_max(degree, n = 3, with_ties = FALSE) %>%
+  ungroup() %>%
+  pull(gene_symbol)
+
+g_net <- graph_from_data_frame(e_all, directed = FALSE, vertices = n_all$gene_symbol)
+for (col in c("module_lab", "is_drug_hub", "nd_size", "degree")) {
+  vertex_attr(g_net, col) <- n_all[[col]][match(V(g_net)$name, n_all$gene_symbol)]
+}
+tg_net <- as_tbl_graph(g_net)
+
+set.seed(42)
+lay_net <- create_layout(tg_net, layout = "stress")
+
+lbl_net <- lay_net %>%
+  filter(name %in% hub_label_genes[hub_label_genes %in% giant]) %>%
+  select(x, y, name)
+
+p_net <- ggraph(lay_net) +
+  geom_edge_link(color = "grey65", alpha = 0.22, linewidth = 0.10) +
+  # contexto (módulos no-clave): gris VISIBLE pero secundario
+  geom_node_point(aes(fill = module_lab, size = nd_size,
+                      filter = !is_drug_hub & module_lab == "Other"),
+                  shape = 21, color = NA, alpha = 0.55) +
+  # miembros no-hub de módulos clave: ÉNFASIS (color saturado)
+  geom_node_point(aes(fill = module_lab, size = nd_size,
+                      filter = !is_drug_hub & module_lab != "Other"),
+                  shape = 21, color = NA, alpha = 0.90) +
+  # hubs druggables: protagonistas (borde + opacos)
+  geom_node_point(aes(fill = module_lab, size = nd_size, filter = is_drug_hub),
+                  shape = 21, color = "grey20", stroke = 0.5, alpha = 0.95) +
+  ggrepel::geom_text_repel(
+    data = lbl_net, aes(x = x, y = y, label = name),
+    size = 2.6, fontface = "bold", family = "sans",
+    bg.color = "white", bg.r = 0.12, max.overlaps = 40,
+    segment.size = 0.25, segment.color = "grey40", min.segment.length = 0
+  ) +
+  # Sin leyenda de módulos en la red: los nombres se revelan en el panel B
+  # (enriquecimiento). Aquí los colores son "clusters por descubrir".
+  scale_fill_manual(values = MODULE_COLS, guide = "none") +
+  scale_size_continuous(range = c(4.5, 7.0), guide = "none") +   # mínimo 4.5: periféricos bien visibles
+  theme_graph(base_family = "sans", base_size = 8) +
+  theme(legend.position = "none",
+        plot.margin = margin(4, 4, 4, 4, "mm"))
+
+save_pub(p_net, "Fig4A_network_modules", "double_col", w_add = 60, h_add = 80)
+save_panel_obj(p_net, "Fig4A_network_modules")
+cat("  Fig4A: Full network by module — OK\n")
+
+# =============================================================================
+# Fig4B — CANDIDATOS POR MÓDULO BIOLÓGICO (× clase)
+# =============================================================================
+cat("\n--- Fig4B: Module barplot ---\n")
 
 hub_module_map <- drg_hubs %>%
   filter(module_id %in% KEY_MODULES) %>%
   mutate(module_label = MODULE_LABELS[as.character(module_id)]) %>%
   select(gene_symbol, module_label, module_id)
-
-module_order <- c("EGFR / Señalización", "Proteasoma", "OXPHOS",
-                  "Resp. inmune / ECM", "Metab. peq. mol.")
 
 drug_per_module <- master_tbl %>%
   filter(gene_symbol %in% hub_module_map$gene_symbol,
@@ -611,16 +594,15 @@ drug_per_module <- master_tbl %>%
   distinct(drug_name_norm, module_label, drug_class) %>%
   count(module_label, drug_class) %>%
   mutate(
-    module_label = factor(module_label, levels = module_order),
+    module_label = factor(module_label, levels = rev(MODULE_ORDER)),
     drug_class   = factor(drug_class, levels = c("A", "B", "C")),
     class_label  = DRUG_CLASS_LABELS[as.character(drug_class)],
-    class_label  = factor(class_label,
-                          levels = DRUG_CLASS_LABELS[c("A","B","C")])
+    class_label  = factor(class_label, levels = DRUG_CLASS_LABELS[c("A","B","C")])
   )
 
 p_module_bar <- ggplot(drug_per_module,
                        aes(y = module_label, x = n, fill = class_label)) +
-  geom_col(width = 0.62, position = position_stack(reverse = TRUE)) +
+  geom_col(width = 0.66, position = position_stack(reverse = TRUE)) +
   scale_fill_manual(
     values = c("HNSCC-approved" = OKB[1],
                "Other cancer"   = OKB[2],
@@ -628,16 +610,71 @@ p_module_bar <- ggplot(drug_per_module,
     name = "Drug class"
   ) +
   scale_x_continuous(expand = expansion(mult = c(0, 0.12))) +
-  labs(
-    title    = "Drug candidates by biological module",
-    subtitle = "Hub-targeting candidates  \u2022  Grouped by STRING PPI module",
-    x = "N\u00b0 drug candidates", y = NULL
-  ) +
+  labs(title = NULL, x = "Number of drug candidates", y = NULL) +
   theme_pub() +
-  theme(legend.position = "right")   # fuente de ejes uniforme (theme_pub)
+  theme(legend.position = "right")
 
 save_pub(p_module_bar, "Fig4B_module_barplot", "double_col", h_add = 0)
+save_panel_obj(p_module_bar, "Fig4B_module_barplot")
 cat("  Fig4B: Module barplot — OK\n")
+
+# =============================================================================
+# Fig4C — ENRIQUECIMIENTO FUNCIONAL POR MÓDULO (valida los nombres de módulo)
+# =============================================================================
+cat("\n--- Fig4C: Per-module functional enrichment ---\n")
+
+orgdb <- org.Hs.eg.db::org.Hs.eg.db   # `::` evita attach (no rompe ComplexHeatmap)
+mod_tbl <- read_tsv("results/tables/network/09_modules.tsv", show_col_types = FALSE)
+universe_entrez <- clusterProfiler::bitr(unique(mod_tbl$gene_symbol), "SYMBOL",
+                                         "ENTREZID", OrgDb = orgdb)$ENTREZID
+
+enr_list <- lapply(KEY_MODULES, function(mid) {
+  genes <- mod_tbl$gene_symbol[mod_tbl$module_id == mid]
+  eg <- clusterProfiler::bitr(genes, "SYMBOL", "ENTREZID", OrgDb = orgdb)$ENTREZID
+  ego <- clusterProfiler::enrichGO(eg, OrgDb = orgdb, ont = "BP",
+                  universe = universe_entrez, pAdjustMethod = "BH",
+                  qvalueCutoff = 0.2, readable = TRUE)
+  if (is.null(ego) || nrow(as.data.frame(ego)) == 0) return(NULL)
+  # Reducción de redundancia semántica (GO BP es jerárquico): conserva el
+  # representante más significativo de cada grupo de términos similares.
+  if (nrow(as.data.frame(ego)) > 1) {
+    ego <- clusterProfiler::simplify(ego, cutoff = 0.6,
+                                     by = "p.adjust", select_fun = min)
+  }
+  df <- as.data.frame(ego)
+  df <- df[order(df$p.adjust), ][seq_len(min(2, nrow(df))), ]
+  df$module_label <- MODULE_LABELS[as.character(mid)]
+  df$Count <- as.integer(df$Count)
+  df$GeneRatio <- df$Count / length(genes)   # fracción del módulo en el término
+  df[, c("module_label", "Description", "p.adjust", "Count", "GeneRatio")]
+})
+enr_df <- bind_rows(enr_list) %>%
+  mutate(
+    module_label = factor(module_label, levels = rev(MODULE_ORDER)),
+    Description  = stringr::str_wrap(stringr::str_to_sentence(Description), 30),
+    neglog10FDR  = -log10(p.adjust)
+  ) %>%
+  arrange(module_label, GeneRatio) %>%
+  mutate(term = factor(Description, levels = unique(Description)))
+
+write_tsv(enr_df, "results/tables/network/17_module_enrichment_top3.tsv")
+cat(sprintf("  %d terminos (top-3 x %d modulos) exportados\n",
+            nrow(enr_df), length(KEY_MODULES)))
+
+p_enr <- ggplot(enr_df, aes(x = GeneRatio, y = term,
+                            color = module_label, size = Count)) +
+  geom_point() +
+  scale_color_manual(values = MODULE_COLS, name = "Module",
+                     guide = guide_legend(override.aes = list(size = 3.5))) +
+  scale_size_continuous(name = "Genes", range = c(2, 6)) +
+  scale_x_continuous(limits = c(0, 1), expand = expansion(mult = c(0.02, 0.08))) +
+  labs(title = NULL, x = "Gene ratio (term ∩ module / module)", y = NULL) +
+  theme_pub() +
+  theme(legend.position = "right")
+
+save_pub(p_enr, "Fig4C_module_enrichment", "double_col", h_add = 0)
+save_panel_obj(p_enr, "Fig4C_module_enrichment")
+cat("  Fig4C: Per-module enrichment — OK\n")
 
 # =============================================================================
 # RESUMEN FINAL
