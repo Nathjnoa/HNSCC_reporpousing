@@ -14,11 +14,19 @@ Candidates: Cancers, BMC Cancer, Frontiers in Oncology, Journal of Translational
 
 ## Central angle
 
-**EGFR as internal validation + non-canonical vulnerabilities**
-- Epigenetic: decitabine/azacitidine
-- Proteostasis: carfilzomib
-- Epigenetic modulator: tranylcypromine
-- OXPHOS/Metformin: secondary finding (metabolic module in network)
+**EGFR as internal validation + priorización hub-céntrica de dos niveles (data-driven).**
+La priorización (script 10 v3) ancla cada fármaco en la estructura de la red PPI
+(red → módulo → hub drogable → fármaco) con un composite de dos factores
+`TargetPriority × DrugViability`. El "titular" se lee del ranking, no se fuerza:
+
+- **Validación:** el eje EGFR (módulo M2) encabeza y recupera fármacos ya aprobados en
+  HNSCC (cetuximab, afatinib, gefitinib…) → coherencia biológica del método.
+- **Tier 1 — hub-central (novedad):** OXPHOS/metformina (NDUFx), proteasoma/carfilzomib
+  (PSMA2/PSMB3).
+- **Tier 2 — periférico diferencial:** dianas en red diferencialmente abundantes pero
+  no-hub: epigenético (DNMT1: decitabine/azacitidine; MAOA: tranylcypromine),
+  antimetabolitos (IMPDH2: thioguanine), y repurposing clásico (valproato, acetazolamida,
+  digoxina, disulfiram).
 
 ## Figure plan
 
@@ -28,8 +36,9 @@ Candidates: Cancers, BMC Cancer, Frontiers in Oncology, Journal of Translational
 | Fig2 | (A) volcano · (B) Hallmarks GSEA · (C) top-40 DE heatmap | ✅ Finalizada — multipanel TIFF 600 DPI |
 | Fig3 | (A) distribución de fase clínica · (B) clase regulatoria · (C) UpSet solapamiento de BD | ✅ Finalizada — multipanel TIFF 600 DPI; funnel completo → suppl. |
 | Fig4 | (A) red coloreada por módulo Louvain (tier de drogabilidad) · (B) enriquecimiento GO por módulo · (C) hubs druggables por módulo | ✅ Finalizada — multipanel TIFF 600 DPI |
-| Fig5 | Scores + LOD + sensitivity (EGFR vs non-EGFR) | Pendiente (paneles base en `results/figures/15_*`) |
+| Fig5 | (A) shortlist priorizado por módulo + descomposición composite (TP/DV), faceta por tier · (B) espacio bifactor TargetPriority × DrugViability | ✅ Finalizada — multipanel TIFF 600 DPI (`17b`+`17g`) |
 | Fig6 | External validation (CPTAC/TCGA concordance + survival) | Pendiente revisión |
+| FigS | Robustez: heatmap estabilidad de ranking × 6 configs de peso + LOD (suplementaria) | ✅ `17h_figS_robustness` |
 
 **Nota Fig2 (para figure legend):** los gene sets del panel B (GSEA) se ordenan por
 el π-statistic = sign(log2FC) × |log2FC| × −log₁₀(FDR); incluir esta definición en
@@ -56,6 +65,20 @@ color marca los ejes mecanísticos, NO exclusividad de dianas. Layout `stress` c
 intra-módulo (separa comunidades). A (red) ancho completo arriba · B (enriquecimiento
 GO, 1 término/módulo) abajo-izq · C (hubs druggables × módulo) abajo-der.
 
+**Nota Fig5 (para figure legend):** priorización hub-céntrica (scoring v3). Definir en
+la leyenda:
+- *Composite score* = 0.60·Target priority + 0.40·Drug viability.
+- *Target priority* = 0.55·centralidad de red (grado/intermediación/eigenvector, min-max)
+  + 0.45·abundancia diferencial direccional de la diana (π = sign(log2FC)·|log2FC|·−log₁₀FDR,
+  min-max direccional; premia inhibir dianas UP).
+- *Drug viability* = 0.40·reversión transcriptómica L2S2 + 0.40·clase regulatoria (A–D)
+  + 0.20·nº de fuentes/4.
+- Cada fármaco se ancla a su diana **creíble más central** (arista curada ChEMBL/OpenTargets,
+  no DGIdb por su ruido); *tier* = hub_central (diana es hub de red) vs peripheral_diff.
+- Líneas punteadas en B = isolíneas de composite constante.
+- **No hay test de permutación** (se eliminó: para un score de agregación de evidencia la
+  validez viene de recuperación de controles + robustez + validación externa, no de un p).
+
 **Convención de naming:** paneles individuales `Fig2A_*`/`Fig2B_*`/`Fig2C_*`,
 `Fig3A_*`/`Fig3B_*`/`Fig3C_*` (insumos); las figuras publicables son
 `Fig2_multipanel.tif` y `Fig3_multipanel.tif`. En el composite las letras de panel
@@ -64,11 +87,14 @@ organizativo.
 
 ## Table plan
 
-| Table | Content |
+| Archivo (results/tables/pub/) | Content |
 |-------|---------|
-| T1 | Cohort / DE summary |
-| T2 | Top prioritized candidates |
-| T3 | EGFR LOD-stable (validation) |
-| T4 | Non-EGFR LOD-stable (novelty) |
+| `main/Tab1_resumen_DE` | Cohort / DE summary |
+| `main/Tab2_top_proteinas` | Top DE proteins |
+| `main/Tab3_top_candidatos` | Top prioritized candidates (composite) |
+| `main/Tab4_EGFR_validation` | Eje EGFR — validación del método |
+| `main/Tab5_novel_candidates_by_module` | Candidatos novedosos por módulo (top hub, tier hub-central/periférico) |
+| `main/Tab6_concordance_summary` | Validación externa TCGA/CPTAC (Fig6) |
+| `supp/TabS1_extended_candidates_by_module` | Lista extendida (todos los hubs-ancla no-EGFR) |
 
 ## Word count target: 3500–4500 words

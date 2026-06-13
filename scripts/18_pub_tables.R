@@ -187,149 +187,106 @@ oe1_tab2 <- multi %>%
 save_tsv(oe1_tab2, "Tab3_top_candidatos", out_main)
 
 # =============================================================================
-# OE2 — TABLAS: Candidatos LOD-stable
+# OE2 — TABLAS: Priorización hub-céntrica (scoring v3, dos niveles)
 # =============================================================================
-cat("\n--- OE2: Tablas candidatos LOD-stable ---\n")
+# Tab4 = eje EGFR (validación del método); Tab5 = candidatos novedosos
+# priorizados por módulo (top fármaco por hub-ancla); TabS1 = lista extendida.
+# Definidas por TIER/MÓDULO (no por regex EGFR ni por lod_stable, que ahora está
+# dominado por el clúster de ~30 fármacos anti-EGFR). lod_stable y robustez a
+# pesos se reportan como COLUMNAS de anotación.
+cat("\n--- OE2: Tablas priorización hub-céntrica ---\n")
+
+N_TAB5 <- 12  # nº de hubs-ancla no-EGFR en la tabla principal (top por composite)
 
 scored     <- read_tsv("results/tables/10_all_candidates_scored.tsv", show_col_types = FALSE)
 lod        <- read_tsv("results/tables/15_lod_stability.tsv",         show_col_types = FALSE)
 sens_ranks <- read_tsv("results/tables/15_sensitivity_ranks.tsv",     show_col_types = FALSE)
 
-lod_stable_set <- lod %>% filter(lod_stable == TRUE) %>% pull(drug_name_norm)
+# Anotaciones de robustez por fármaco
+rob <- lod %>%
+  select(drug_name_norm, lod_stable) %>%
+  full_join(sens_ranks %>% select(drug_name_norm, n_configs_topN), by = "drug_name_norm")
 
-# Subclases EGFR para clasificación
-tki_gen1_2 <- toupper(c(
-  "gefitinib", "erlotinib", "afatinib", "lapatinib", "icotinib",
-  "neratinib", "dacomitinib", "canertinib dihydrochloride"
-))
-tki_gen3 <- toupper(c(
-  "osimertinib", "lazertinib", "olmutinib", "abivertinib",
-  "aumolertinib", "firmonertinib", "rociletinib", "mobocertinib"
-))
-mab_egfr <- toupper(c(
-  "cetuximab", "cetuximab sarotalocan", "necitumumab", "nimotuzumab",
-  "panitumumab", "amivantamab", "depatuxizumab mafodotin"
-))
+mod_label <- function(x) {
+  x <- str_replace(x, "^M[0-9]+_", ""); x <- str_replace_all(x, "_", " ")
+  str_to_sentence(str_trim(x))
+}
+phase_lab <- function(p) case_when(
+  p == 4 ~ "Aprobado (Fase IV)", p == 3 ~ "Fase III", p == 2 ~ "Fase II",
+  p == 1 ~ "Fase I", TRUE ~ "No reportada")
 
-oe2_base <- scored %>%
-  filter(drug_name_norm %in% lod_stable_set) %>%
+base <- scored %>%
+  filter(tier != "off_network") %>%
+  left_join(rob, by = "drug_name_norm") %>%
+  mutate(
+    Fármaco           = str_to_title(str_to_lower(drug_name_norm)),
+    `Módulo funcional` = mod_label(module_name),
+    `Fase clínica máx.` = phase_lab(max_phase),
+    `LOD-stable`      = ifelse(coalesce(lod_stable, FALSE), "Sí", "No"),
+    `Robustez pesos`  = sprintf("%d/6", coalesce(n_configs_topN, 0L)),
+    `Composite score` = round(composite_score, 3),
+    TP                = round(TargetPriority, 3),
+    DV                = round(DrugViability, 3)
+  )
+
+# Subclases EGFR (para Tab4)
+tki_gen1_2 <- toupper(c("gefitinib","erlotinib","afatinib","lapatinib","icotinib",
+                        "neratinib","dacomitinib","canertinib dihydrochloride"))
+tki_gen3   <- toupper(c("osimertinib","lazertinib","olmutinib","abivertinib",
+                        "aumolertinib","firmonertinib","rociletinib","mobocertinib"))
+mab_egfr   <- toupper(c("cetuximab","cetuximab sarotalocan","necitumumab","nimotuzumab",
+                        "panitumumab","amivantamab","depatuxizumab mafodotin"))
+
+# ── Tab4: eje EGFR — validación del método ────────────────────────────────────
+oe2_tab1 <- base %>%
+  filter(primary_target == "EGFR") %>%
   mutate(
     hnscc_approved_curated = drug_name_norm %in% HNSCC_APPROVED_CURATED,
-    is_egfr_primary = str_detect(primary_target, "EGFR|ERBB|HER"),
-    egfr_subclass = case_when(
+    `Subclase` = case_when(
       drug_name_norm %in% tki_gen1_2 ~ "TKI EGFR 1ª-2ª generación",
       drug_name_norm %in% tki_gen3   ~ "TKI EGFR 3ª generación",
       drug_name_norm %in% mab_egfr   ~ "Anticuerpo/ADC anti-EGFR",
-      is_egfr_primary                ~ "Inhibidor multi-quinasa (EGFR+)",
-      TRUE                           ~ NA_character_
+      TRUE                           ~ "Inhibidor multi-quinasa (EGFR+)"
     ),
-    `Fase clínica máx.` = case_when(
-      max_phase == 4 ~ "Aprobado (Fase IV)",
-      max_phase == 3 ~ "Fase III",
-      max_phase == 2 ~ "Fase II",
-      max_phase == 1 ~ "Fase I",
-      TRUE           ~ "No reportada"
-    )
-  )
-
-# ── Tab4: LOD-stable EGFR — validación del método ───────────────────────
-oe2_tab1 <- oe2_base %>%
-  filter(!is.na(egfr_subclass)) %>%
-  arrange(egfr_subclass, desc(composite_score)) %>%
-  mutate(
-    Fármaco           = str_to_title(drug_name_norm),
-    `Aprobado HNSCC`  = ifelse(hnscc_approved_curated, "Sí", "No"),
-    `Composite score` = round(composite_score, 3)
+    `Aprobado HNSCC` = ifelse(hnscc_approved_curated, "Sí", "No")
   ) %>%
-  select(
-    Fármaco,
-    `Subclase`          = egfr_subclass,
-    `Target primario`   = primary_target,
-    `Fase clínica máx.`,
-    `Aprobado HNSCC`,
-    `Composite score`,
-    `N fuentes`         = n_sources
-  )
-save_tsv(oe2_tab1, "Tab4_EGFR_LOD_stable", out_main)
+  arrange(`Subclase`, desc(composite_score)) %>%
+  select(Fármaco, `Subclase`, `Target primario` = primary_target,
+         `Fase clínica máx.`, `Aprobado HNSCC`, `Composite score`, TP, DV,
+         `N fuentes` = n_sources, `LOD-stable`, `Robustez pesos`)
+save_tsv(oe2_tab1, "Tab4_EGFR_validation", out_main)
 
-# ── Tab5: LOD-stable no-EGFR — candidatos de repurposing ─────────────────
-mecanismo_map <- c(
-  "DECITABINE"      = "Inhibidor DNMT",
-  "AZACITIDINE"     = "Inhibidor DNMT",
-  "CEDAZURIDINE"    = "Inhibidor desaminasa de citidina (potenciador DNMT)",
-  "CARFILZOMIB"     = "Inhibidor de proteasoma",
-  "MITAPIVAT"       = "Activador piruvato quinasa (PK-R)",
-  "TRANYLCYPROMINE" = "Inhibidor LSD1/MAO (epigenético)"
-)
-indicacion_map <- c(
-  "DECITABINE"      = "Síndrome mielodisplásico / LMA",
-  "AZACITIDINE"     = "Síndrome mielodisplásico / LMA",
-  "CEDAZURIDINE"    = "Síndrome mielodisplásico (combinado con decitabine)",
-  "CARFILZOMIB"     = "Mieloma múltiple",
-  "MITAPIVAT"       = "Anemia hemolítica (deficiencia piruvato quinasa)",
-  "TRANYLCYPROMINE" = "Depresión / investigacional en oncología"
-)
+# ── Tab5: candidatos novedosos priorizados por módulo (top fármaco por hub) ────
+# Un representante (mejor composite) por hub-ancla no-EGFR; top N por composite.
+tier_lab <- c(hub_central = "Hub central de red",
+              peripheral_diff = "Periférico diferencial")
+hub_top <- base %>%
+  filter(primary_target != "EGFR") %>%
+  group_by(primary_target) %>%
+  slice_max(composite_score, n = 1, with_ties = FALSE) %>%
+  ungroup()
 
-oe2_tab2 <- oe2_base %>%
-  filter(is.na(egfr_subclass)) %>%
-  arrange(desc(composite_score)) %>%
-  mutate(
-    Fármaco           = str_to_title(drug_name_norm),
-    Mecanismo         = mecanismo_map[drug_name_norm],
-    `Indicación actual` = indicacion_map[drug_name_norm],
-    `Composite score` = round(composite_score, 3)
-  ) %>%
-  select(
-    Fármaco,
-    Mecanismo,
-    `Target primario`   = primary_target,
-    `Indicación actual`,
-    `Fase clínica máx.`,
-    `Composite score`,
-    `N fuentes`         = n_sources
-  )
-save_tsv(oe2_tab2, "Tab5_noEGFR_LOD_stable", out_main)
+oe2_tab2 <- hub_top %>%
+  slice_max(composite_score, n = N_TAB5) %>%
+  mutate(Tier = tier_lab[tier]) %>%
+  arrange(factor(tier, levels = c("hub_central","peripheral_diff")), desc(composite_score)) %>%
+  select(Fármaco, Tier, `Módulo funcional`, `Hub / diana` = primary_target,
+         `Fase clínica máx.`, `Composite score`, TP, DV,
+         `N fuentes` = n_sources, `LOD-stable`, `Robustez pesos`)
+save_tsv(oe2_tab2, "Tab5_novel_candidates_by_module", out_main)
 
-# ── TabS1: Candidatos extendidos no-EGFR (robustos a pesos, no LOD) ──────
-# Drogas que aparecen en ≥5/6 configuraciones de pesos (top-35)
-# pero NO son LOD-stable (sensibles al tamaño del pool de corte)
-oe2_tabs1 <- sens_ranks %>%
-  filter(
-    !drug_name_norm %in% lod_stable_set,
-    n_configs_top20 >= 5
-  ) %>%
-  left_join(
-    scored %>% select(drug_name_norm, primary_target, composite_score,
-                      max_phase, n_sources),
-    by = "drug_name_norm"
-  ) %>%
-  filter(!str_detect(primary_target, "EGFR|ERBB|HER")) %>%
-  arrange(desc(n_configs_top20), desc(composite_score)) %>%
-  mutate(
-    Fármaco             = str_to_title(drug_name_norm),
-    `N configs (de 6)`  = n_configs_top20,
-    `Fase clínica máx.` = case_when(
-      max_phase == 4 ~ "Aprobado (Fase IV)",
-      max_phase == 3 ~ "Fase III",
-      max_phase == 2 ~ "Fase II",
-      max_phase == 1 ~ "Fase I",
-      TRUE           ~ "No reportada"
-    ),
-    `Composite score`   = round(composite_score, 3)
-  ) %>%
-  select(
-    Fármaco,
-    `Target primario`   = primary_target,
-    `N configs (de 6)`,
-    `Fase clínica máx.`,
-    `Composite score`,
-    `N fuentes`         = n_sources
-  )
-save_tsv(oe2_tabs1, "TabS1_candidatos_extendidos_noEGFR", out_supp)
+# ── TabS1: lista extendida (todos los hubs-ancla no-EGFR) ──────────────────────
+oe2_tabs1 <- hub_top %>%
+  mutate(Tier = tier_lab[tier]) %>%
+  arrange(factor(tier, levels = c("hub_central","peripheral_diff")), desc(composite_score)) %>%
+  select(Fármaco, Tier, `Módulo funcional`, `Hub / diana` = primary_target,
+         `Fase clínica máx.`, `Composite score`, TP, DV,
+         `N fuentes` = n_sources, `LOD-stable`, `Robustez pesos`)
+save_tsv(oe2_tabs1, "TabS1_extended_candidates_by_module", out_supp)
 
-cat(sprintf("  Tab4: %d drugs EGFR LOD-stable\n",  nrow(oe2_tab1)))
-cat(sprintf("  Tab5: %d drugs no-EGFR LOD-stable\n", nrow(oe2_tab2)))
-cat(sprintf("  TabS1: %d candidatos extendidos no-EGFR\n", nrow(oe2_tabs1)))
+cat(sprintf("  Tab4: %d fármacos eje EGFR (validación)\n", nrow(oe2_tab1)))
+cat(sprintf("  Tab5: %d hubs-ancla novedosos (top por módulo)\n", nrow(oe2_tab2)))
+cat(sprintf("  TabS1: %d hubs-ancla no-EGFR (lista extendida)\n", nrow(oe2_tabs1)))
 
 # =============================================================================
 # RESUMEN

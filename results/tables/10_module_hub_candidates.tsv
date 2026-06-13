@@ -1,0 +1,39 @@
+module_id	module_name	primary_target	tier	n_drugs	max_composite	centrality	primary_pi	top_drugs	best_class
+2	M2_regulation_of_anatomical_struc	EGFR	hub_central	67	0.71681844849254	0.469137969591305	0.771993016985817	Gefitinib | Lapatinib | Afatinib | Erlotinib	A
+8	M8_oxidative_phosphorylation	NDUFS2	hub_central	2	0.590995629306915	0.660189113952916	0.30856065856969	Metformin | Me-344	A
+4	M4_ubiquitin-dependent_protein_ca	PSMA2	hub_central	5	0.457581132374053	0.134716847100572	0.69923947214978	Carfilzomib | Bortezomib D-Mannitol | Ixazomib | Marizomib	B
+3	M3_translation	RPS11	hub_central	1	0.368161506439235	0.290529629278508	0.712173069545655	Mt-3724	D
+5	M5_defense_response	MMP9	hub_central	5	0.358610798342676	0.168550145211838	0.751812038602849	Andecaliximab | Marimastat | Azd-1236 | Cts-1027	D
+2	M2_regulation_of_anatomical_struc	CASP3	hub_central	1	0.335808931587029	0.220494223004062	0.677947548132177	Emricasan	D
+1	M1_multicellular_organism_develop	ITGB6	hub_central	3	0.324122044490161	0.129908003349124	0.745379271796112	Abituzumab | Sigvotatug Vedotin | Stx-100	D
+5	M5_defense_response	MPO	hub_central	1	0.318104362431652	0.0886265835563538	0.699472555029836	Verdiperstat	D
+11	M11_muscle_contraction	ATP2A2	hub_central	2	0.25259599122153	0.0862904688532344	0.533778283333197	Istaroxime | Mipsagargin	D
+17	M17_chromatin_remodeling	DNMT1	peripheral_diff	2	0.493648868127402	0.0655986585742733	0.718200879049837	Azacitidine | Decitabine	B
+14	M14_small_molecule_metabolic_proce	PDE6D	peripheral_diff	2	0.454081310614431	1.3471508469357e-05	0.70304106365517	Pentoxifylline | Dipyridamole	B
+6	M6_carboxylic_acid_metabolic_proc	ALDH5A1	peripheral_diff	1	0.43839874468568	0.0359245517921893	0.49875468353149	Valproic Acid	A
+2	M2_regulation_of_anatomical_struc	CA2	peripheral_diff	9	0.422365955204116	0.0231916374088751	0.524903981443326	Acetazolamide | Topiramate | Methazolamide | Brinzolamide	B
+14	M14_small_molecule_metabolic_proce	MAOA	peripheral_diff	13	0.421456962581597	0.0293504213321794	0.537283229179549	Tranylcypromine | Pargyline | Phenelzine | Isocarboxazid	B
+5	M5_defense_response	MMP8	peripheral_diff	1	0.417592732598856	0.0123099558887175	0.735821800079586	Doxycycline	B
+14	M14_small_molecule_metabolic_proce	IMPDH2	peripheral_diff	5	0.409604558891808	0.0242542439196626	0.58019881475232	Thioguanine | Mycophenolate Mofetil | Mizoribine | Mycophenolate	B
+11	M11_muscle_contraction	ATP1A1	peripheral_diff	3	0.39646308310547	0.0166608574760766	0.572208604294387	Digoxin | Digitoxin | Lanatoside C	C
+14	M14_small_molecule_metabolic_proce	CDA	peripheral_diff	1	0.380001580978658	2.01050000542219e-07	0.740746350489473	Cedazuridine	B
+14	M14_small_molecule_metabolic_proce	ALDH2	peripheral_diff	1	0.368253705700646	0.0759029210003182	0.454520930263815	Disulfiram	B
+7	M7_carbohydrate_catabolic_process	PKLR	peripheral_diff	2	0.351947719750791	0.0905792687736239	0.674283559464797	Mitapivat | Etavopivat	C
+14	M14_small_molecule_metabolic_proce	PNP	peripheral_diff	2	0.307892617747834	0.0278926608200441	0.735881628434148	Forodesine | Ulodesine	D
+6	M6_carboxylic_acid_metabolic_proc	CPT2	peripheral_diff	1	0.297040938997638	0.0316710382659171	0.542924060629206	Perhexiline	C
+5	M5_defense_response	CFB	peripheral_diff	1	0.293421230939962	0.0125981443807609	0.552829049238187	Iptacopan	C
+3	M3_translation	METAP2	peripheral_diff	2	0.289366241972926	0.000798914624099407	0.700380000544345	Beloranib | Aclimostat	D
+3	M3_translation	EEF1A2	peripheral_diff	1	0.288218972918384	2.41263736689112e-05	0.400781523018789	Plitidepsin	B
+5	M5_defense_response	CTSS	peripheral_diff	1	0.287333592480404	0.0205465011513779	0.742789804075737	Petesicatib	D
+5	M5_defense_response	APOC3	peripheral_diff	1	0.28101947559623	0.066286913762312	0.51535108909136	Volanesorsen	C
+7	M7_carbohydrate_catabolic_process	LAP3	peripheral_diff	1	0.280325755597577	0.0424203707095906	0.690100123197821	Tosedostat	D
+7	M7_carbohydrate_catabolic_process	APEX1	peripheral_diff	1	0.27751279599967	0.00792470895560534	0.721843118682668	Apx-3330	D
+5	M5_defense_response	F5	peripheral_diff	1	0.256264198508831	3.05116524814001e-05	0.430570850605599	Drotrecogin Alfa (Activated)	C
+5	M5_defense_response	CLU	peripheral_diff	1	0.250161602280465	0.10477481764193	0.502170046143065	Custirsen	D
+5	M5_defense_response	RTN4	peripheral_diff	2	0.242386129796699	0.0284409886419428	0.566668902017992	Atinumab | Ozanezumab	D
+5	M5_defense_response	APCS	peripheral_diff	2	0.2387758540065	0.0236296365541694	0.559178051643051	Dezamizumab | Miridesap	D
+5	M5_defense_response	CMA1	peripheral_diff	1	0.23578045618673	1.35581808124496e-06	0.576962995432456	Fulacimstat	D
+1	M1_multicellular_organism_develop	LGALS1	peripheral_diff	1	0.230516688011353	1.27344230612782e-05	0.557453650562009	Davanat	D
+5	M5_defense_response	AGT	peripheral_diff	1	0.218625836173034	0.0330431683605032	0.473042928200251	Gsk-2586881	D
+14	M14_small_molecule_metabolic_proce	AOC3	peripheral_diff	1	0.175258617478632	0.0234595598767535	0.324136898960382	Vepalimomab	D
+NA	NA	NA	off_network	248	0.28	0	0	Bortezomib | Crizotinib | Paclitaxel | Sirolimus	C

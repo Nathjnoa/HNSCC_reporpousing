@@ -1,0 +1,13 @@
+Fármaco	Tier	Módulo funcional	Hub / diana	Fase clínica máx.	Composite score	TP	DV	N fuentes	LOD-stable	Robustez pesos
+Metformin	Hub central de red	Oxidative phosphorylation	NDUFS2	Aprobado (Fase IV)	0.591	0.502	0.725	3	Sí	6/6
+Carfilzomib	Hub central de red	Ubiquitin-dependent protein ca	PSMA2	Aprobado (Fase IV)	0.458	0.389	0.561	3	No	3/6
+Azacitidine	Periférico diferencial	Chromatin remodeling	DNMT1	Aprobado (Fase IV)	0.494	0.359	0.695	4	No	4/6
+Pentoxifylline	Periférico diferencial	Small molecule metabolic proce	PDE6D	Aprobado (Fase IV)	0.454	0.316	0.661	3	No	3/6
+Valproic Acid	Periférico diferencial	Carboxylic acid metabolic proc	ALDH5A1	Aprobado (Fase IV)	0.438	0.244	0.73	4	No	2/6
+Acetazolamide	Periférico diferencial	Regulation of anatomical struc	CA2	Aprobado (Fase IV)	0.422	0.249	0.682	4	No	2/6
+Tranylcypromine	Periférico diferencial	Small molecule metabolic proce	MAOA	Aprobado (Fase IV)	0.421	0.258	0.667	3	No	2/6
+Doxycycline	Periférico diferencial	Defense response	MMP8	Aprobado (Fase IV)	0.418	0.338	0.537	3	No	2/6
+Thioguanine	Periférico diferencial	Small molecule metabolic proce	IMPDH2	Aprobado (Fase IV)	0.41	0.274	0.612	3	No	1/6
+Digoxin	Periférico diferencial	Muscle contraction	ATP1A1	Aprobado (Fase IV)	0.396	0.267	0.591	3	No	1/6
+Cedazuridine	Periférico diferencial	Small molecule metabolic proce	CDA	Aprobado (Fase IV)	0.38	0.333	0.45	3	No	0/6
+Disulfiram	Periférico diferencial	Small molecule metabolic proce	ALDH2	Aprobado (Fase IV)	0.368	0.246	0.551	4	No	0/6

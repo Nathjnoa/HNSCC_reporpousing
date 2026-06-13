@@ -2,14 +2,15 @@
 
 Guía paso a paso para reproducir el análisis completo.
 
-Pipeline principal (13 scripts): 01–03, 04–10, 15, 17–18
-Figuras de publicación: 17 (paneles), 17c (GSEA), 17d (multipanel Fig2), 17e (multipanel Fig3), módulo de estilo `_fig_style.R`
-Scripts suplementarios/auxiliares: 11, 12, supp/{13,14,17b}
-Scripts de validación/análisis adicionales: 16, 19
+Pipeline principal: 01–03, 04–10, 15, 16, 17–18
+Figuras de publicación: 17 + 17b (paneles), 17c (GSEA), 17d–17g (multipaneles Fig2–5),
+17h (FigS robustez), módulo de estilo `_fig_style.R`
+Scripts archivados (fuera del manuscrito): scripts/archive/{11,12,13}; supp/14
 
-Última actualización: 2026-06-11 — Fig2 (`17d`) y Fig3 (`17e`) multipanel + export TIFF 600 DPI;
-estilo centralizado (`_fig_style.R`): fuente de ejes y orientación (horizontal) uniformes;
-Fig3 = funnel + clase + UpSet (set de 458); fase clínica movida a suplementario
+Última actualización: 2026-06-13 — Priorización hub-céntrica v3 (script 10: composite
+`TargetPriority × DrugViability`, anclaje por arista curada, tiers hub_central/peripheral);
+Fig5 (`17b`+`17g`) por módulo; robustez sin permutación → FigS (`17h`); Tab4/Tab5 por
+tier/módulo. Scripts 11/12/13 archivados; script 19 (metilación OE4) eliminado del paper.
 
 ---
 
@@ -19,8 +20,8 @@ Fig3 = funnel + clase + UpSet (set de 458); fase clínica movida a suplementario
 
 | Ambiente | Scripts | Propósito |
 | --- | --- | --- |
-| `omics-R` | 01, 02, 03, 08, 09, 10, 15, 16, 17, 17c, 17d, 17e, 18, 19, supp/{13,14,17b} | Análisis proteómica, enriquecimiento, red, scoring, sensibilidad, validación TCGA, metilación, figuras (paneles + multipanel), tablas |
-| `omics-py` | 04, 05, 06, 07, 11, 12 | Consultas a bases de datos de fármacos; evidencia clínica; COSMIC |
+| `omics-R` | 01, 02, 03, 08, 09, 10, 15, 16, 17, 17b, 17c, 17d, 17e, 17f, 17g, 17h, 18 | Análisis proteómica, enriquecimiento, red, priorización, robustez, validación TCGA, figuras (paneles + multipaneles + suplementaria), tablas |
+| `omics-py` | 04, 05, 06, 07 | Consultas a bases de datos de fármacos (DGIdb, ChEMBL, OpenTargets, L2S2) |
 
 ### Paquetes adicionales (instalar una sola vez)
 
@@ -136,11 +137,14 @@ Rscript scripts/08_integrate_drug_targets.R
 Rscript scripts/09_string_network.R
 # Output: results/tables/network/09_*.tsv
 
-# 10 - Scoring multi-criterio (5 dimensiones)
-#      Pool top 35 para análisis LOD
+# 10 - Priorización hub-céntrica v3: composite = 0.60·TargetPriority + 0.40·DrugViability
+#      TP = 0.55·centralidad red + 0.45·pi direccional ; DV = 0.40·reversal L2S2 +
+#      0.40·clase regulatoria + 0.20·breadth. Ancla = diana creíble (ChEMBL/OpenTargets)
+#      más central; tier hub_central/peripheral_diff. Pesos en config: scoring_v3.
 Rscript scripts/10_prioritization_scoring.R
 # Output: results/tables/10_all_candidates_scored.tsv
-# Pesos: pi_stat=0.40, clinical=0.20, pathway=0.15, network=0.15, cmap=0.10
+#         results/tables/10_top20_candidates.tsv
+#         results/tables/10_module_hub_candidates.tsv  ← resumen módulo→hub→fármaco
 ```
 
 ### Fase 4: Validación de robustez (R)
@@ -148,11 +152,12 @@ Rscript scripts/10_prioritization_scoring.R
 ```bash
 conda activate omics-R
 
-# 15 - 6 configs de pesos + LOD (leave-one-database) + permutation test (n=1000)
-#      LOD-stability es el criterio principal para definir el panel final
+# 15 - Robustez del composite v3: 6 configs de pesos + LOD (leave-one-database).
+#      (Permutación eliminada: validez = recuperación de controles + robustez +
+#       validación externa, no un p de permutación. Ver METHODS Fase 5.)
 Rscript scripts/15_sensitivity_analysis.R
 # Output: results/tables/15_sensitivity_ranks.tsv
-#         results/tables/15_lod_stability.tsv      ← criterio de inclusión en panel final
+#         results/tables/15_lod_stability.tsv
 ```
 
 ### Fase 4b: Evidencia clínica + reporte final (LEGACY — archivado)
@@ -185,29 +190,9 @@ Rscript scripts/16_external_validation.R
 #         results/tables/pub/supp/TabS2_survival_genes.tsv
 ```
 
-### Fase 5b: Metilación de promotores TCGA-HNSC (R, OE4)
-
-Reutiliza el caché TCGA creado por script 16. Agrega evidencia mecanística epigenética
-(DNMT1↑ → hipermetilación supresores → burden score ~ OS).
-
-```bash
-conda activate omics-R
-
-# Prerequisito (instalar una vez en omics-R):
-# BiocManager::install("IlluminaHumanMethylation450kanno.ilmn12.hg19")
-
-# 19 - DMPs tumor vs normal + correlación DNMT1 + burden score OS
-#      PRIMERA EJECUCION: descarga ~200 MB desde GDC (450K harmonized)
-#      Cache: data/intermediate/tcga/tcga_hnsc_meth450_se.rds
-#      Requiere: scripts/16 ejecutado antes (usa tcga_hnsc_se.rds para RNA)
-Rscript scripts/19_methylation_tcga.R
-# Output: results/figures/pub/main/OE4_FigA_dmp_volcano.{pdf,png}
-#         results/figures/pub/main/OE4_FigB_dnmt1_meth_expr.{pdf,png}
-#         results/figures/pub/main/OE4_FigC_survival_burden.{pdf,png}
-#         results/tables/pub/main/OE4_Tab1_dmps_promoter.tsv
-#         results/tables/pub/main/OE4_Tab2_meth_expr_corr.tsv
-#         results/tables/pub/supp/OE4_TabS_survival_burden.tsv
-```
+> **Nota:** la antigua "Fase 5b" (metilación TCGA-HNSC, script 19 / OE4) fue
+> **eliminada y excluida del manuscrito**. El script `19_methylation_tcga.R` y sus
+> outputs `OE4_*` ya no existen (recuperables del historial git, commit `f3ff717`).
 
 ### Fase 6: Outputs de publicación (R)
 
@@ -224,36 +209,35 @@ Rscript scripts/19_methylation_tcga.R
 ```bash
 conda activate omics-R
 
-# 17 - Paneles de figuras (PDF + PNG 300 DPI). Cachea objetos de panel en
-#      results/figures/pub/.objects/ para el ensamblado multipanel.
+# 17 - Paneles Fig2/3/4 (PDF + PNG 300 DPI). Cachea objetos en results/figures/pub/.objects/
 Rscript scripts/17_pub_figures.R
-# Output: results/figures/pub/main/{Fig2A_volcano, Fig2B_heatmap_topDE,
-#                                   Fig3A_funnel, Fig3B_drug_class, Fig3C_upset_overlap,
-#                                   Fig4A_ppi_network, Fig4B_module_barplot}.{pdf,png}
-#         results/figures/pub/supp/FigS_drug_phase_dist.{pdf,png}   (fase clínica → supp)
 
-# 17c - Panel GSEA Hallmarks (todos los gene sets FDR<0.05; ordenados por π-statistic).
-#       CORRER DESPUÉS de 17 (sobrescribe Fig2C con la versión canónica) y cachea su objeto.
+# 17b - Paneles Figura 5 (priorización hub-céntrica). Lee 10_all_candidates_scored.
+Rscript scripts/17b_fig5_panels.R
+# Output (cache): Fig5A_shortlist, Fig5B_tpdv_space (.rds + PDF/PNG)
+
+# 17c - Panel GSEA Hallmarks (ordenado por π-statistic). CORRER DESPUÉS de 17.
 Rscript scripts/17c_pub_figD_gsea.R
-# Output: results/figures/pub/main/Fig2C_hallmarks_gsea.{pdf,png}
 
-# 17d - Ensamblado multipanel Figura 2 (lee objetos cacheados; NO re-grafica).
-#       CORRER DESPUÉS de 17 y 17c. Layout: A volcano | B GSEA · C heatmap (ancho completo).
+# 17d/17e/17f/17g - Ensamblado multipanel (leen objetos cacheados; NO re-grafican).
+#   17d→Fig2 (volcano|GSEA·heatmap) · 17e→Fig3 (drug landscape) ·
+#   17f→Fig4 (red·enrichment·hubs) · 17g→Fig5 (A shortlist por módulo | B espacio TP×DV)
 Rscript scripts/17d_fig2_multipanel.R
-# Output: results/figures/pub/main/Fig2_multipanel.{tif,pdf,png}   (TIFF 600 DPI LZW)
-
-# 17e - Ensamblado multipanel Figura 3 (drug landscape; lee objetos cacheados).
-#       CORRER DESPUÉS de 17. Layout: A funnel | B clase · C UpSet (ancho completo).
-#       Los 3 paneles describen el mismo set de 458 (multi-source = ≥2 BD o aprobado).
 Rscript scripts/17e_fig3_multipanel.R
-# Output: results/figures/pub/main/Fig3_multipanel.{tif,pdf,png}   (TIFF 600 DPI LZW)
+Rscript scripts/17f_fig4_multipanel.R
+Rscript scripts/17g_fig5_multipanel.R
+# Output: results/figures/pub/main/Fig{2,3,4,5}_multipanel.{tif,pdf,png}  (TIFF 600 DPI LZW)
+
+# 17h - Figura SUPLEMENTARIA de robustez (heatmap estabilidad × 6 configs + LOD).
+Rscript scripts/17h_figS_robustness.R
+# Output: results/figures/pub/supp/FigS_robustness.{tif,pdf,png}
 
 # 18 - Tablas de publicación (TSV)
 Rscript scripts/18_pub_tables.R
 # Output: results/tables/pub/main/{Tab1_resumen_DE, Tab2_top_proteinas,
-#                                  Tab3_top_candidatos, Tab4_EGFR_LOD_stable,
-#                                  Tab5_noEGFR_LOD_stable}.tsv
-#         results/tables/pub/supp/TabS1_candidatos_extendidos_noEGFR.tsv
+#                                  Tab3_top_candidatos, Tab4_EGFR_validation,
+#                                  Tab5_novel_candidates_by_module, Tab6_concordance_summary}.tsv
+#         results/tables/pub/supp/TabS1_extended_candidates_by_module.tsv
 ```
 
 ---
@@ -261,23 +245,21 @@ Rscript scripts/18_pub_tables.R
 ## Dependencias entre scripts
 
 ```text
-01 → 02 → 03 (pathway enrichment, produce s_pathway para 10 y panel GSEA para 17c)
+01 → 02 → 03 (pathway enrichment; panel GSEA para 17c)
        ↓
       04, 05, 06, 07 (paralelos)
-               → 08 → 09 → 10 → 15 → 16 (validacion TCGA, Fig6)
-                                     ↓         ↓
-                                    17 → 17c → 17d (multipanel Fig2)    19 (metilacion; requiere 16)
-                                         └→ 17e (multipanel Fig3)
-                                    18
+               → 08 → 09 → 10 → 15 (robustez) → 16 (validacion TCGA, Fig6)
+                          (10 anchor usa aristas curadas ChEMBL/OpenTargets de 08;
+                           centralidad/módulos de 09)
 
-Figuras: 17 (paneles + cachea objetos) → 17c (GSEA, sobrescribe Fig2C)
-         → 17d (ensambla Fig2 desde cache) · 17e (ensambla Fig3 desde cache)
-Todos sourcean scripts/_fig_style.R (estilo único: fuente de ejes y orientación
-horizontal uniformes; sin títulos embebidos).
+Figuras (todas sourcean scripts/_fig_style.R; sin títulos embebidos):
+  17  (paneles Fig2/3/4 + cachea objetos)   17b (paneles Fig5, lee 10)
+  17c (GSEA, sobrescribe Fig2C)
+  17d→Fig2 · 17e→Fig3 · 17f→Fig4 · 17g→Fig5   (ensamblan desde cache)
+  17h→FigS_robustness (suplementaria, lee tablas 15)
+  18  (tablas pub)
 
-Opcional (independientes, no bloquean el pipeline):
-10 → 11 (ClinicalTrials/PubMed para top candidatos)
-10 → 12 (COSMIC/driver overlap)
+Opcional (archivado, no bloquea el pipeline): scripts/archive/{11,12,13}
 ```
 
 ---
@@ -286,12 +268,14 @@ Opcional (independientes, no bloquean el pipeline):
 
 | Archivo | Descripción |
 | --- | --- |
-| `results/figures/pub/main/` | Figuras de publicación: paneles (PDF + PNG 300 DPI) + multipaneles `Fig2_multipanel.tif`, `Fig3_multipanel.tif` (TIFF 600 DPI) |
-| `results/figures/pub/.objects/` | Caché de objetos de panel (`.rds`) — insumo de `17d`, regenerable, gitignored |
-| `results/tables/pub/main/` | Tablas de publicación Tab1–Tab6 (TSV) |
-| `results/tables/pub/supp/OE2_TabS1_*.tsv` | Tabla suplementaria |
-| `results/tables/15_lod_stability.tsv` | Panel final: 32 candidatos LOD-stable |
-| `results/tables/10_all_candidates_scored.tsv` | Todos los candidatos con scores |
+| `results/figures/pub/main/` | Figuras de publicación: paneles (PDF + PNG 300 DPI) + multipaneles `Fig{2,3,4,5}_multipanel.tif` (TIFF 600 DPI) |
+| `results/figures/pub/supp/FigS_robustness.{tif,pdf,png}` | Suplementaria: estabilidad ranking × 6 configs + LOD |
+| `results/figures/pub/.objects/` | Caché de objetos de panel (`.rds`) — insumo de los `17d–17g`, regenerable, gitignored |
+| `results/tables/pub/main/` | Tablas de publicación Tab1–Tab6 (TSV); Tab4=eje EGFR, Tab5=candidatos por módulo |
+| `results/tables/pub/supp/TabS1_extended_candidates_by_module.tsv` | Lista extendida de hubs-ancla no-EGFR |
+| `results/tables/10_module_hub_candidates.tsv` | Resumen módulo→hub→fármaco (priorización) |
+| `results/tables/10_all_candidates_scored.tsv` | Todos los candidatos con scores (TP/DV/tier/módulo) |
+| `results/tables/15_lod_stability.tsv` | Estabilidad leave-one-database (anotación de robustez) |
 | `results/tables/network/09_network_giant.graphml` | Red PPI para Cytoscape |
 
 ---
@@ -306,11 +290,8 @@ Opcional (independientes, no bloquean el pipeline):
 | Script 06: error `Cannot query field 'knownDrugs'` | Verificar que se usa la versión actualizada del script (usa `drugAndClinicalCandidates`, no `knownDrugs`). |
 | Script 17: columna no encontrada | Verificar que scripts 01, 08, 09, 15 se ejecutaron sin errores antes de 17. |
 | Script 18: columna no encontrada | Verificar que scripts 01, 08, 10, 15 se ejecutaron sin errores antes de 18. |
-| Script 17d: `Faltan objetos de panel` | Correr `17` y `17c` antes (generan la caché `.objects/*.rds` que 17d ensambla). |
-| Heatmap colapsado/leyenda cortada en multipanel | Ajustar `width/height` del `grid.grabExpr()` y posición de leyendas en `17d` (el heatmap requiere ancho completo). |
-| Script 19: `platform` param error en GDCquery | Intentar sin `platform =` si la versión de TCGAbiolinks no lo acepta. |
-| Script 19: Sección 4 omitida | `tcga_hnsc_se.rds` no existe; ejecutar script 16 primero. |
-| Script 19: paquete anotación no encontrado | `BiocManager::install("IlluminaHumanMethylation450kanno.ilmn12.hg19")` en omics-R. |
+| Script 17d–17g: `Faltan objetos de panel` | Correr `17` (Fig2/3/4) o `17b` (Fig5) y `17c` antes (generan la caché `.objects/*.rds`). |
+| Heatmap colapsado/leyenda cortada en multipanel | Ajustar `width/height` del `grid.grabExpr()` y posición de leyendas en el ensamblador (el heatmap requiere ancho completo). |
 
 ---
 
@@ -321,7 +302,6 @@ Opcional (independientes, no bloquean el pipeline):
 - [ ] `config/analysis_params.yaml` revisado
 - [ ] Scripts 01–03, 04–10, 15 ejecutados en orden sin errores
 - [ ] Script 16 ejecutado (validación TCGA; requiere internet en primera ejecución)
-- [ ] Script 19 ejecutado (metilación OE4; requiere script 16 y paquete de anotación 450K)
-- [ ] Scripts 17 → 17c → 17d → 17e ejecutados en orden (paneles → GSEA → multipanel Fig2 → multipanel Fig3) y 18 (tablas)
+- [ ] Figuras: 17 + 17b (paneles) → 17c (GSEA) → 17d/17e/17f/17g (multipaneles Fig2–5) → 17h (FigS robustez) y 18 (tablas)
 - [ ] Scripts 11, 12 ejecutados si se necesita evidencia clínica/COSMIC (suplementario)
 - [ ] Logs verificados en `logs/`

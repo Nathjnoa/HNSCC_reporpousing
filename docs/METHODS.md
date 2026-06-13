@@ -75,25 +75,46 @@ named by their top GO BP term. Druggable hubs = hubs intersecting the drug-targe
 
 ---
 
-## Phase 4: Multi-Criteria Scoring (Script 10)
+## Phase 4: Network-Anchored Multi-Criteria Prioritization (Script 10)
 
-Six-dimension composite score:
-- |log2FC| (w=0.2)
-- Significance (w=0.15)
-- Clinical phase (w=0.2)
-- L2S2 reversal (w=0.1)
-- Pathway relevance (w=0.15): fraction of drug DE targets in the pooled GSEA leading-edge (GO BP + KEGG + Reactome)
-- Network centrality (w=0.15)
+Each candidate is scored with a two-factor composite that anchors prioritization in the
+PPI-network structure (network → module → druggable hub → drug):
 
-Top 20 selected with diversity filter (max 3 per primary target gene).
+`composite = 0.60 · TargetPriority + 0.40 · DrugViability`
+
+- **TargetPriority** (target-level) = 0.55 · network centrality (mean of min-max–normalized
+  degree, betweenness and eigenvector centrality) + 0.45 · directional differential
+  abundance of the target (π = sign(log2FC)·|log2FC|·−log₁₀FDR, directional min-max;
+  rewards inhibiting up-regulated targets, so down-regulated targets score low).
+- **DrugViability** (drug-level; breaks ties among drugs sharing a target) = 0.40 · L2S2
+  transcriptomic reversal + 0.40 · regulatory class (A=1.0/B=0.75/C=0.50/D=0.25) +
+  0.20 · evidence breadth (n databases / 4).
+
+Each drug is attributed to its **most-central credible target**; a drug→target edge is
+credible only if curated by **ChEMBL or OpenTargets** (DGIdb-only edges are excluded as
+attribution anchors because DGIdb interaction scores are promiscuous and do not reliably
+reflect mechanism of action). A target that is a network hub (top-decile degree) defines a
+`hub_central` tier; a credible non-hub network target defines a `peripheral_diff` tier.
+Anchor genes lacking antitumoral plausibility or reflecting sample contamination
+(e.g. EML4 — an ALK fusion partner; hemoglobin/plasma proteins) and drugs without
+antitumoral mechanism are excluded via a curated config list.
+
+*(The earlier additive five-dimension score — |log2FC|/significance/clinical/pathway/
+network — was superseded: saturated dimensions (clinical phase, pathway fraction) and a
+dead evidence dimension were removed, and target- vs drug-level signals were separated to
+break ties among drugs sharing the same target, e.g. the EGFR antibody/TKI cluster.)*
 
 ---
 
-## Phase 5: Sensitivity & LOD Stability (Script 15)
+## Phase 5: Robustness (Script 15)
 
-Weight-perturbation sensitivity analysis and limit-of-detection (LOD) stability
-of the candidate ranking; candidates stable across LOD scenarios define the final
-panel (`15_lod_stability.tsv`).
+Weight-perturbation sensitivity (six weight configurations varying the target/drug balance
+and the TP/DV sub-weights) and leave-one-database (LOD) stability of the candidate ranking
+(`15_sensitivity_ranks.tsv`, `15_lod_stability.tsv`). A **permutation null was not used**:
+for an evidence-aggregation prioritization score (not a de novo discovery statistic),
+validity rests on positive-control recovery (recovery of approved EGFR-axis drugs),
+robustness to weighting/database choices, and external validation (Phase 6) — not on a
+permutation p-value. The robustness heatmap is a supplementary figure (Script 17h).
 
 ---
 
@@ -104,7 +125,7 @@ tumor-vs-normal log2FC correlation between the proteomic cohort and TCGA-HNSC.
 
 ---
 
-## Figure Generation (Scripts 17, 17c, 17d)
+## Figure Generation (Scripts 17, 17b, 17c, 17d–17h)
 
 Publication figures were produced in R (ggplot2 v3.x, ComplexHeatmap v2.22.0) under a single centralized style module
 (`scripts/_fig_style.R`) sourced by every figure script, ensuring consistent
@@ -137,11 +158,16 @@ hubs (36/99) and prioritized targets (e.g. DNMT1), so colour denotes mechanistic
 focus rather than target exclusivity. A stress layout with up-weighted intra-module
 edges separates the communities; panel A is the network, panel B the per-module GO
 BP enrichment (one representative term per module), panel C the druggable-hub count
-per module. Axis fonts and colorblind-safe palette are inherited uniformly from the
-shared style module; axis tick labels are kept horizontal (long categorical labels
-use horizontal bars rather than rotated text). Single-panel figures and supplementary
-figures (clinical-phase distribution, selection funnel) are exported likewise.
-Scripts 17d/17e/17f assemble the Figure 2/3/4 composites.
+per module. Figure 5 (prioritization; Scripts 17b panels + 17g assembly) presents the
+network-anchored shortlist: panel A is the per-module candidate shortlist with each bar
+decomposed into its TargetPriority and DrugViability contributions and faceted by tier
+(network-central hub vs peripheral differentially-abundant), panel B the two-factor
+TargetPriority × DrugViability space with iso-composite reference lines. Axis fonts and
+colorblind-safe palette are inherited uniformly from the shared style module; axis tick
+labels are kept horizontal (long categorical labels use horizontal bars rather than
+rotated text). Single-panel and supplementary figures (clinical-phase distribution,
+selection funnel, and the weight-sensitivity/LOD robustness heatmap — Script 17h) are
+exported likewise. Scripts 17d/17e/17f/17g assemble the Figure 2/3/4/5 composites.
 
 ---
 

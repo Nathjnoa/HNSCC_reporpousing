@@ -1,0 +1,37 @@
+Fármaco	Tier	Módulo funcional	Hub / diana	Fase clínica máx.	Composite score	TP	DV	N fuentes	LOD-stable	Robustez pesos
+Metformin	Hub central de red	Oxidative phosphorylation	NDUFS2	Aprobado (Fase IV)	0.591	0.502	0.725	3	Sí	6/6
+Carfilzomib	Hub central de red	Ubiquitin-dependent protein ca	PSMA2	Aprobado (Fase IV)	0.458	0.389	0.561	3	No	3/6
+Mt-3724	Hub central de red	Translation	RPS11	Fase II	0.368	0.48	0.2	2	No	0/6
+Andecaliximab	Hub central de red	Defense response	MMP9	Fase III	0.359	0.431	0.25	3	No	0/6
+Emricasan	Hub central de red	Regulation of anatomical struc	CASP3	Fase II	0.336	0.426	0.2	2	No	0/6
+Abituzumab	Hub central de red	Multicellular organism develop	ITGB6	Fase II	0.324	0.407	0.2	2	No	0/6
+Verdiperstat	Hub central de red	Defense response	MPO	Fase III	0.318	0.364	0.25	3	No	0/6
+Istaroxime	Hub central de red	Muscle contraction	ATP2A2	Fase II	0.253	0.288	0.2	2	No	0/6
+Azacitidine	Periférico diferencial	Chromatin remodeling	DNMT1	Aprobado (Fase IV)	0.494	0.359	0.695	4	No	4/6
+Pentoxifylline	Periférico diferencial	Small molecule metabolic proce	PDE6D	Aprobado (Fase IV)	0.454	0.316	0.661	3	No	3/6
+Valproic Acid	Periférico diferencial	Carboxylic acid metabolic proc	ALDH5A1	Aprobado (Fase IV)	0.438	0.244	0.73	4	No	2/6
+Acetazolamide	Periférico diferencial	Regulation of anatomical struc	CA2	Aprobado (Fase IV)	0.422	0.249	0.682	4	No	2/6
+Tranylcypromine	Periférico diferencial	Small molecule metabolic proce	MAOA	Aprobado (Fase IV)	0.421	0.258	0.667	3	No	2/6
+Doxycycline	Periférico diferencial	Defense response	MMP8	Aprobado (Fase IV)	0.418	0.338	0.537	3	No	2/6
+Thioguanine	Periférico diferencial	Small molecule metabolic proce	IMPDH2	Aprobado (Fase IV)	0.41	0.274	0.612	3	No	1/6
+Digoxin	Periférico diferencial	Muscle contraction	ATP1A1	Aprobado (Fase IV)	0.396	0.267	0.591	3	No	1/6
+Cedazuridine	Periférico diferencial	Small molecule metabolic proce	CDA	Aprobado (Fase IV)	0.38	0.333	0.45	3	No	0/6
+Disulfiram	Periférico diferencial	Small molecule metabolic proce	ALDH2	Aprobado (Fase IV)	0.368	0.246	0.551	4	No	0/6
+Mitapivat	Periférico diferencial	Carbohydrate catabolic process	PKLR	Aprobado (Fase IV)	0.352	0.353	0.35	3	No	0/6
+Forodesine	Periférico diferencial	Small molecule metabolic proce	PNP	Fase II	0.308	0.346	0.25	3	No	0/6
+Perhexiline	Periférico diferencial	Carboxylic acid metabolic proc	CPT2	Aprobado (Fase IV)	0.297	0.262	0.35	3	No	0/6
+Iptacopan	Periférico diferencial	Defense response	CFB	Aprobado (Fase IV)	0.293	0.256	0.35	3	No	0/6
+Beloranib	Periférico diferencial	Translation	METAP2	Fase III	0.289	0.316	0.25	3	No	0/6
+Plitidepsin	Periférico diferencial	Translation	EEF1A2	Aprobado (Fase IV)	0.288	0.18	0.45	3	No	0/6
+Petesicatib	Periférico diferencial	Defense response	CTSS	Fase II	0.287	0.346	0.2	2	No	0/6
+Volanesorsen	Periférico diferencial	Defense response	APOC3	Aprobado (Fase IV)	0.281	0.268	0.3	2	No	0/6
+Tosedostat	Periférico diferencial	Carbohydrate catabolic process	LAP3	Fase II	0.28	0.334	0.2	2	No	0/6
+Apx-3330	Periférico diferencial	Carbohydrate catabolic process	APEX1	Fase II	0.278	0.329	0.2	2	No	0/6
+Drotrecogin Alfa (Activated)	Periférico diferencial	Defense response	F5	Aprobado (Fase IV)	0.256	0.194	0.35	3	No	0/6
+Custirsen	Periférico diferencial	Defense response	CLU	Fase III	0.25	0.284	0.2	2	No	0/6
+Atinumab	Periférico diferencial	Defense response	RTN4	Fase I	0.242	0.271	0.2	2	No	0/6
+Dezamizumab	Periférico diferencial	Defense response	APCS	Fase II	0.239	0.265	0.2	2	No	0/6
+Fulacimstat	Periférico diferencial	Defense response	CMA1	Fase II	0.236	0.26	0.2	2	No	0/6
+Davanat	Periférico diferencial	Multicellular organism develop	LGALS1	Fase I	0.231	0.251	0.2	2	No	0/6
+Gsk-2586881	Periférico diferencial	Defense response	AGT	Fase II	0.219	0.231	0.2	2	No	0/6
+Vepalimomab	Periférico diferencial	Small molecule metabolic proce	AOC3	Fase I	0.175	0.159	0.2	2	No	0/6
