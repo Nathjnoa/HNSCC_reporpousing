@@ -2,18 +2,18 @@
 # =============================================================================
 # 16_external_validation.R
 # =============================================================================
-# Validación externa de los hallazgos proteómicos HNSCC usando TCGA-HNSC.
+# Validación externa en dos cohortes independientes (Fig6, 3 paneles):
 #
-# Panel A — Concordancia global: DIA proteomics log2FC vs TCGA-HNSC RNA-seq
-#           log2FC (tumor vs normal; DESeq2, n=43 pares). Valida el INPUT del
-#           pipeline: la desregulación proteómica es reproducible a nivel
-#           transcriptómico en cohorte independiente. 4 genes-pilar etiquetados
-#           (EGFR, PSMB10, DNMT1, NDUFS3) representan los módulos de Fig4/Fig5.
+# Panel A — CPTAC-HNSCC concordancia: DIA proteomics log2FC vs TMT proteomics
+#           CPTAC-HNSC (Huang et al. 2021, Cancer Cell; limma pareado, n=66 pares).
+#           Validación PROTEOMA-vs-PROTEOMA: mismo nivel ómico, cohorte distinta.
 #
-# Panel B — Dianas priorizadas en TCGA: para las anclas del shortlist (Fig5),
-#           log2FC + FDR en TCGA + concordancia con el proteoma. Cierra el lazo
-#           Fig5 → validación externa: las predicciones se sostienen en una
-#           cohorte independiente. Coloreado por pilar (PILLAR_COLS).
+# Panel B — TCGA-HNSC concordancia: DIA proteomics log2FC vs RNA-seq log2FC
+#           (DESeq2, n=520 tumor / 44 normal). Validación cruzada multi-ómica.
+#
+# Panel C — Dianas priorizadas en ambas cohortes: para las 14 anclas del shortlist
+#           (Fig5), log2FC + FDR en CPTAC (izq.) y TCGA (centro) + composite score (der.).
+#           Cierra el lazo Fig5 → validación en dos cohortes independientes.
 #
 # FigS (suplementario) — Supervivencia OS: KM por expresión (mediana) de los
 #           4 genes-pilar en TCGA-HNSC. Análisis exploratorio/contextual;
@@ -22,8 +22,9 @@
 #           pronósticos de OS.
 #
 # Outputs principales (results/figures/pub/main/):
-#   Fig6A_concordance.{pdf,png}       — panel A
-#   Fig6B_targets_tcga.{pdf,png}      — panel B (nuevo)
+#   Fig6A_cptac_concordance.{pdf,png}  — panel A (CPTAC, nuevo)
+#   Fig6B_tcga_concordance.{pdf,png}   — panel B (TCGA, antes Fig6A)
+#   Fig6C_targets_unified.{pdf,png}    — panel C (dianas, antes Fig6B)
 #   Objetos cacheados en .objects/
 #
 # Outputs suplementarios (results/figures/pub/supp/):
@@ -212,6 +213,8 @@ if (file.exists(cache_se) && file.exists(cache_cli)) {
 
 cat("Dimensiones SE:", dim(se), "\n")
 cat("Muestras TCGA:", ncol(se), "\n")
+n_tcga_tumor  <- sum(substr(colnames(se), 14, 15) == "01")
+n_tcga_normal <- sum(substr(colnames(se), 14, 15) == "11")
 
 # =============================================================================
 # SECCIÓN 3: DE ANALYSIS TCGA (DESeq2, con cache)
@@ -307,9 +310,112 @@ write_tsv(summary_tbl, "results/tables/pub/main/Tab6_concordance_summary.tsv")
 cat("Tabla concordancia guardada.\n")
 
 # =============================================================================
-# SECCIÓN 5: PANEL A — Scatter concordancia (re-tematizado)
+# SECCIÓN 4.5: CPTAC — Carga DE y concordancia global
 # =============================================================================
-cat("\n--- Generando Panel A (concordancia global) ---\n")
+cat("\n--- Cargando DE CPTAC (output de 16c_cptac_de.R) ---\n")
+
+cptac_de_path <- "data/intermediate/cptac/16c_cptac_hnscc_de.tsv"
+if (!file.exists(cptac_de_path))
+  stop("Falta el DE de CPTAC. Ejecutar antes:\n",
+       "  python scripts/16b_cptac_fetch.py\n",
+       "  Rscript scripts/16c_cptac_de.R")
+
+de_cptac <- read_tsv(cptac_de_path, show_col_types = FALSE)
+cat(sprintf("  Genes CPTAC: %d\n", nrow(de_cptac)))
+
+# Concordancia global CPTAC
+conc_cptac <- de_our_genes |>
+  inner_join(de_cptac |> select(gene_symbol, logFC_cptac, adjP_cptac),
+             by = "gene_symbol") |>
+  filter(!is.na(logFC_cptac), !is.na(logFC_our)) |>
+  mutate(
+    concord_class = case_when(
+      logFC_our > 0 & logFC_cptac > 0 ~ "Concordant up",
+      logFC_our < 0 & logFC_cptac < 0 ~ "Concordant down",
+      TRUE                             ~ "Discordant"
+    ),
+    is_label = gene_symbol %in% LABEL_GENES,
+    pillar   = LABEL_PILLAR[gene_symbol]
+  )
+
+pearson_r_cptac <- cor(conc_cptac$logFC_our, conc_cptac$logFC_cptac)
+pearson_p_cptac <- cor.test(conc_cptac$logFC_our, conc_cptac$logFC_cptac)$p.value
+pct_concord_cptac <- mean(conc_cptac$concord_class != "Discordant") * 100
+
+cat(sprintf("  Genes solapantes CPTAC: %d\n", nrow(conc_cptac)))
+cat(sprintf("  Pearson r (CPTAC):      %.3f  (p = %.2e)\n",
+            pearson_r_cptac, pearson_p_cptac))
+cat(sprintf("  Concordancia dir.:      %.1f%%\n", pct_concord_cptac))
+
+# Añadir stats CPTAC a la tabla de concordancia
+summary_tbl_cptac <- tibble(
+  metric = c("CPTAC N genes overlap", "CPTAC Pearson r", "CPTAC p-value (Pearson)",
+             "CPTAC % concordant direction"),
+  value  = c(nrow(conc_cptac), round(pearson_r_cptac, 3),
+             signif(pearson_p_cptac, 3), round(pct_concord_cptac, 1))
+)
+write_tsv(bind_rows(summary_tbl, summary_tbl_cptac),
+          "results/tables/pub/main/Tab6_concordance_summary.tsv")
+
+# =============================================================================
+# SECCIÓN 4.6: PANEL A — Scatter CPTAC (proteoma vs proteoma)
+# =============================================================================
+cat("\n--- Generando Panel A (concordancia CPTAC, proteoma vs proteoma) ---\n")
+
+p_cptac_concord <- ggplot(conc_cptac, aes(x = logFC_our, y = logFC_cptac)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey70", linewidth = 0.3) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey70", linewidth = 0.3) +
+
+  geom_point(data = filter(conc_cptac, !is_label),
+             aes(color = concord_class),
+             size = 0.9, alpha = 0.55, shape = 16) +
+
+  geom_point(data = filter(conc_cptac, is_label),
+             aes(fill = pillar),
+             size = 2.8, shape = 21, colour = "white", stroke = 0.6) +
+
+  geom_label_repel(
+    data          = filter(conc_cptac, is_label),
+    aes(label = gene_symbol, fill = pillar),
+    color         = "white",
+    size          = PRESETS$double_col$tick / .pt,
+    fontface      = "bold",
+    box.padding   = 0.4,
+    label.size    = 0,
+    label.padding = unit(0.12, "lines"),
+    show.legend   = FALSE
+  ) +
+
+  geom_smooth(method = "lm", se = TRUE, color = "grey30",
+              linewidth = 0.45, alpha = 0.10) +
+
+  annotate("text",
+    x     = min(conc_cptac$logFC_our) * 0.9,
+    y     = max(conc_cptac$logFC_cptac) * 0.92,
+    label = sprintf("r = %.3f\nn = %d", pearson_r_cptac, nrow(conc_cptac)),
+    hjust = 0, size = PRESETS$double_col$tick / .pt, color = "grey20"
+  ) +
+
+  scale_color_manual(values = CONCORD_COLS, name = NULL,
+                     guide = guide_legend(override.aes = list(size = 2, alpha = 0.9))) +
+  scale_fill_manual(values = PILLAR_COLS, name = "Module",
+                    guide = guide_legend(
+                      override.aes = list(size = 2.5, colour = "grey40", stroke = 0.3))) +
+
+  labs(
+    x = expression("log"[2]*"FC  (DIA proteomics)"),
+    y = expression("log"[2]*"FC  (CPTAC-HNSC)")
+  ) +
+  theme_pub("double_col") +
+  theme(legend.position = "right")
+
+save_pub(p_cptac_concord, "Fig6A_cptac_concordance")
+save_panel_obj(p_cptac_concord, "Fig6A_cptac_concordance")
+
+# =============================================================================
+# SECCIÓN 5: PANEL B — Scatter TCGA (proteoma vs RNA-seq)
+# =============================================================================
+cat("\n--- Generando Panel B (concordancia TCGA, proteoma vs RNA) ---\n")
 
 p_concord <- ggplot(conc, aes(x = logFC_our, y = logFC_tcga)) +
 
@@ -369,96 +475,118 @@ p_concord <- ggplot(conc, aes(x = logFC_our, y = logFC_tcga)) +
   theme_pub("double_col") +
   theme(legend.position = "right")
 
-save_pub(p_concord, "Fig6A_concordance")
-save_panel_obj(p_concord, "Fig6A_concordance")
+save_pub(p_concord, "Fig6B_tcga_concordance")
+save_panel_obj(p_concord, "Fig6B_tcga_concordance")
 
 # =============================================================================
-# SECCIÓN 6: PANEL B — Dianas priorizadas en TCGA
+# SECCIÓN 6: PANEL C — Dianas priorizadas en CPTAC + TCGA (unificado)
 # =============================================================================
-cat("\n--- Generando Panel B (dianas priorizadas en TCGA) ---\n")
+cat("\n--- Generando Panel C (dianas en CPTAC + TCGA, unificado) ---\n")
 
-# Unir shortlist con resultados TCGA
-# Nota: S4Vectors enmascara dplyr::rename → usar select() con renaming o dplyr::rename()
-de_tcga_j    <- de_tcga    |> dplyr::select(target_gene = gene_symbol,
-                                              logFC_tcga_target = logFC_tcga,
-                                              adjP_tcga_target  = adjP_tcga)
-de_our_genes_j <- de_our_genes |> dplyr::select(target_gene = gene_symbol,
-                                                  logFC_our_target = logFC_our)
-targets_tcga <- shortlist |>
-  left_join(de_tcga_j,    by = c("primary_target" = "target_gene")) |>
-  left_join(de_our_genes_j, by = c("primary_target" = "target_gene")) |>
-  mutate(
-    # concordancia: proteoma vs transcriptoma de la diana específica
-    concord_target = case_when(
-      !is.na(logFC_our_target) & !is.na(logFC_tcga_target) &
-        sign(logFC_our_target) == sign(logFC_tcga_target) ~ TRUE,
-      TRUE ~ FALSE
-    ),
-    sig_tcga       = !is.na(adjP_tcga_target) & adjP_tcga_target < 0.05,
-    sig_label      = case_when(
-      !is.na(adjP_tcga_target) & adjP_tcga_target < 0.001 ~ "***",
-      !is.na(adjP_tcga_target) & adjP_tcga_target < 0.01  ~ "**",
-      !is.na(adjP_tcga_target) & adjP_tcga_target < 0.05  ~ "*",
-      TRUE ~ "ns"
-    ),
-    # Etiqueta del punto: fármaco top (drug_title) + diana
-    drug_label  = sprintf("%s\n(%s)", drug_title, primary_target),
-    drug_label  = reorder(drug_label, composite_score),
-    pillar      = factor(pillar, levels = c("EGFR","Proteasome","Epigenetic","OXPHOS","Other"))
-  )
+# ── Helper: construye data frame de dianas para una fuente de validación ──────
+make_targets <- function(shortlist, de_source, lfc_col, adjp_col, drug_label_fct) {
+  de_j <- de_source |>
+    dplyr::select(target_gene  = gene_symbol,
+                  lfc_val      = all_of(lfc_col),
+                  adjp_val     = all_of(adjp_col))
+  shortlist |>
+    left_join(de_j, by = c("primary_target" = "target_gene")) |>
+    left_join(de_our_genes |> dplyr::select(target_gene = gene_symbol,
+                                             logFC_our_target = logFC_our),
+              by = c("primary_target" = "target_gene")) |>
+    mutate(
+      concord_target = case_when(
+        !is.na(logFC_our_target) & !is.na(lfc_val) &
+          sign(logFC_our_target) == sign(lfc_val) ~ TRUE,
+        TRUE ~ FALSE
+      ),
+      sig_label = case_when(
+        !is.na(adjp_val) & adjp_val < 0.001 ~ "***",
+        !is.na(adjp_val) & adjp_val < 0.01  ~ "**",
+        !is.na(adjp_val) & adjp_val < 0.05  ~ "*",
+        TRUE ~ "ns"
+      ),
+      drug_label = drug_label_fct,
+      pillar     = factor(pillar, levels = c("EGFR","Proteasome","Epigenetic","OXPHOS","Other"))
+    )
+}
 
-# Reporte al log
-n_found     <- sum(!is.na(targets_tcga$logFC_tcga_target))
-n_concord   <- sum(targets_tcga$concord_target, na.rm = TRUE)
-n_sig       <- sum(targets_tcga$sig_tcga, na.rm = TRUE)
-cat(sprintf("\n=== Checkpoint Fig6B ===\n"))
-cat(sprintf("Anclas en shortlist:          %d\n", nrow(targets_tcga)))
-cat(sprintf("Con datos en TCGA RNA-seq:    %d / %d\n", n_found, nrow(targets_tcga)))
-cat(sprintf("Concordantes prot. vs RNA:    %d / %d  (%.0f%%)\n",
-            n_concord, n_found, 100 * n_concord / max(n_found, 1)))
-cat(sprintf("Significativas (FDR<0.05):    %d / %d\n", n_sig, n_found))
-cat("Por pilar:\n")
-print(targets_tcga |>
-  dplyr::count(pillar, concord_target, sig_tcga) |>
-  arrange(pillar))
+# Etiqueta ordenada (definida una sola vez, compartida por los dos lollipops)
+PILLAR_PLOT <- c(PILLAR_COLS, Other = "#AAAAAA")
+drug_label_fct <- reorder(
+  sprintf("%s\n(%s)", shortlist$drug_title, shortlist$primary_target),
+  shortlist$composite_score
+)
+
+targets_cptac <- make_targets(shortlist, de_cptac,
+                               "logFC_cptac", "adjP_cptac", drug_label_fct)
+targets_tcga  <- make_targets(
+  shortlist,
+  de_tcga |> dplyr::select(gene_symbol, logFC_cptac = logFC_tcga,
+                            adjP_cptac = adjP_tcga),
+  "logFC_cptac", "adjP_cptac", drug_label_fct
+) |> dplyr::rename(logFC_tcga_target = lfc_val, adjP_tcga_target = adjp_val)
+# Renombrar también en cptac para coherencia
+targets_cptac <- targets_cptac |>
+  dplyr::rename(logFC_cptac_target = lfc_val, adjP_cptac_target = adjp_val)
+
+# Reporte
+cat(sprintf("\n=== Checkpoint Panel C ===\n"))
+for (nm in c("CPTAC", "TCGA")) {
+  tgt  <- if (nm == "CPTAC") targets_cptac else targets_tcga
+  lfc  <- if (nm == "CPTAC") tgt$logFC_cptac_target else tgt$logFC_tcga_target
+  adjp <- if (nm == "CPTAC") tgt$adjP_cptac_target  else tgt$adjP_tcga_target
+  cat(sprintf("  %s — con datos: %d/%d  concordantes: %d  FDR<0.05: %d\n",
+              nm, sum(!is.na(lfc)), N_SHORTLIST,
+              sum(tgt$concord_target, na.rm = TRUE),
+              sum(!is.na(adjp) & adjp < 0.05)))
+}
 cat("========================\n\n")
 
-# Colores de pilar (Other = gris)
-PILLAR_PLOT <- c(PILLAR_COLS, Other = "#AAAAAA")
+# ── Helper: lollipop sub-panel ────────────────────────────────────────────────
+make_lollipop <- function(targets, lfc_col, adjp_col, x_lab,
+                          show_y = TRUE, show_legend = TRUE) {
+  lfc_x  <- targets[[lfc_col]]
+  x_val  <- ifelse(is.na(lfc_x), 0, lfc_x)
 
-# Punto central del lollipop = logFC en TCGA de la diana; barra = compositeScore
-# Layout: lollipop horizontal con dos canales (logFC TCGA, composite score)
+  p <- ggplot(targets, aes(y = drug_label, x = x_val)) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "grey70",
+               linewidth = 0.3) +
+    geom_segment(aes(x = 0, xend = x_val, yend = drug_label, color = pillar),
+                 linewidth = 0.6, alpha = 0.7) +
+    geom_point(aes(color = pillar, shape = concord_target), size = 2.4) +
+    geom_text(aes(label = sig_label, x = x_val),
+              hjust = -0.35, size = PRESETS$double_col$tick / .pt - 0.5,
+              color = "grey30") +
+    scale_color_manual(values = PILLAR_PLOT, name = "Module",
+                       guide = guide_legend(override.aes = list(size = 2.5))) +
+    scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 4),
+                       name = "Concordant",
+                       labels = c("TRUE" = "Yes", "FALSE" = "No")) +
+    scale_x_continuous(limits = c(-2, 2.4), breaks = c(-2, -1, 0, 1, 2)) +
+    labs(x = x_lab, y = NULL) +
+    theme_pub("double_col") +
+    theme(panel.grid.major.x = element_line(linewidth = 0.2, color = "grey90"),
+          legend.position = if (show_legend) "right" else "none")
 
-# Subgráfico izquierdo: log2FC de la diana en TCGA (punto + segmento)
-p_lfc <- ggplot(targets_tcga,
-                aes(y = drug_label,
-                    x = ifelse(is.na(logFC_tcga_target), 0, logFC_tcga_target))) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey70",
-             linewidth = 0.3) +
-  geom_segment(aes(x = 0, xend = ifelse(is.na(logFC_tcga_target), 0, logFC_tcga_target),
-                   yend = drug_label,
-                   color = pillar),
-               linewidth = 0.6, alpha = 0.7) +
-  geom_point(aes(color = pillar,
-                 shape = concord_target),
-             size = 2.4) +
-  geom_text(aes(label = sig_label,
-                x     = ifelse(is.na(logFC_tcga_target), 0, logFC_tcga_target)),
-            hjust = -0.4, size = PRESETS$double_col$tick / .pt - 0.5,
-            color = "grey30") +
-  scale_color_manual(values = PILLAR_PLOT, name = "Module",
-                     guide = guide_legend(override.aes = list(size = 2.5))) +
-  scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 4),
-                     name = "Concordant\nprot. vs RNA",
-                     labels = c("TRUE" = "Yes", "FALSE" = "No")) +
-  scale_x_continuous(limits = c(-2, 2.4), breaks = c(-2, -1, 0, 1, 2)) +
-  labs(x = expression("log"[2]*"FC  (TCGA-HNSC)"),
-       y = NULL) +
-  theme_pub("double_col") +
-  theme(legend.position = "right",
-        panel.grid.major.x = element_line(linewidth = 0.2, color = "grey90"))
+  if (!show_y)
+    p <- p + theme(axis.text.y  = element_blank(),
+                   axis.ticks.y = element_blank(),
+                   axis.line.y  = element_blank())
+  p
+}
 
-# Subgráfico derecho: composite score (barras apiladas TP/DV como Fig5A)
+p_cptac_lfc <- make_lollipop(targets_cptac,
+                              "logFC_cptac_target", "adjP_cptac_target",
+                              expression("log"[2]*"FC  (CPTAC-HNSC)"),
+                              show_y = TRUE, show_legend = FALSE)
+
+p_tcga_lfc  <- make_lollipop(targets_tcga,
+                              "logFC_tcga_target", "adjP_tcga_target",
+                              expression("log"[2]*"FC  (TCGA-HNSC)"),
+                              show_y = FALSE, show_legend = FALSE)
+
+# Composite score (derecha)
 COMP_COLS <- c("Target priority" = "#009E73", "Drug viability" = "#CC79A7")
 
 targets_long <- targets_tcga |>
@@ -474,7 +602,7 @@ targets_long <- targets_tcga |>
 p_score <- ggplot(targets_long, aes(x = contrib, y = drug_label, fill = component)) +
   geom_col(width = 0.65) +
   geom_text(
-    data = targets_tcga |> mutate(drug_label = reorder(drug_label, composite_score)),
+    data = targets_tcga,
     aes(x = composite_score, y = drug_label,
         label = sprintf("%.2f", composite_score)),
     inherit.aes = FALSE,
@@ -484,19 +612,19 @@ p_score <- ggplot(targets_long, aes(x = contrib, y = drug_label, fill = componen
   scale_x_continuous(expand = expansion(mult = c(0, 0.18))) +
   labs(x = "Composite score", y = NULL) +
   theme_pub("double_col") +
-  theme(legend.position  = "right",
-        axis.text.y      = element_blank(),
-        axis.ticks.y     = element_blank(),
-        axis.line.y      = element_blank(),
+  theme(legend.position    = "right",
+        axis.text.y        = element_blank(),
+        axis.ticks.y       = element_blank(),
+        axis.line.y        = element_blank(),
         panel.grid.major.x = element_line(linewidth = 0.2, color = "grey90"))
 
-# Combinar los dos subgráficos del panel B
-p_targets <- p_lfc + p_score +
-  plot_layout(widths = c(1.4, 1), guides = "collect") &
+# Panel C unificado: CPTAC lollipop | TCGA lollipop | composite score
+p_targets_unified <- p_cptac_lfc + p_tcga_lfc + p_score +
+  plot_layout(widths = c(1.3, 1.1, 1), guides = "collect") &
   theme(legend.position = "right")
 
-save_pub(p_targets, "Fig6B_targets_tcga", h_add = 20)
-save_panel_obj(p_targets, "Fig6B_targets_tcga")
+save_pub(p_targets_unified, "Fig6C_targets_unified", h_add = 20)
+save_panel_obj(p_targets_unified, "Fig6C_targets_unified")
 
 # =============================================================================
 # SECCIÓN 7: FigS (suplementario) — Supervivencia OS
@@ -631,20 +759,45 @@ cat("  Saved: FigS_survival_targets (supp)\n")
 cat("\n========================================\n")
 cat("RESUMEN 16_external_validation.R\n")
 cat("========================================\n")
-cat(sprintf("Genes solapantes (nuestros vs TCGA):  %d\n", nrow(conc)))
-cat(sprintf("Concordancia direccional:              %.1f%%\n", pct_concord))
-cat(sprintf("Pearson r (logFC prot. vs RNA):        %.3f (p = %.2e)\n",
+n_cptac_concord <- sum(targets_cptac$concord_target, na.rm = TRUE)
+n_cptac_data    <- sum(!is.na(targets_cptac$logFC_cptac_target))
+n_cptac_sig     <- sum(!is.na(targets_cptac$adjP_cptac_target) &
+                          targets_cptac$adjP_cptac_target < 0.05)
+n_tcga_data     <- sum(!is.na(targets_tcga$logFC_tcga_target))
+n_tcga_concord  <- sum(targets_tcga$concord_target, na.rm = TRUE)
+n_tcga_sig      <- sum(!is.na(targets_tcga$adjP_tcga_target) &
+                          targets_tcga$adjP_tcga_target < 0.05)
+
+cat(sprintf("CPTAC proteomics (n=%d pares T/N):\n", de_cptac$n_tumor[1]))
+cat(sprintf("  Genes solapantes:              %d\n", nrow(conc_cptac)))
+cat(sprintf("  Pearson r (prot. vs prot.):    %.3f (p = %.2e)\n",
+            pearson_r_cptac, pearson_p_cptac))
+cat(sprintf("  Concordancia direccional:      %.1f%%\n", pct_concord_cptac))
+cat(sprintf("  Dianas en CPTAC:               %d / %d\n",
+            n_cptac_data, N_SHORTLIST))
+cat(sprintf("    Concordantes prot./prot.:    %d / %d (%.0f%%)\n",
+            n_cptac_concord, n_cptac_data,
+            100 * n_cptac_concord / max(n_cptac_data, 1)))
+cat(sprintf("    FDR<0.05 en CPTAC:           %d / %d\n",
+            n_cptac_sig, n_cptac_data))
+cat(sprintf("TCGA RNA-seq (n=%d tumor / %d normal):\n",
+            n_tcga_tumor, n_tcga_normal))
+cat(sprintf("  Genes solapantes:              %d\n", nrow(conc)))
+cat(sprintf("  Pearson r (prot. vs RNA):      %.3f (p = %.2e)\n",
             pearson_r, pearson_p))
-cat(sprintf("Dianas shortlist en TCGA:              %d / %d\n",
-            n_found, nrow(targets_tcga)))
-cat(sprintf("  Concordantes prot. vs RNA:           %d / %d (%.0f%%)\n",
-            n_concord, n_found, 100 * n_concord / max(n_found, 1)))
-cat(sprintf("  FDR<0.05 en TCGA RNA-seq:            %d / %d\n",
-            n_sig, n_found))
-cat(sprintf("Pacientes para supervivencia:          %d\n", nrow(surv_df)))
+cat(sprintf("  Concordancia direccional:      %.1f%%\n", pct_concord))
+cat(sprintf("  Dianas en TCGA:                %d / %d\n",
+            n_tcga_data, N_SHORTLIST))
+cat(sprintf("    Concordantes prot./RNA:      %d / %d (%.0f%%)\n",
+            n_tcga_concord, n_tcga_data,
+            100 * n_tcga_concord / max(n_tcga_data, 1)))
+cat(sprintf("    FDR<0.05 en TCGA:            %d / %d\n",
+            n_tcga_sig, n_tcga_data))
+cat(sprintf("Pacientes para supervivencia:    %d\n", nrow(surv_df)))
 cat("\nOutputs:\n")
-cat("  results/figures/pub/main/Fig6A_concordance.{pdf,png}\n")
-cat("  results/figures/pub/main/Fig6B_targets_tcga.{pdf,png}\n")
+cat("  results/figures/pub/main/Fig6A_cptac_concordance.{pdf,png}\n")
+cat("  results/figures/pub/main/Fig6B_tcga_concordance.{pdf,png}\n")
+cat("  results/figures/pub/main/Fig6C_targets_unified.{pdf,png}\n")
 cat("  results/figures/pub/supp/FigS_survival_targets.{pdf,png}\n")
 cat("  results/tables/pub/main/Tab6_concordance_summary.tsv\n")
 cat("  results/tables/pub/supp/TabS2_survival_genes.tsv\n")
