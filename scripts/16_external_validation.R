@@ -363,9 +363,8 @@ p_concord <- ggplot(conc, aes(x = logFC_our, y = logFC_tcga)) +
                                           stroke = 0.3))) +
 
   labs(
-    x     = expression("log"[2]*"FC  (DIA proteomics, Tumor vs Normal)"),
-    y     = expression("log"[2]*"FC  (TCGA-HNSC RNA-seq, Tumor vs Normal)"),
-    title = "Proteomics–transcriptomics concordance"
+    x     = expression("log"[2]*"FC  (DIA proteomics)"),
+    y     = expression("log"[2]*"FC  (TCGA-HNSC)")
   ) +
   theme_pub("double_col") +
   theme(legend.position = "right")
@@ -453,9 +452,8 @@ p_lfc <- ggplot(targets_tcga,
                      name = "Concordant\nprot. vs RNA",
                      labels = c("TRUE" = "Yes", "FALSE" = "No")) +
   scale_x_continuous(expand = expansion(mult = c(0.05, 0.15))) +
-  labs(x = expression("log"[2]*"FC (TCGA RNA-seq, Tumor vs Normal)"),
-       y = NULL,
-       title = "Prioritized targets in TCGA-HNSC") +
+  labs(x = expression("log"[2]*"FC  (TCGA-HNSC)"),
+       y = NULL) +
   theme_pub("double_col") +
   theme(legend.position = "right",
         panel.grid.major.x = element_line(linewidth = 0.2, color = "grey90"))

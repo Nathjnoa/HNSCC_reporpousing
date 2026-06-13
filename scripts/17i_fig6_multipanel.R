@@ -45,14 +45,14 @@ cat("  Objetos de panel cargados OK\n")
 # A (concordancia global) | B (dianas priorizadas)
 # wrap_elements() evita que el patchwork interno p_targets propague sub-tags (C, D...)
 fig6 <- p_concord + patchwork::wrap_elements(p_targets) +
-  plot_layout(widths = c(1, 1.2)) +
+  plot_layout(widths = c(1, 1.6)) +
   plot_annotation(tag_levels = "A") &
   theme(plot.tag = element_text(size = 14, face = "bold"))
 
 # Dimensiones: más alta que Fig5 porque B tiene ~14 filas (lollipop)
-save_tiff(fig6, "Fig6_multipanel", width_mm = 340, height_mm = 180)
+save_tiff(fig6, "Fig6_multipanel", width_mm = 400, height_mm = 180)
 ggsave("results/figures/pub/main/Fig6_multipanel.png", fig6,
-       width = 340, height = 180, units = "mm", dpi = 300, limitsize = FALSE)
+       width = 400, height = 180, units = "mm", dpi = 300, limitsize = FALSE)
 cat("  PNG de revisión: Fig6_multipanel.png\n")
 
 cat("\nFig6_multipanel — OK\n")
