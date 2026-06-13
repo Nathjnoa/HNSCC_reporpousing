@@ -326,6 +326,7 @@ Opcional (archivado, no bloquea el pipeline): scripts/archive/{11,12,13}
 - [ ] `config/analysis_params.yaml` revisado
 - [ ] Scripts 01–03, 04–10, 15 ejecutados en orden sin errores
 - [ ] Script 16 ejecutado (validación TCGA; requiere internet en primera ejecución)
-- [ ] Figuras: 17 + 17b (paneles) → 17c (GSEA) → 17d/17e/17f/17g (multipaneles Fig2–5) → 17h (FigS robustez) y 18 (tablas)
+- [ ] Script 17i ejecutado después de 16 (ensambla Fig6_multipanel.tif)
+- [ ] Figuras: 17 + 17b (paneles) → 17c (GSEA) → 17d/17e/17f/17g (multipaneles Fig2–5) → 17h (FigS robustez) → 16+17i (Fig6) y 18 (tablas)
 - [ ] Scripts 11, 12 ejecutados si se necesita evidencia clínica/COSMIC (suplementario)
 - [ ] Logs verificados en `logs/`

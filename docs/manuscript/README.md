@@ -37,7 +37,7 @@ La priorización (script 10 v3) ancla cada fármaco en la estructura de la red P
 | Fig3 | (A) distribución de fase clínica · (B) clase regulatoria · (C) UpSet solapamiento de BD | ✅ Finalizada — multipanel TIFF 600 DPI; funnel completo → suppl. |
 | Fig4 | (A) red coloreada por módulo Louvain (tier de drogabilidad) · (B) enriquecimiento GO por módulo · (C) hubs druggables por módulo | ✅ Finalizada — multipanel TIFF 600 DPI |
 | Fig5 | (A) shortlist priorizado por módulo + descomposición composite (TP/DV), faceta por tier · (B) espacio bifactor TargetPriority × DrugViability | ✅ Finalizada — multipanel TIFF 600 DPI (`17b`+`17g`) |
-| Fig6 | **(A)** Concordancia global proteoma DIA vs TCGA-HNSC RNA-seq (r=0.601, n=663, 76.2%) · **(B)** Dianas priorizadas del shortlist (Fig5) en TCGA: log2FC + FDR + concordancia; 11/14 concordantes y FDR<0.05 | ✅ `16`+`17i` — multipanel TIFF 600 DPI |
+| Fig6 | **(A)** Concordancia global proteoma DIA vs TCGA-HNSC RNA-seq (r=0.601, n=663, 76.2%) · **(B)** Dianas priorizadas del shortlist (Fig5) en TCGA: log2FC simétrico ±2 + FDR + concordancia; 11/14 concordantes y FDR<0.05 | ✅ `16`+`17i` — multipanel TIFF 600 DPI (400×180 mm) |
 | FigS | Robustez: heatmap estabilidad de ranking × 6 configs de peso + LOD | ✅ `17h_figS_robustness` |
 | FigS surviv. | KM OS para 4 genes-pilar (EGFR/PSMB10/DNMT1/NDUFS3); todos p>0.05 — dianas = vulnerabilidades terapéuticas, no biomarcadores pronósticos | ✅ `16` → `supp/FigS_survival_targets` |
 
