@@ -46,6 +46,15 @@ PHASE_COLS <- c(
   "Phase I"   = "#CC79A7",
   "No data"   = "#CCCCCC"
 )
+# Pilares terapéuticos — identidad de color estable para Fig5/Fig6
+# (colores Okabe-Ito; recurren en concordancia + shortlist)
+PILLAR_COLS <- c(
+  EGFR       = "#D55E00",  # naranja vermell
+  Proteasome = "#0072B2",  # azul profundo
+  Epigenetic = "#009E73",  # verde
+  OXPHOS     = "#CC79A7"   # magenta
+)
+
 # Clase clínico-regulatoria (script 10 exporta drug_class = A/B/C/D)
 DRUG_CLASS_LABELS <- c(
   A = "HNSCC-approved",

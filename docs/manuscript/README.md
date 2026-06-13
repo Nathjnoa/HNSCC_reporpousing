@@ -37,8 +37,9 @@ La priorización (script 10 v3) ancla cada fármaco en la estructura de la red P
 | Fig3 | (A) distribución de fase clínica · (B) clase regulatoria · (C) UpSet solapamiento de BD | ✅ Finalizada — multipanel TIFF 600 DPI; funnel completo → suppl. |
 | Fig4 | (A) red coloreada por módulo Louvain (tier de drogabilidad) · (B) enriquecimiento GO por módulo · (C) hubs druggables por módulo | ✅ Finalizada — multipanel TIFF 600 DPI |
 | Fig5 | (A) shortlist priorizado por módulo + descomposición composite (TP/DV), faceta por tier · (B) espacio bifactor TargetPriority × DrugViability | ✅ Finalizada — multipanel TIFF 600 DPI (`17b`+`17g`) |
-| Fig6 | External validation (CPTAC/TCGA concordance + survival) | Pendiente revisión |
-| FigS | Robustez: heatmap estabilidad de ranking × 6 configs de peso + LOD (suplementaria) | ✅ `17h_figS_robustness` |
+| Fig6 | **(A)** Concordancia global proteoma DIA vs TCGA-HNSC RNA-seq (r=0.601, n=663, 76.2%) · **(B)** Dianas priorizadas del shortlist (Fig5) en TCGA: log2FC + FDR + concordancia; 11/14 concordantes y FDR<0.05 | ✅ `16`+`17i` — multipanel TIFF 600 DPI |
+| FigS | Robustez: heatmap estabilidad de ranking × 6 configs de peso + LOD | ✅ `17h_figS_robustness` |
+| FigS surviv. | KM OS para 4 genes-pilar (EGFR/PSMB10/DNMT1/NDUFS3); todos p>0.05 — dianas = vulnerabilidades terapéuticas, no biomarcadores pronósticos | ✅ `16` → `supp/FigS_survival_targets` |
 
 **Nota Fig2 (para figure legend):** los gene sets del panel B (GSEA) se ordenan por
 el π-statistic = sign(log2FC) × |log2FC| × −log₁₀(FDR); incluir esta definición en
@@ -78,6 +79,17 @@ la leyenda:
 - Líneas punteadas en B = isolíneas de composite constante.
 - **No hay test de permutación** (se eliminó: para un score de agregación de evidencia la
   validez viene de recuperación de controles + robustez + validación externa, no de un p).
+
+**Nota Fig6 (para figure legend):** validación externa en TCGA-HNSC (n=564 muestras,
+RNA-seq STAR-Counts, DESeq2 tumor vs normal). Panel A: concordancia global entre el
+proteoma DIA (tumor vs NAT, n=10 pares) y el transcriptoma TCGA (r=0.601, n=663 genes
+solapantes, 76.2% concordancia direccional); 4 genes-pilar etiquetados. Panel B:
+para las 14 dianas-ancla del shortlist, log2FC en TCGA RNA-seq (símbolo relleno = 
+concordancia proteoma/transcriptoma; asteriscos = FDR<0.05/0.01/0.001), ordenadas por
+composite score descendente; barras = descomposición composite (Target priority vs Drug
+viability). 11/14 dianas concordantes y FDR<0.05. Colores = pilar terapéutico
+(EGFR/Proteasome/Epigenetic/OXPHOS); escala de grises = concordancia/discordancia de
+fondo (Panel A).
 
 **Convención de naming:** paneles individuales `Fig2A_*`/`Fig2B_*`/`Fig2C_*`,
 `Fig3A_*`/`Fig3B_*`/`Fig3C_*` (insumos); las figuras publicables son

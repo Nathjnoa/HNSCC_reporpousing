@@ -118,14 +118,39 @@ permutation p-value. The robustness heatmap is a supplementary figure (Script 17
 
 ---
 
-## Phase 6: External Validation (Script 16)
+## Phase 6: External Validation (Scripts 16 + 17i)
 
-Differential expression concordance against TCGA-HNSC (TCGAbiolinks, DESeq2):
-tumor-vs-normal log2FC correlation between the proteomic cohort and TCGA-HNSC.
+**Global concordance (Figure 6A).** Differential expression in TCGA-HNSC was
+computed with DESeq2 (v1.44) applied to STAR-Counts RNA-seq data retrieved via
+TCGAbiolinks (n=520 tumor / 44 normal samples from the TCGA-HNSC project).
+Gene-level log2FC (tumor vs normal) was correlated with the DIA proteomics
+log2FC using Pearson r across the 663 overlapping genes. Concordance was
+classified directionally: concordant-up (log2FC>0 in both), concordant-down
+(log2FC<0 in both), or discordant. TCGA data were retrieved and cached on first
+run (~800 MB, GDC API); DESeq2 results are also cached to avoid re-computation.
+
+**Prioritized-target concordance (Figure 6B).** For the 14 anchor targets of
+the shortlist (one representative drug per anchor hub, top by composite score,
+tier ≠ off_network; same selection as Figure 5), TCGA RNA-seq log2FC and
+adjusted p-value were retrieved and compared with the DIA proteomics log2FC for
+the same gene. Concordance with the proteomics finding (same direction) and
+statistical significance (FDR < 0.05) in TCGA are annotated per drug-target
+pair. Results are displayed as a lollipop panel ordered by composite score with
+the composite score bar decomposed as in Figure 5A (Target priority vs Drug
+viability). 11 of 14 targets were concordant between proteomics and TCGA
+transcriptomics, and 11 of 14 were statistically significant in TCGA (FDR <
+0.05).
+
+**Supplementary OS analysis.** Overall survival stratification by median
+expression of the four module-representative genes (EGFR, PSMB10, DNMT1, NDUFS3)
+in TCGA-HNSC tumors (n=476 patients with OS data, log-rank test) is provided as
+a supplementary figure. All comparisons were non-significant (p = 0.098–0.422),
+consistent with the interpretation that these targets represent therapeutic
+vulnerabilities rather than prognostic biomarkers of OS.
 
 ---
 
-## Figure Generation (Scripts 17, 17b, 17c, 17d–17h)
+## Figure Generation (Scripts 17, 17b, 17c, 17d–17i)
 
 Publication figures were produced in R (ggplot2 v3.x, ComplexHeatmap v2.22.0) under a single centralized style module
 (`scripts/_fig_style.R`) sourced by every figure script, ensuring consistent
@@ -168,6 +193,12 @@ labels are kept horizontal (long categorical labels use horizontal bars rather t
 rotated text). Single-panel and supplementary figures (clinical-phase distribution,
 selection funnel, and the weight-sensitivity/LOD robustness heatmap — Script 17h) are
 exported likewise. Scripts 17d/17e/17f/17g assemble the Figure 2/3/4/5 composites.
+Figure 6 panels (global concordance scatter and prioritized-target lollipop) are
+produced by Script 16 and cached as .rds objects; Script 17i assembles the Figure 6
+composite (340 × 180 mm, 600-dpi TIFF). The four therapeutic-pillar colors
+(EGFR/#D55E00, Proteasome/#0072B2, Epigenetic/#009E73, OXPHOS/#CC79A7) are defined
+as the constant PILLAR_COLS in _fig_style.R and applied consistently across Figure 5
+and Figure 6 to link panel B targets to their network module.
 
 ---
 

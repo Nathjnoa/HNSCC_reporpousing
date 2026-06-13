@@ -179,17 +179,37 @@ Rscript scripts/15_sensitivity_analysis.R
 ```bash
 conda activate omics-R
 
-# 16 - Concordancia proteómica vs TCGA-HNSC RNA-seq + KM supervivencia
+# 16 - Validación externa (paneles Fig6A + Fig6B + FigS supervivencia)
 #      PRIMERA EJECUCION: descarga ~800 MB desde GDC (cache en data/intermediate/tcga/)
-#      Dependencias: BiocManager::install(c("TCGAbiolinks","DESeq2"))
+#      Dependencias: BiocManager::install(c("TCGAbiolinks","DESeq2","SummarizedExperiment"))
 #                    install.packages(c("survival","survminer"))
+#      Nota: S4Vectors enmascara dplyr::rename/count → script usa dplyr::select/count explícitos
 Rscript scripts/16_external_validation.R
-# Output: results/figures/pub/main/Fig6A_tcga_concordance.{pdf,png}
-#         results/figures/pub/main/Fig6B_survival.{pdf,png}
-#         results/tables/pub/main/Tab6_concordance_summary.tsv
-#         results/tables/pub/supp/TabS2_survival_genes.tsv
+# Output (main):   results/figures/pub/main/Fig6A_concordance.{pdf,png}
+#                  results/figures/pub/main/Fig6B_targets_tcga.{pdf,png}
+# Output (supp):   results/figures/pub/supp/FigS_survival_targets.{pdf,png}
+# Output (tables): results/tables/pub/main/Tab6_concordance_summary.tsv
+#                  results/tables/pub/supp/TabS2_survival_genes.tsv
+# Checkpoint en log: N dianas shortlist concordantes/significativas en TCGA RNA-seq
+
+# 17i - Ensamble Fig6 multipanel (lee .rds cacheados por 16; NO re-ejecuta análisis)
+#        Correr DESPUÉS de 16_external_validation.R
+Rscript scripts/17i_fig6_multipanel.R
+# Output: results/figures/pub/main/Fig6_multipanel.{tif,pdf,png}  (TIFF 600 DPI LZW)
 ```
 
+> **Panel A (Fig6A):** concordancia global proteoma DIA vs TCGA-HNSC RNA-seq (r=0.601,
+> n=663, 76.2% concordante). Valida el INPUT del pipeline.
+>
+> **Panel B (Fig6B):** las 14 dianas-ancla del shortlist (Fig5) en TCGA RNA-seq: log2FC
+> + FDR + concordancia con el proteoma. **11/14 concordantes y FDR<0.05**. Cierra el
+> lazo Fig5 → validación externa: las predicciones se sostienen en cohorte independiente.
+>
+> **FigS supervivencia (suplementario):** KM OS para EGFR/PSMB10/DNMT1/NDUFS3, todos
+> p>0.05 (no-significativos). Análisis exploratorio/contextual: las dianas son
+> vulnerabilidades terapéuticas, **no biomarcadores pronósticos de OS**. Se reubicó a
+> suplementario (no es validación del método de repurposing).
+>
 > **Nota:** la antigua "Fase 5b" (metilación TCGA-HNSC, script 19 / OE4) fue
 > **eliminada y excluida del manuscrito**. El script `19_methylation_tcga.R` y sus
 > outputs `OE4_*` ya no existen (recuperables del historial git, commit `f3ff717`).
@@ -231,6 +251,10 @@ Rscript scripts/17g_fig5_multipanel.R
 # 17h - Figura SUPLEMENTARIA de robustez (heatmap estabilidad × 6 configs + LOD).
 Rscript scripts/17h_figS_robustness.R
 # Output: results/figures/pub/supp/FigS_robustness.{tif,pdf,png}
+
+# 17i - Figura 6 multipanel — CORRER DESPUÉS de 16_external_validation.R
+Rscript scripts/17i_fig6_multipanel.R
+# Output: results/figures/pub/main/Fig6_multipanel.{tif,pdf,png}  (TIFF 600 DPI LZW)
 
 # 18 - Tablas de publicación (TSV)
 Rscript scripts/18_pub_tables.R
