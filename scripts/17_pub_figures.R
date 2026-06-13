@@ -272,9 +272,9 @@ save_panel_obj(ht_de, "Fig2B_heatmap_topDE")   # insumo multipanel
 cat("  Fig2B: Heatmap top DE — OK\n")
 
 # =============================================================================
-# Fig3A — FUNNEL DE FILTRADO DE CANDIDATOS
+# FigS — FUNNEL DE SELECCIÓN (suplementario; overview del pipeline completo)
 # =============================================================================
-cat("\n--- Fig3A: Selection funnel ---\n")
+cat("\n--- FigS: Selection funnel (supp) ---\n")
 
 n_total <- nrow(drug_sum)
 n_multi <- nrow(multi_src)
@@ -341,14 +341,18 @@ p_funnel <- ggplot() +
   theme(legend.position = "none",
         plot.margin = margin(6, 8, 6, 8, "mm"))
 
-save_pub(p_funnel, "Fig3A_funnel")
-save_panel_obj(p_funnel, "Fig3A_funnel")
-cat("  Fig3A: Selection funnel — OK\n")
+# El funnel completo (3513→458→35→32) ya NO es panel de Fig3: con un solo filtro
+# hasta multi-source no amerita embudo, y las etapas top-ranked/LOD pertenecen a la
+# priorización (Fig5). Se conserva como suplementario (overview del pipeline).
+save_pub(p_funnel, "FigS_selection_funnel", out_dir = "results/figures/pub/supp")
+cat("  FigS (supp): Selection funnel — OK\n")
 
 # =============================================================================
-# Fig3B — DISTRIBUCIÓN FASES CLÍNICAS (candidatos multi-fuente)
+# Fig3A — DISTRIBUCIÓN DE FASE CLÍNICA (candidatos multi-fuente, n=458)
 # =============================================================================
-cat("\n--- Fig3B: Phase distribution ---\n")
+# Reemplaza al funnel como panel A: describe el MISMO set de 458 (igual que B y C),
+# y prepara la accionabilidad clínica sin adelantar la priorización (Fig5).
+cat("\n--- Fig3A: Phase distribution ---\n")
 
 phase_df <- multi_src %>%
   mutate(
@@ -384,8 +388,9 @@ p_phase <- ggplot(phase_df,
   theme_pub() +
   theme(legend.position = "none")   # labels de eje horizontales (estándar uniforme)
 
-save_pub(p_phase, "FigS_drug_phase_dist", out_dir = "results/figures/pub/supp")
-cat("  FigS (supp): Phase distribution — OK\n")
+save_pub(p_phase, "Fig3A_phase")
+save_panel_obj(p_phase, "Fig3A_phase")
+cat("  Fig3A: Phase distribution — OK\n")
 
 # =============================================================================
 # Fig3B — CLASE CLINICO-REGULATORIA (A/B/C/D) sobre los 458 multi-fuente
@@ -417,7 +422,7 @@ p_class <- ggplot(class_df,
   geom_text(aes(label = sprintf("%d (%.0f%%)", n_drugs, pct)),
             hjust = -0.15, size = 2.6) +
   scale_fill_manual(values = CLASS_COLS, guide = "none") +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.30))) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.42))) +   # aire para labels "n (xx%)"
   labs(title = NULL, x = "Number of drugs", y = NULL) +
   theme_pub()
 
@@ -475,28 +480,73 @@ save_panel_obj(list(ht = ht_upset, m = m), "Fig3C_upset_overlap")  # ht + m para
 cat("  Fig3C: UpSet source overlap — OK\n")
 
 # =============================================================================
-# MÓDULOS CLAVE — labels data-driven (validados por enriquecimiento GO BP) + colores
+# CLASIFICACIÓN DE MÓDULOS POR DROGABILIDAD (data-driven; reemplaza selección manual)
 # =============================================================================
-# M2 NO es "EGFR/Signaling" (su GO es adhesión/membrana); EGFR es un hub dentro
-# de ese módulo y se discute en el texto, no se fuerza el nombre.
-MODULE_LABELS <- c(
-  "8"  = "OXPHOS",
-  "4"  = "Proteasome",
-  "5"  = "Immune response",
-  "14" = "Amino acid metabolism",
-  "2"  = "Cell adhesion / membrane"
+# Cada módulo Louvain del giant component se clasifica por evidencia drogable:
+#   approved  : ≥1 fármaco APROBADO dirigido a un nodo del módulo  → color propio
+#   hubs_only : 0 aprobados pero ≥2 hubs druggables                → color flag (slate)
+#   none      : sin potencial drogable                             → gris (contexto)
+# Nombres de display: 5 curados + término GO BP top para el resto.
+# M2 NO es "EGFR/Signaling" (su GO es adhesión/membrana); EGFR es un hub interno.
+.gA  <- igraph::graph_from_data_frame(net_edges, directed = FALSE,
+                                      vertices = net_nodes$gene_symbol)
+.cmp <- igraph::components(.gA)
+giant_set <- names(.cmp$membership[.cmp$membership == which.max(.cmp$csize)])
+
+.mod_appr <- master_tbl %>%
+  filter(gene_symbol %in% giant_set) %>%
+  left_join(net_nodes %>% select(gene_symbol, module_id), by = "gene_symbol") %>%
+  group_by(module_id) %>%
+  summarise(n_approved = n_distinct(drug_name_norm[is_approved %in% c(TRUE, "True", "TRUE")]),
+            .groups = "drop")
+.mod_hubs <- drg_hubs %>% count(module_id, name = "n_drug_hubs")
+
+MODULE_NAMES <- c(
+  "8" = "OXPHOS", "4" = "Proteasome", "5" = "Immune response",
+  "14" = "Amino acid metabolism", "2" = "Cell adhesion / membrane",
+  "10" = "mRNA processing", "11" = "Muscle contraction",
+  "6" = "Carboxylic acid metabolism", "7" = "Carbohydrate catabolism",
+  "1" = "ECM / development", "3" = "Translation",
+  "17" = "Chromatin remodeling", "13" = "Microtubule process"
 )
-KEY_MODULES  <- as.integer(names(MODULE_LABELS))
-MODULE_ORDER <- c("OXPHOS", "Proteasome", "Cell adhesion / membrane",
-                  "Immune response", "Amino acid metabolism")
-MODULE_COLS  <- c(
-  "OXPHOS"                   = "#D55E00",
-  "Proteasome"               = "#0072B2",
-  "Cell adhesion / membrane" = "#E69F00",
-  "Immune response"          = "#009E73",
-  "Amino acid metabolism"    = "#CC79A7",
-  "Other"                    = "#BDBDBD"   # gris visible: contexto, secundario a módulos
-)
+
+module_class <- net_nodes %>% filter(gene_symbol %in% giant_set) %>%
+  count(module_id, name = "n_nodes") %>%
+  left_join(.mod_appr, by = "module_id") %>%
+  left_join(.mod_hubs, by = "module_id") %>%
+  mutate(
+    n_approved  = tidyr::replace_na(n_approved, 0L),
+    n_drug_hubs = tidyr::replace_na(n_drug_hubs, 0L),
+    tier = dplyr::case_when(n_approved >= 1   ~ "approved",
+                            n_drug_hubs >= 2  ~ "hubs_only",
+                            TRUE              ~ "none"),
+    name = MODULE_NAMES[as.character(module_id)]
+  ) %>%
+  arrange(dplyr::desc(tier == "approved"), dplyr::desc(n_nodes))
+
+# Paleta colorblind-safe (Carto "Safe", 11 colores) para módulos con aprobados;
+# hubs_only = slate (flag visual); none/contexto = gris.
+SAFE11 <- c("#88CCEE","#CC6677","#DDCC77","#117733","#332288","#AA4499",
+            "#44AA99","#999933","#882255","#661100","#6699CC")
+.appr <- module_class %>% filter(tier == "approved")  %>% pull(name)
+.huo  <- module_class %>% filter(tier == "hubs_only") %>% pull(name)
+MODULE_COLS <- setNames(SAFE11[seq_along(.appr)], .appr)
+for (nm in .huo) MODULE_COLS[nm] <- "#7D8CA3"   # slate: hubs druggables, sin aprobado
+MODULE_COLS["Other"] <- "#CFCFCF"               # none + contexto
+
+# Etiqueta de módulo para plotear: name si drogable, "Other" si tier == none
+module_lab_of <- function(mid) {
+  t <- module_class$tier[match(mid, module_class$module_id)]
+  ifelse(is.na(t) | t == "none", "Other",
+         module_class$name[match(mid, module_class$module_id)])
+}
+# Orden B/C y niveles de factor: aprobados (por tamaño) → hubs_only ; none excluido
+MODULE_ORDER    <- module_class %>% filter(tier != "none") %>% pull(name)
+COLORED_MODULES <- module_class %>% filter(tier != "none") %>% pull(module_id)
+KEY_MODULES     <- COLORED_MODULES   # compat con paneles B/C
+cat(sprintf("  Módulos drogables coloreados: %d | hubs_only: %s | gris(none): %s\n",
+            length(COLORED_MODULES), paste(.huo, collapse=","),
+            paste(module_class$name[module_class$tier=="none"], collapse=",")))
 
 # =============================================================================
 # Fig4A — RED COMPLETA (giant component) COLOREADA POR MÓDULO
@@ -515,9 +565,8 @@ giant  <- names(comp$membership[comp$membership == which.max(comp$csize)])
 n_all <- net_nodes %>%
   filter(gene_symbol %in% giant) %>%
   mutate(
-    module_lab  = ifelse(as.character(module_id) %in% names(MODULE_LABELS),
-                         MODULE_LABELS[as.character(module_id)], "Other"),
-    module_lab  = factor(module_lab, levels = names(MODULE_COLS)),
+    module_lab  = module_lab_of(module_id),
+    module_lab  = factor(module_lab, levels = c(MODULE_ORDER, "Other")),
     is_drug_hub = gene_symbol %in% hub_set,
     nd_size     = ifelse(is_drug_hub, log1p(degree) + 1, log1p(degree))
   )
@@ -525,11 +574,12 @@ e_all <- net_edges %>% filter(gene_A %in% giant, gene_B %in% giant)
 cat(sprintf("  Giant component: %d nodos, %d aristas | %d hubs druggables\n",
             nrow(n_all), nrow(e_all), sum(n_all$is_drug_hub)))
 
-# Labels: top-3 druggable hubs por módulo clave, por DEGREE (EGFR sale #1 de M2)
+# Labels: top-2 druggable hubs por módulo coloreado, por DEGREE (con 12 módulos,
+# 3 labels c/u satura; 2 mantiene legibilidad)
 hub_label_genes <- drg_hubs %>%
-  filter(module_id %in% KEY_MODULES) %>%
+  filter(module_id %in% COLORED_MODULES) %>%
   group_by(module_id) %>%
-  slice_max(degree, n = 3, with_ties = FALSE) %>%
+  slice_max(degree, n = 2, with_ties = FALSE) %>%
   ungroup() %>%
   pull(gene_symbol)
 
@@ -539,38 +589,60 @@ for (col in c("module_lab", "is_drug_hub", "nd_size", "degree")) {
 }
 tg_net <- as_tbl_graph(g_net)
 
+# Layout stress con PESOS intra-módulo reforzados: las aristas dentro de un mismo
+# módulo Louvain pesan más → cada comunidad se compacta y se separa de las otras.
+# Sin esto, los 2 módulos más grandes y centrales (Immune, Cell adhesion) se
+# superponen en el núcleo denso. No altera la topología; enfatiza la estructura
+# que Louvain ya definió. (graphlayouts::layout_as_backbone requeriría 'oaqc'.)
+el_idx   <- igraph::as_edgelist(g_net, names = FALSE)
+mod_vec  <- n_all$module_id[match(V(g_net)$name, n_all$gene_symbol)]
+same_mod <- mod_vec[el_idx[, 1]] == mod_vec[el_idx[, 2]]
+net_w    <- ifelse(same_mod, 8, 1)   # intra-módulo 8x → separa comunidades
+
 set.seed(42)
-lay_net <- create_layout(tg_net, layout = "stress")
+lay_net <- create_layout(tg_net, layout = "stress", weights = net_w)
+
+# Estiramiento x suave para llenar el panel ancho (full-width arriba en multipanel).
+NET_XSTRETCH <- 1.2
+lay_net$x <- lay_net$x * NET_XSTRETCH
 
 lbl_net <- lay_net %>%
   filter(name %in% hub_label_genes[hub_label_genes %in% giant]) %>%
   select(x, y, name)
 
 p_net <- ggraph(lay_net) +
-  geom_edge_link(color = "grey65", alpha = 0.22, linewidth = 0.10) +
-  # contexto (módulos no-clave): gris VISIBLE pero secundario
-  geom_node_point(aes(fill = module_lab, size = nd_size,
+  geom_edge_link(color = "grey60", alpha = 0.30, linewidth = 0.14) +
+  # Tamaño por CATEGORÍA (no por degree): brecha CHICA. El contexto gris
+  # periférico sube de tamaño; los coloreados (módulos clave) quedan ~original.
+  # contexto (módulos no-clave): gris VISIBLE, ahora MÁS GRANDE (menos brecha)
+  # OJO: shape 21 requiere `color` no-NA; con color=NA ggplot ELIMINA las filas
+  # (borra el nodo). Usar "transparent" = borde invisible pero fila conservada.
+  geom_node_point(aes(fill = module_lab,
                       filter = !is_drug_hub & module_lab == "Other"),
-                  shape = 21, color = NA, alpha = 0.55) +
-  # miembros no-hub de módulos clave: ÉNFASIS (color saturado)
-  geom_node_point(aes(fill = module_lab, size = nd_size,
+                  shape = 21, color = "transparent", alpha = 0.72, size = 3.5) +
+  # miembros no-hub de módulos clave: color saturado
+  geom_node_point(aes(fill = module_lab,
                       filter = !is_drug_hub & module_lab != "Other"),
-                  shape = 21, color = NA, alpha = 0.90) +
+                  shape = 21, color = "transparent", alpha = 0.90, size = 4.5) +
   # hubs druggables: protagonistas (borde + opacos)
-  geom_node_point(aes(fill = module_lab, size = nd_size, filter = is_drug_hub),
-                  shape = 21, color = "grey20", stroke = 0.5, alpha = 0.95) +
+  geom_node_point(aes(fill = module_lab, filter = is_drug_hub),
+                  shape = 21, color = "grey20", stroke = 0.4, alpha = 0.95, size = 5.5) +
   ggrepel::geom_text_repel(
     data = lbl_net, aes(x = x, y = y, label = name),
-    size = 2.6, fontface = "bold", family = "sans",
+    size = 3.3, fontface = "bold", family = "sans",
     bg.color = "white", bg.r = 0.12, max.overlaps = 40,
     segment.size = 0.25, segment.color = "grey40", min.segment.length = 0
   ) +
-  # Sin leyenda de módulos en la red: los nombres se revelan en el panel B
-  # (enriquecimiento). Aquí los colores son "clusters por descubrir".
-  scale_fill_manual(values = MODULE_COLS, guide = "none") +
-  scale_size_continuous(range = c(4.5, 7.0), guide = "none") +   # mínimo 4.5: periféricos bien visibles
+  # Leyenda de módulos VISIBLE: con 12 comunidades drogables, nombrarlas en la red.
+  scale_fill_manual(values = MODULE_COLS, name = "Module (Louvain)",
+                    breaks = c(MODULE_ORDER, "Other"),
+                    labels = c(MODULE_ORDER, "Other (below threshold)"),
+                    guide = guide_legend(override.aes = list(size = 5), ncol = 1)) +
   theme_graph(base_family = "sans", base_size = 8) +
-  theme(legend.position = "none",
+  theme(legend.position = "right",
+        legend.title = element_text(size = 12, face = "bold"),
+        legend.text  = element_text(size = 11),
+        legend.key.height = unit(5.5, "mm"),
         plot.margin = margin(4, 4, 4, 4, "mm"))
 
 save_pub(p_net, "Fig4A_network_modules", "double_col", w_add = 60, h_add = 80)
@@ -582,37 +654,24 @@ cat("  Fig4A: Full network by module — OK\n")
 # =============================================================================
 cat("\n--- Fig4B: Module barplot ---\n")
 
-hub_module_map <- drg_hubs %>%
-  filter(module_id %in% KEY_MODULES) %>%
-  mutate(module_label = MODULE_LABELS[as.character(module_id)]) %>%
-  select(gene_symbol, module_label, module_id)
+# Métrica ESTRUCTURAL (Fig4 es pre-priorización): nº de hubs druggables por módulo,
+# coloreado POR MÓDULO (coherente con A). La dimensión clínica (clase de fármaco) y
+# la priorización se reservan para Fig5 — aquí solo se cuantifica la estructura.
+hubs_per_module <- drg_hubs %>%
+  filter(module_id %in% COLORED_MODULES) %>%
+  mutate(module_label = MODULE_NAMES[as.character(module_id)]) %>%
+  distinct(gene_symbol, module_label) %>%
+  count(module_label, name = "n_hubs") %>%
+  mutate(module_label = factor(module_label, levels = rev(MODULE_ORDER)))
 
-drug_per_module <- master_tbl %>%
-  filter(gene_symbol %in% hub_module_map$gene_symbol,
-         drug_class %in% c("A", "B", "C")) %>%
-  inner_join(hub_module_map, by = "gene_symbol") %>%
-  distinct(drug_name_norm, module_label, drug_class) %>%
-  count(module_label, drug_class) %>%
-  mutate(
-    module_label = factor(module_label, levels = rev(MODULE_ORDER)),
-    drug_class   = factor(drug_class, levels = c("A", "B", "C")),
-    class_label  = DRUG_CLASS_LABELS[as.character(drug_class)],
-    class_label  = factor(class_label, levels = DRUG_CLASS_LABELS[c("A","B","C")])
-  )
-
-p_module_bar <- ggplot(drug_per_module,
-                       aes(y = module_label, x = n, fill = class_label)) +
-  geom_col(width = 0.66, position = position_stack(reverse = TRUE)) +
-  scale_fill_manual(
-    values = c("HNSCC-approved" = OKB[1],
-               "Other cancer"   = OKB[2],
-               "Non-oncology"   = OKB[3]),
-    name = "Drug class"
-  ) +
+p_module_bar <- ggplot(hubs_per_module,
+                       aes(y = module_label, x = n_hubs, fill = module_label)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = MODULE_COLS, guide = "none") +
   scale_x_continuous(expand = expansion(mult = c(0, 0.12))) +
-  labs(title = NULL, x = "Number of drug candidates", y = NULL) +
+  labs(title = NULL, x = "Druggable network hubs", y = NULL) +
   theme_pub() +
-  theme(legend.position = "right")
+  theme(legend.position = "none")
 
 save_pub(p_module_bar, "Fig4B_module_barplot", "double_col", h_add = 0)
 save_panel_obj(p_module_bar, "Fig4B_module_barplot")
@@ -635,15 +694,24 @@ enr_list <- lapply(KEY_MODULES, function(mid) {
                   universe = universe_entrez, pAdjustMethod = "BH",
                   qvalueCutoff = 0.2, readable = TRUE)
   if (is.null(ego) || nrow(as.data.frame(ego)) == 0) return(NULL)
+  df_raw <- as.data.frame(ego)   # pre-simplify (para fallback por keyword)
   # Reducción de redundancia semántica (GO BP es jerárquico): conserva el
   # representante más significativo de cada grupo de términos similares.
-  if (nrow(as.data.frame(ego)) > 1) {
+  if (nrow(df_raw) > 1) {
     ego <- clusterProfiler::simplify(ego, cutoff = 0.6,
                                      by = "p.adjust", select_fun = min)
   }
-  df <- as.data.frame(ego)
-  df <- df[order(df$p.adjust), ][seq_len(min(2, nrow(df))), ]
-  df$module_label <- MODULE_LABELS[as.character(mid)]
+  df <- as.data.frame(ego)[order(as.data.frame(ego)$p.adjust), ]
+  # Validación de nombre: para el módulo curado de aminoácidos, mostrar el término
+  # ESPECÍFICO de aminoácidos (no el padre genérico que sobrevive a simplify).
+  if (MODULE_NAMES[as.character(mid)] == "Amino acid metabolism") {
+    aa <- df_raw[order(df_raw$p.adjust), ]
+    aa <- aa[grepl("amino acid", aa$Description, ignore.case = TRUE), ]
+    if (nrow(aa) > 0) df <- aa
+  }
+  # Top-1: el término más significativo = el que da NOMBRE al módulo (valida el label)
+  df <- df[seq_len(min(1, nrow(df))), ]
+  df$module_label <- MODULE_NAMES[as.character(mid)]
   df$Count <- as.integer(df$Count)
   df$GeneRatio <- df$Count / length(genes)   # fracción del módulo en el término
   df[, c("module_label", "Description", "p.adjust", "Count", "GeneRatio")]
@@ -658,7 +726,7 @@ enr_df <- bind_rows(enr_list) %>%
   mutate(term = factor(Description, levels = unique(Description)))
 
 write_tsv(enr_df, "results/tables/network/17_module_enrichment_top3.tsv")
-cat(sprintf("  %d terminos (top-3 x %d modulos) exportados\n",
+cat(sprintf("  %d terminos (top-1 x %d modulos) exportados\n",
             nrow(enr_df), length(KEY_MODULES)))
 
 p_enr <- ggplot(enr_df, aes(x = GeneRatio, y = term,

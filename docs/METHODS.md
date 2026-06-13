@@ -62,7 +62,7 @@ C (non-oncology), D (experimental). The candidate set entering downstream
 prioritization (n=458) comprises drugs supported by >= 2
 databases OR already approved (class A/B retained even if single-source), after
 removing a curated exclusion list (config). This "multi-source or approved"
-criterion is depicted in the Figure 3 selection funnel and the UpSet panel.
+criterion is depicted in the supplementary selection funnel and the Figure 3 UpSet panel.
 
 ---
 
@@ -70,6 +70,8 @@ criterion is depicted in the Figure 3 selection funnel and the UpSet panel.
 
 STRING v12 REST API queried for DE proteins; combined_score >= 700 (high confidence).
 Metrics: degree, betweenness, eigenvector centrality (igraph v2.2.2). Hubs: top 10% by degree.
+Communities detected with the Louvain algorithm; the giant component yields 13 modules,
+named by their top GO BP term. Druggable hubs = hubs intersecting the drug-target set.
 
 ---
 
@@ -118,15 +120,28 @@ grid.grabExpr() — and exported as 600-dpi LZW-compressed TIFF (journal submiss
 plus vector PDF. Figure 2 combines the differential-proteome volcano (panel A),
 the MSigDB Hallmarks GSEA dotplot (panel B) and the top-40 DE heatmap annotated by
 condition and HPV status (panel C); GSEA gene sets are ordered by the pi-statistic
-(sign(log2FC) x |log2FC| x -log10(FDR)). Figure 3 (drug landscape) combines a
-selection funnel (panel A: candidate drugs to LOD-stable panel), the regulatory
-class distribution of the multi-source set (panel B), and an UpSet plot of database
-overlap among the multi-source candidates (panel C); all three panels describe the
-same n=458 candidate set. Axis fonts and colorblind-safe palette are inherited
-uniformly from the shared style module; axis tick labels are kept horizontal
-(long categorical labels use horizontal bars rather than rotated text).
-Single-panel figures and a supplementary clinical-phase distribution are exported
-likewise. Scripts 17d/17e assemble the Figure 2/Figure 3 composites.
+(sign(log2FC) x |log2FC| x -log10(FDR)). Figure 3 (drug landscape) combines the
+clinical-phase distribution of the multi-source set (panel A), its regulatory
+class distribution (panel B), and an UpSet plot of database overlap among the
+multi-source candidates (panel C); all three panels describe the same n=458
+candidate set. The complete selection funnel (3,513 candidate drugs to the
+LOD-stable panel) is provided as a supplementary figure, since the downstream
+top-ranked/LOD-stable stages belong to the prioritization (Figure 5) and network
+centrality (Figure 4) is itself an input to the composite score. Figure 4 (network
+biology) shows the STRING giant component coloured by Louvain module under a
+data-driven druggability classification: modules with >=1 approved drug targeting a
+member node are coloured (Carto "Safe" colorblind-safe palette); a module with no
+approved drug but >=2 druggable hubs is flagged separately (slate); the remaining
+module falls below threshold (grey). Grey communities nonetheless contain druggable
+hubs (36/99) and prioritized targets (e.g. DNMT1), so colour denotes mechanistic
+focus rather than target exclusivity. A stress layout with up-weighted intra-module
+edges separates the communities; panel A is the network, panel B the per-module GO
+BP enrichment (one representative term per module), panel C the druggable-hub count
+per module. Axis fonts and colorblind-safe palette are inherited uniformly from the
+shared style module; axis tick labels are kept horizontal (long categorical labels
+use horizontal bars rather than rotated text). Single-panel figures and supplementary
+figures (clinical-phase distribution, selection funnel) are exported likewise.
+Scripts 17d/17e/17f assemble the Figure 2/3/4 composites.
 
 ---
 
