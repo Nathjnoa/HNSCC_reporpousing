@@ -444,14 +444,14 @@ p_lfc <- ggplot(targets_tcga,
              size = 2.4) +
   geom_text(aes(label = sig_label,
                 x     = ifelse(is.na(logFC_tcga_target), 0, logFC_tcga_target)),
-            hjust = -0.4, size = PRESETS$single_col$tick / .pt - 0.5,
+            hjust = -0.4, size = PRESETS$double_col$tick / .pt - 0.5,
             color = "grey30") +
   scale_color_manual(values = PILLAR_PLOT, name = "Module",
                      guide = guide_legend(override.aes = list(size = 2.5))) +
   scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 4),
                      name = "Concordant\nprot. vs RNA",
                      labels = c("TRUE" = "Yes", "FALSE" = "No")) +
-  scale_x_continuous(expand = expansion(mult = c(0.05, 0.15))) +
+  scale_x_continuous(limits = c(-2, 2.4), breaks = c(-2, -1, 0, 1, 2)) +
   labs(x = expression("log"[2]*"FC  (TCGA-HNSC)"),
        y = NULL) +
   theme_pub("double_col") +
@@ -478,7 +478,7 @@ p_score <- ggplot(targets_long, aes(x = contrib, y = drug_label, fill = componen
     aes(x = composite_score, y = drug_label,
         label = sprintf("%.2f", composite_score)),
     inherit.aes = FALSE,
-    hjust = -0.15, size = PRESETS$single_col$tick / .pt, color = "grey25"
+    hjust = -0.15, size = PRESETS$double_col$tick / .pt, color = "grey25"
   ) +
   scale_fill_manual(values = COMP_COLS, name = "Score component") +
   scale_x_continuous(expand = expansion(mult = c(0, 0.18))) +
