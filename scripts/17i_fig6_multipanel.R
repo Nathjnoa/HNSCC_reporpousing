@@ -46,14 +46,14 @@ cat("  Objetos de panel cargados OK\n")
 # A (CPTAC scatter) | B (TCGA scatter) | C (targets unificado)
 # wrap_elements() en p_targets evita que su patchwork interno propague sub-tags
 fig6 <- p_cptac + p_tcga + patchwork::wrap_elements(p_targets) +
-  plot_layout(widths = c(1, 1, 1.9)) +
+  plot_layout(widths = c(1, 1, 2.4)) +
   plot_annotation(tag_levels = "A") &
   theme(plot.tag = element_text(size = 14, face = "bold"))
 
-# 500mm ancho: A+B son scatters cuadrados ~130mm c/u, C (3 sub-cols) ~240mm
-save_tiff(fig6, "Fig6_multipanel", width_mm = 500, height_mm = 185)
+# 540mm ancho; altura 165mm — scatters y lollipop quedan al mismo nivel
+save_tiff(fig6, "Fig6_multipanel", width_mm = 540, height_mm = 140)
 ggsave("results/figures/pub/main/Fig6_multipanel.png", fig6,
-       width = 500, height = 185, units = "mm", dpi = 300, limitsize = FALSE)
+       width = 540, height = 140, units = "mm", dpi = 300, limitsize = FALSE)
 cat("  PNG de revisión: Fig6_multipanel.png\n")
 
 cat("\nFig6_multipanel — OK\n")
