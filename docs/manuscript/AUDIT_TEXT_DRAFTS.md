@@ -78,7 +78,7 @@ directionality" donde aplique; no afirmar "14/14 validados".
 > for the principal candidates (EGFR, NDUFS2, DNMT1, PSMA2, ALDH5A1, MAOA, MMP8, IMPDH2, ALDH2) and
 > weaker or discordant for four anchors (PDE6D, CA2, CDA, RPS11), which should be regarded as
 > lower-confidence nominations. Per-gene log2FC and FDR for both cohorts are reported in Fig 6C /
-> Table 6.
+> Table S4.
 
 ---
 

@@ -104,14 +104,17 @@ organizativo.
 
 ## Table plan
 
-| Archivo (results/tables/pub/) | Content |
-|-------|---------|
-| `main/Tab1_resumen_DE` | Cohort / DE summary |
-| `main/Tab2_top_proteinas` | Top DE proteins |
-| `main/Tab3_top_candidatos` | Top prioritized candidates (composite) |
-| `main/Tab4_EGFR_validation` | Eje EGFR — validación del método |
-| `main/Tab5_novel_candidates_by_module` | Candidatos novedosos por módulo (top hub, tier hub-central/periférico) |
-| `main/Tab6_concordance_summary` | Validación externa TCGA/CPTAC (Fig6) |
-| `supp/TabS1_extended_candidates_by_module` | Lista extendida (todos los hubs-ancla no-EGFR) |
+**Display-item scheme (decisión autor 2026-06-14):** una sola tabla **main** = el shortlist
+priorizado (bloque-control EGFR + Tier1/Tier2, ensamblada de `Tab4`+`Tab5`); conteos cohorte/DE
+**in-text**; el resto a **suplemento**. Leyendas en `tables.md`.
+
+| Archivo fuente (results/tables/pub/) | Content | Placement en manuscrito |
+|-------|---------|---------|
+| `main/Tab4_EGFR_validation` + `main/Tab5_novel_candidates_by_module` | Shortlist priorizado (EGFR control + tiers) | **Table 1 (main)** — ensamblada |
+| `main/Tab1_resumen_DE` | Cohort / DE summary | **Table S1** (+ in-text) |
+| `main/Tab2_top_proteinas` | Top DE proteins | **Table S2** |
+| `main/Tab3_top_candidatos` | Candidate provenance / multi-source support | **Table S3** |
+| `main/Tab6_concordance_summary` | Validación externa TCGA/CPTAC (Fig6) | **Table S4** |
+| `supp/TabS1_extended_candidates_by_module` | Lista extendida (todos los hubs-ancla no-EGFR) | **Table S5** |
 
 ## Word count target: 3500–4500 words

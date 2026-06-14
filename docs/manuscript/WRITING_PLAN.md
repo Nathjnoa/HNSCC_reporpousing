@@ -7,7 +7,10 @@
 
 ## Contexto
 
-Auditoría pre-manuscrito cerrada (commit `938d133`): figuras Fig1–6 + 3 supp y tablas Tab1–6 + 4 supp
+Auditoría pre-manuscrito cerrada (commit `938d133`): figuras Fig1–6 + 3 supp y 6 tablas fuente
+(`results/tables/pub/`). **Display-item scheme del manuscrito (2026-06-14):** 1 tabla main =
+shortlist priorizado (Tab4+Tab5 fundidas → Table 1); conteos cohorte/DE in-text; resto → Tables
+S1–S5 (ver `tables.md` / `README.md`).
 **finalizadas**, números actualizados (fix M2 → cetuximab #1), borradores de texto auditados con citas
 verificadas. **No existe aún borrador de artículo.** Material reutilizable: tesis en español
 (`docs/thesis/ARTICULO_2.0_REVJC.md`), `docs/METHODS.md` (production-ready), `docs/REFERENCES.md`,
@@ -51,7 +54,7 @@ clásico). Metformina = **uno de varios candidatos**, enmarcada como vulnerabili
 
 - **Intro** ← `docs/thesis/ARTICULO_2.0_REVJC.md` (≈L201–314) — condensar + traducir.
 - **Methods** ← `docs/METHODS.md` + `AUDIT_TEXT_DRAFTS.md` (M1/M4/M6) + sección Software.
-- **Results** ← `results/tables/pub/main/Tab1–6` + notas de `manuscript/README.md` +
+- **Results** ← `results/tables/pub/` (Table 1 = Tab4+Tab5; S1–S5 = resto) + notas de `manuscript/README.md` +
   `AUDIT_TEXT_DRAFTS.md` (B1/M4) + `results/audit/`.
 - **Discussion** ← tesis (≈L701–1158) + `AUDIT_TEXT_DRAFTS.md` (B1/B2/M1/M6).
 - **Legends** ← `manuscript/README.md` ("Nota Fig2–6") + estructura de cada `TabN`.
@@ -86,11 +89,11 @@ clásico). Metformina = **uno de varios candidatos**, enmarcada como vulnerabili
 
 ## Estado de progreso (actualizar al avanzar)
 
-- [ ] 0. STORYBOARD
-- [ ] 1. Leyendas (figures.md, tables.md)
-- [ ] 2. Results
-- [ ] 3. Methods
-- [ ] 4. Introduction
+- [x] 0. STORYBOARD ✅ (`STORYBOARD.md` — claim central en 5 movimientos, encuadre clínico/traslacional, brechas hedged; aprobado 2026-06-14)
+- [x] 1. Leyendas (`figures.md` Fig1–6+S1–3, `tables.md` Table1+S1–5) ✅ esquema 1-main-table propagado a README/WRITING_PLAN/STORYBOARD/AUDIT; aprobado 2026-06-14
+- [x] 2. Results (`results.md`, R1–R6 ~1.4k palabras; R3 detalle básico-riguroso, números finos a Methods) ✅ aprobado 2026-06-14
+- [~] 3. Methods (`methods.md`, ~1.0k palabras; números finos de red, M1/m4/M6, "corroboration") — redactado, en revisión del autor
+- [~] 4. Introduction (`introduction.md`, ~720 palabras; brecha hedged, citas placeholder ⚠️ TO-VERIFY) — redactado, en revisión del autor
 - [ ] 5. Discussion
 - [ ] 6. Abstract
 - [ ] 7. Title + keywords
