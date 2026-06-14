@@ -45,11 +45,11 @@ INTRO_CITES = {
     "[@hnscc_epidemiology]": "[@johnson2020; @sung2021]",
     "[@hnscc_outcomes]": "[@johnson2020]",
     "[@keynote048]": "[@burtness2019]",
-    "[@keynote689]": "[@imamura2025]",
+    "[@keynote689]": "[@uppaluri2025]",
     "[@hpv_subtypes]": "[@ang2010]",
-    "[@proteomics_phenotype]": "[@huang2021]",
+    "[@proteomics_phenotype]": "[@aebersold2016]",
     "[@hnscc_proteomics]": "[@huang2021]",
-    "[@repurposing_rationale]": "[@pushpakom2019]",
+    "[@repurposing_rationale]": "[@pushpakom2019; @napolitano2013]",
 }
 
 # --- Methods: inject method/tool citations at first single-token anchor ---------

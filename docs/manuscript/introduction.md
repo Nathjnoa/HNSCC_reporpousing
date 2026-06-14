@@ -34,7 +34,7 @@ Proteomics helps here because it gives a direct picture of the tumor's functiona
 unlike genomic or transcriptomic profiles, the proteome reflects what cells are actually doing,
 capturing both post-transcriptional and post-translational regulation. ⚠️ TO-VERIFY
 `[@proteomics_phenotype]` Proteomic studies have repeatedly found changes in EGFR signaling,
-energy metabolism, epigenetic regulation, and the tumor microenvironment in HNSCC. ⚠️ TO-VERIFY
+energy metabolism, and the tumor microenvironment in HNSCC. ⚠️ TO-VERIFY
 `[@hnscc_proteomics]`
 
 Drug repurposing, the reuse of approved drugs whose safety is already known, is an efficient way
@@ -42,7 +42,7 @@ to speed up the search for new treatment options, and combining a tumor's molecu
 with pharmacological-connectivity resources can point to drugs predicted to reverse the disease
 state. ⚠️ TO-VERIFY `[@repurposing_rationale]` Connectivity-based approaches typically prioritize
 candidates by how strongly a drug reverses the transcriptomic signature ⚠️ TO-VERIFY
-`[@evangelista2025; @napolitano2013]`, while target-centric selection often relies on the size of
+`[@lamb2006; @subramanian2017; @evangelista2025]`, while target-centric selection often relies on the size of
 the protein or expression change. Ranking by signature reversal or effect size alone, however,
 does not capture where a target sits in the tumor's molecular network, a property that network
 medicine links to biological importance ⚠️ TO-VERIFY `[@barabasi2011]`, and it leaves aside

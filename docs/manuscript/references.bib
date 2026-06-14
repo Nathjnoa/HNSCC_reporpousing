@@ -1,8 +1,8 @@
 % References — HNSCC Drug Repurposing manuscript
-% Clinical/literature citations verified via PubMed (2026-06-14); method/tool citations
-% sourced from docs/REFERENCES.md (curated, PMIDs). Used for the pandoc preview build.
-% NOTE: imamura2025 is a REVIEW citing KEYNOTE-689 — replace with the primary NEJM 2025
-% trial paper (Uppaluri/Machiels) before submission.
+% Clinical/literature citations verified via PubMed (2026-06-14, re-verified during the
+% reference audit); method/tool citations curated from PMIDs. Used for the pandoc preview build.
+% KEYNOTE-689 now cites the primary RCT (uppaluri2025, NEJM 2025, PMID 40532178); the
+% earlier imamura2025 review was removed.
 
 @article{burtness2019,
   author  = {Burtness, Barbara and Harrington, Kevin J and Greil, Richard and Souli{\`e}res, Denis and Tahara, Makoto and de Castro, Gilberto and Psyrri, Amanda and Bast{\'e}, Neus and others},
@@ -37,15 +37,15 @@
   doi     = {10.1016/j.ccell.2020.12.007}
 }
 
-@article{imamura2025,
-  author  = {Imamura, Yoshinori and Kanno, Masafumi and Fujieda, Shigeharu},
-  title   = {Comparative review of KEYNOTE-689 and NIVOPOSTOP trials and their impact on perioperative immunotherapy in locally advanced head and neck cancer},
-  journal = {Cancer Treatment Reviews},
+@article{uppaluri2025,
+  author  = {Uppaluri, Ravindra and Haddad, Robert I and Tao, Yungan and others},
+  title   = {Neoadjuvant and Adjuvant Pembrolizumab in Locally Advanced Head and Neck Cancer},
+  journal = {New England Journal of Medicine},
   year    = {2025},
-  volume  = {140},
-  pages   = {103018},
-  doi     = {10.1016/j.ctrv.2025.103018},
-  note    = {Review citing KEYNOTE-689; replace with primary trial paper before submission}
+  volume  = {393},
+  number  = {1},
+  pages   = {37--50},
+  doi     = {10.1056/NEJMoa2415434}
 }
 
 @article{johnson2020,
@@ -157,15 +157,18 @@
   doi     = {10.1093/nar/gkaa1027}
 }
 
+% evangelista2025: first author is Marino (Evangelista is 2nd); citekey kept as
+% evangelista2025 for stability -- PIN this key in Better BibTeX so it is not
+% regenerated to marino2025 on import (see REFERENCES_WORKFLOW.md fragile point).
 @article{evangelista2025,
-  author  = {Evangelista, John Erol and Xie, Zhuorui and Marino, Giacomo B and Nguyen, Nhi and Clarke, Daniel J B and Ma'ayan, Avi},
+  author  = {Marino, Giacomo B and Evangelista, John Erol and Clarke, Daniel J B and Ma'ayan, Avi},
   title   = {L2S2: chemical perturbation and CRISPR KO LINCS L1000 signature search engine},
   journal = {Nucleic Acids Research},
   year    = {2025},
   volume  = {53},
   number  = {W1},
-  pages   = {W338--W344},
-  doi     = {10.1093/nar/gkae1059}
+  pages   = {W338--W350},
+  doi     = {10.1093/nar/gkaf373}
 }
 
 @article{szklarczyk2023,
@@ -198,4 +201,42 @@
   volume  = {5},
   pages   = {30},
   doi     = {10.1186/1758-2946-5-30}
+}
+
+% Verified via PubMed 2026-06-14 (PMID 17008526).
+@article{lamb2006,
+  author  = {Lamb, Justin and Crawford, Emily D and Peck, David and Modell, Joshua W and Blat, Irene C and Wrobel, Matthew J and Lerner, Jim and Brunet, Jean-Philippe and Subramanian, Aravind and Ross, Kenneth N and others},
+  title   = {The Connectivity Map: using gene-expression signatures to connect small molecules, genes, and disease},
+  journal = {Science},
+  year    = {2006},
+  volume  = {313},
+  number  = {5795},
+  pages   = {1929--1935},
+  doi     = {10.1126/science.1132939}
+}
+
+% Verified via PubMed 2026-06-14 (PMID 29195078).
+@article{subramanian2017,
+  author  = {Subramanian, Aravind and Narayan, Rajiv and Corsello, Steven M and Peck, David D and Natoli, Ted E and Lu, Xiaodong and Gould, Joshua and Davis, John F and others},
+  title   = {A Next Generation Connectivity Map: L1000 Platform and the First 1,000,000 Profiles},
+  journal = {Cell},
+  year    = {2017},
+  volume  = {171},
+  number  = {6},
+  pages   = {1437--1452},
+  doi     = {10.1016/j.cell.2017.10.049}
+}
+
+% Verified via PubMed 2026-06-14 (PMID 27629641). Proteomics methodology review
+% supporting the conceptual "proteome as functional readout" claim (replaces the
+% weaker single-disease citation flagged in review).
+@article{aebersold2016,
+  author  = {Aebersold, Ruedi and Mann, Matthias},
+  title   = {Mass-spectrometric exploration of proteome structure and function},
+  journal = {Nature},
+  year    = {2016},
+  volume  = {537},
+  number  = {7620},
+  pages   = {347--355},
+  doi     = {10.1038/nature19949}
 }

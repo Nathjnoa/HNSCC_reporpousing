@@ -17,7 +17,7 @@ recurrent or metastatic disease, with patient selection guided by the combined p
 (CPS). [@burtness2019] More recently, KEYNOTE-689 reported that perioperative
 pembrolizumab added to standard of care significantly improves event-free survival in
 locally advanced, resectable disease, a setting where progress had been comparatively slow.
-[@imamura2025] These advances highlight the need to find new molecular signatures
+[@uppaluri2025] These advances highlight the need to find new molecular signatures
 and therapeutic targets to improve systemic and perioperative treatment.
 
 A central challenge in HNSCC is its molecular heterogeneity. The distinction between
@@ -26,14 +26,14 @@ subgroups with substantial prognostic and biological differences, yet this strat
 insufficient to capture the functional complexity of the tumor. [@ang2010]
 Proteomics helps here because it gives a direct picture of the tumor's functional state:
 unlike genomic or transcriptomic profiles, the proteome reflects what cells are actually doing,
-capturing both post-transcriptional and post-translational regulation. [@huang2021] Proteomic studies have repeatedly found changes in EGFR signaling,
-energy metabolism, epigenetic regulation, and the tumor microenvironment in HNSCC. [@huang2021]
+capturing both post-transcriptional and post-translational regulation. [@aebersold2016] Proteomic studies have repeatedly found changes in EGFR signaling,
+energy metabolism, and the tumor microenvironment in HNSCC. [@huang2021]
 
 Drug repurposing, the reuse of approved drugs whose safety is already known, is an efficient way
 to speed up the search for new treatment options, and combining a tumor's molecular signature
 with pharmacological-connectivity resources can point to drugs predicted to reverse the disease
-state. [@pushpakom2019] Connectivity-based approaches typically prioritize
-candidates by how strongly a drug reverses the transcriptomic signature [@evangelista2025; @napolitano2013], while target-centric selection often relies on the size of
+state. [@pushpakom2019; @napolitano2013] Connectivity-based approaches typically prioritize
+candidates by how strongly a drug reverses the transcriptomic signature [@lamb2006; @subramanian2017; @evangelista2025], while target-centric selection often relies on the size of
 the protein or expression change. Ranking by signature reversal or effect size alone, however,
 does not capture where a target sits in the tumor's molecular network, a property that network
 medicine links to biological importance [@barabasi2011], and it leaves aside
