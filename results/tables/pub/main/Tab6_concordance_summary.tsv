@@ -5,3 +5,7 @@ p-value (Pearson)	2.7099999999999995e-66
 % concordant direction	76.2
 % concordant up	35.3
 % concordant down	40.9
+CPTAC N genes overlap	636
+CPTAC Pearson r	0.789
+CPTAC p-value (Pearson)	4.869999999999999e-136
+CPTAC % concordant direction	86.3

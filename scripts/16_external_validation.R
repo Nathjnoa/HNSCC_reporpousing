@@ -609,7 +609,7 @@ p_score <- ggplot(targets_long, aes(x = contrib, y = drug_label, fill = componen
     hjust = -0.15, size = PRESETS$double_col$tick / .pt + 0.5, color = "grey25"
   ) +
   scale_fill_manual(values = COMP_COLS, name = "Score component") +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.18))) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.28))) +
   labs(x = "Composite score", y = NULL) +
   theme_pub("double_col") +
   theme(legend.position    = "right",
@@ -621,7 +621,7 @@ p_score <- ggplot(targets_long, aes(x = contrib, y = drug_label, fill = componen
 # Panel C unificado: CPTAC lollipop | TCGA lollipop | composite score
 # tag_level = 'new' evita que el patchwork externo propague sub-etiquetas (D, E...)
 p_targets_unified <- p_cptac_lfc + p_tcga_lfc + p_score +
-  plot_layout(widths = c(1.3, 1.1, 1), guides = "collect", tag_level = "new") &
+  plot_layout(widths = c(1.3, 1.1, 1), guides = "collect") &
   theme(legend.position = "right")
 
 save_pub(p_targets_unified, "Fig6C_targets_unified", h_add = 20)

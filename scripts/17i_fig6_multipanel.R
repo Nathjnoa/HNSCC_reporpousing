@@ -43,19 +43,21 @@ p_tcga    <- readRDS(file.path(obj_dir, "Fig6B_tcga_concordance.rds"))
 p_targets <- readRDS(file.path(obj_dir, "Fig6C_targets_unified.rds"))
 cat("  Objetos de panel cargados OK\n")
 
-# A (CPTAC scatter) | B (TCGA scatter) | C (targets unificado)
-# Sin wrap_elements(): C se estira al alto completo de la figura.
-# tag_level='new' en el layout interno de p_targets (script 16) evita que las
-# sub-etiquetas se propaguen al patchwork externo.
-fig6 <- p_cptac + p_tcga + p_targets +
-  plot_layout(widths = c(1, 1, 2.4)) +
+# Layout: A+B en fila superior | C en fila inferior (ancho completo)
+# patchwork design: A ocupa col1 fila1, B col2 fila1, C col1+col2 fila2.
+# wrap_elements() en C para tag "C" visible y sin propagación de sub-tags.
+design <- "AB
+           CC"
+
+fig6 <- p_cptac + p_tcga + patchwork::wrap_elements(p_targets) +
+  plot_layout(design = design, heights = c(1, 1.4)) +
   plot_annotation(tag_levels = "A") &
   theme(plot.tag = element_text(size = 14, face = "bold"))
 
-# 540mm ancho; 175mm alto — el eje discreto de C rellena el espacio vertical
-save_tiff(fig6, "Fig6_multipanel", width_mm = 560, height_mm = 175)
+# 340mm ancho × 280mm alto — A/B cuadradas arriba, C panorámica abajo
+save_tiff(fig6, "Fig6_multipanel", width_mm = 340, height_mm = 280)
 ggsave("results/figures/pub/main/Fig6_multipanel.png", fig6,
-       width = 560, height = 175, units = "mm", dpi = 300, limitsize = FALSE)
+       width = 340, height = 280, units = "mm", dpi = 300, limitsize = FALSE)
 cat("  PNG de revisión: Fig6_multipanel.png\n")
 
 cat("\nFig6_multipanel — OK\n")
