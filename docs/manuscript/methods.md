@@ -1,4 +1,4 @@
-# Methods — draft (Step 3, WRITING_PLAN.md)
+# Methods (draft, Step 3 · WRITING_PLAN.md)
 
 > Condensed/translated English draft from `docs/METHODS.md` (production-ready), integrating
 > the fine network numbers removed from Results R3, the directional π note (M1), the regulatory
@@ -38,8 +38,8 @@ ordinal regulatory class encoding regulatory maturity (not pharmacological equiv
 approved with HNSCC evidence, **B** = approved in another cancer, **C** = approved
 non-oncological, **D** = experimental (ordinal scores 1.00/0.75/0.50/0.25). Automated indication
 matching was manually corrected for known mismatches: three agents were reassigned to class A
-(cetuximab, pembrolizumab, nivolumab — approved in HNSCC but missed by EFO matching), two from C to
-B (neratinib, lazertinib), and two from B to C (digoxin, digitoxin — cardiac glycosides with
+(cetuximab, pembrolizumab, nivolumab: approved in HNSCC but missed by EFO matching), two from C to
+B (neratinib, lazertinib), and two from B to C (digoxin, digitoxin: cardiac glycosides with
 oncology trials but no oncological approval); all overrides are documented in the analysis code.
 The candidate set entering prioritization (n = 458) comprised drugs supported by ≥ 2 databases or
 already approved (class A/B retained even if single-source), after removal of a curated exclusion
@@ -91,7 +91,7 @@ weighting/database choices, and external corroboration, not on a permutation P-v
 
 ### External corroboration in two independent cohorts
 
-Target directionality was corroborated — not tested for efficacy or rank order — in two independent
+Target directionality was corroborated, not tested for efficacy or rank order, in two independent
 cohorts. The CPTAC-HNSCC TMT proteome (Huang et al., 2021) was retrieved with the `cptac` Python
 package and analysed by the same method as discovery (paired limma with duplicateCorrelation
 blocking on patient; 116 tumour / 66 normal, 66 pairs); CPTAC log₂FC correlated with the DIA log₂FC

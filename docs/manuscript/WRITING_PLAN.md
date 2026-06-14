@@ -45,8 +45,11 @@ clásico). Metformina = **uno de varios candidatos**, enmarcada como vulnerabili
    perspectivas.
 6. **Abstract** (~250 palabras): se destila del paper terminado.
 7. **Title + keywords + highlights.**
-8. **References** (`references.bib`): desde `REFERENCES.md` + DOIs de `AUDIT_TEXT_DRAFTS.md`; **cada
-   cita clínica/de literatura se verifica vía PubMed al usarse** (regla `06-clinical-evidence-rigor`).
+8. **References**: desde `REFERENCES.md` + DOIs de `AUDIT_TEXT_DRAFTS.md`; **cada cita
+   clínica/de literatura se verifica vía PubMed al usarse** (regla `06-clinical-evidence-rigor`).
+   **Mecánica Zotero (decisión 2026-06-14): campos vivos vía RTF/ODF Scan** — ver
+   `REFERENCES_WORKFLOW.md`. Entrego lista verificada (autor/año/título/PMID/DOI) para importar a
+   Zotero; en ensamblaje las citas se materializan como marcadores `{Autor, Año}`.
 9. **Ensamblaje** `manuscript.md` (IMRAD completo) + `supplementary.md`.
 10. **Fase final (post-aprobación):** fijar revista → formateo a su plantilla + cover letter.
 

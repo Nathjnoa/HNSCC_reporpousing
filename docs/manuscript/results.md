@@ -1,4 +1,4 @@
-# Results — draft (Step 2, WRITING_PLAN.md)
+# Results (draft, Step 2 · WRITING_PLAN.md)
 
 > Full-prose English draft for author review. Numbers verified against
 > `results/tables/pub/*`, `results/tables/network/*`, `results/tables/pathway_enrichment/*`
@@ -38,7 +38,7 @@ this confound.
 ### A reproducible, multi-source druggable candidate space
 
 Mapping the differentially abundant proteins to four pharmacological resources (DGIdb, ChEMBL,
-Open Targets, L2S2) yielded 458 multi-source candidate drugs — agents supported by at least two
+Open Targets, L2S2) yielded 458 multi-source candidate drugs: agents supported by at least two
 databases, or already approved (regulatory class A/B, retained even with a single source), after
 a curated exclusion list (Fig 3). The candidate set spanned the full clinical-development
 spectrum, with a substantial fraction of approved agents (Fig 3A–B), and the cross-source UpSet
@@ -102,8 +102,8 @@ efficacy or of the candidate rank order.
 ### The ranking is robust to scoring choices
 
 Finally, the candidate ranking was stable across six independent weight configurations and a
-limit-of-detection filter (Fig S2). Candidates flagged as LOD-stable — including the EGFR-axis
-agents and the leading hub-central candidates — retained their positions across configurations
+limit-of-detection filter (Fig S2). Candidates flagged as LOD-stable, including the EGFR-axis
+agents and the leading hub-central candidates, retained their positions across configurations
 (Table 1, robustness columns), defining a robust core panel. Consistent with their nomination as
 therapeutic vulnerabilities rather than prognostic markers, none of the four pillar genes (EGFR,
 PSMB10, DNMT1, NDUFS3) was significantly associated with overall survival in TCGA-HNSC (all

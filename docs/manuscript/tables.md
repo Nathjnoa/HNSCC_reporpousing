@@ -1,4 +1,4 @@
-# Table legends — HNSCC Drug Repurposing
+# Table legends: HNSCC Drug Repurposing
 
 > Step 1 of `WRITING_PLAN.md`. Self-contained, publication-style legends in English,
 > anchored to the actual column structure of `results/tables/pub/*.tsv` (post-audit,
@@ -18,7 +18,7 @@
 Network-anchored prioritization of repurposing candidates, ordered by composite score
 (`composite = 0.60·TargetPriority + 0.40·DrugViability`). The table is organized in two blocks.
 The **EGFR control block** (top) lists the EGFR-axis agents that the unsupervised prioritization
-recovers — including drugs with established approval in HNSCC (cetuximab, composite 0.73, #1) —
+recovers, including drugs with established approval in HNSCC (cetuximab, composite 0.73, #1),
 serving as the method's internal positive control. The **prioritized candidates block** lists the
 leading non-EGFR candidates by tier: *hub-central* (anchor target is a network hub; e.g.,
 metformin → NDUFS2, oxidative phosphorylation, composite 0.591; proteasome) and
@@ -42,7 +42,7 @@ Summary of the proteomic dataset and differential-abundance analysis (also summa
 The DIA proteome (MaxQuant, 10 paired tumour/normal specimens) quantified 3,352 proteins, all
 mapped to Entrez IDs (org.Hs.eg.db). Differential abundance was tested with a paired limma contrast
 (tumour-vs-normal); thresholds |log₂FC| > 1 and FDR < 0.05 (Benjamini–Hochberg). 666 proteins
-(19.9%) were differentially abundant — 329 over-abundant (49.4%) and 337 under-abundant (50.6%) in
+(19.9%) were differentially abundant: 329 over-abundant (49.4%) and 337 under-abundant (50.6%) in
 tumour. HPV status: 6 HPV-positive patients (12 samples), 4 HPV-negative patients (8 samples).
 Columns: parameter, value, note. *Source: `Tab1_resumen_DE.tsv`.*
 

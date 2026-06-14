@@ -1,4 +1,4 @@
-# Figure legends — HNSCC Drug Repurposing
+# Figure legends: HNSCC Drug Repurposing
 
 > Step 1 of `WRITING_PLAN.md`. Self-contained, publication-style legends in English,
 > anchored to post-audit numbers (commit `938d133`). Figures are **final** and not
@@ -38,7 +38,7 @@ MSigDB Hallmark, all 50 sets tested); the gene sets reaching FDR < 0.05 are show
 
 ## Figure 3. A reproducible, multi-source druggable candidate space.
 
-Characterization of the 458 multi-source candidate drugs — agents with support in ≥ 2 databases
+Characterization of the 458 multi-source candidate drugs: agents with support in ≥ 2 databases
 **or** already approved (regulatory class A/B, retained even with a single source), minus a
 curated exclusion list. All three panels describe this same set. (**A**) Distribution of maximum
 clinical phase. (**B**) Distribution of ordinal regulatory class (A = approved with HNSCC
