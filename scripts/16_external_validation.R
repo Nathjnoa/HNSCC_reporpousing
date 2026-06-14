@@ -551,12 +551,12 @@ make_lollipop <- function(targets, lfc_col, adjp_col, x_lab,
 
   p <- ggplot(targets, aes(y = drug_label, x = x_val)) +
     geom_vline(xintercept = 0, linetype = "dashed", color = "grey70",
-               linewidth = 0.3) +
+               linewidth = 0.4) +
     geom_segment(aes(x = 0, xend = x_val, yend = drug_label, color = pillar),
-                 linewidth = 0.6, alpha = 0.7) +
-    geom_point(aes(color = pillar, shape = concord_target), size = 2.4) +
+                 linewidth = 0.9, alpha = 0.7) +
+    geom_point(aes(color = pillar, shape = concord_target), size = 3.2) +
     geom_text(aes(label = sig_label, x = x_val),
-              hjust = -0.35, size = PRESETS$double_col$tick / .pt - 0.5,
+              hjust = -0.3, size = PRESETS$double_col$tick / .pt + 0.5,
               color = "grey30") +
     scale_color_manual(values = PILLAR_PLOT, name = "Module",
                        guide = guide_legend(override.aes = list(size = 2.5))) +
@@ -600,13 +600,13 @@ targets_long <- targets_tcga |>
   mutate(component = factor(component, levels = names(COMP_COLS)))
 
 p_score <- ggplot(targets_long, aes(x = contrib, y = drug_label, fill = component)) +
-  geom_col(width = 0.65) +
+  geom_col(width = 0.75) +
   geom_text(
     data = targets_tcga,
     aes(x = composite_score, y = drug_label,
         label = sprintf("%.2f", composite_score)),
     inherit.aes = FALSE,
-    hjust = -0.15, size = PRESETS$double_col$tick / .pt, color = "grey25"
+    hjust = -0.15, size = PRESETS$double_col$tick / .pt + 0.5, color = "grey25"
   ) +
   scale_fill_manual(values = COMP_COLS, name = "Score component") +
   scale_x_continuous(expand = expansion(mult = c(0, 0.18))) +
@@ -619,8 +619,9 @@ p_score <- ggplot(targets_long, aes(x = contrib, y = drug_label, fill = componen
         panel.grid.major.x = element_line(linewidth = 0.2, color = "grey90"))
 
 # Panel C unificado: CPTAC lollipop | TCGA lollipop | composite score
+# tag_level = 'new' evita que el patchwork externo propague sub-etiquetas (D, E...)
 p_targets_unified <- p_cptac_lfc + p_tcga_lfc + p_score +
-  plot_layout(widths = c(1.3, 1.1, 1), guides = "collect") &
+  plot_layout(widths = c(1.3, 1.1, 1), guides = "collect", tag_level = "new") &
   theme(legend.position = "right")
 
 save_pub(p_targets_unified, "Fig6C_targets_unified", h_add = 20)

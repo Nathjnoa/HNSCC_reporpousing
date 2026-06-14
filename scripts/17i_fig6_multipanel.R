@@ -44,16 +44,18 @@ p_targets <- readRDS(file.path(obj_dir, "Fig6C_targets_unified.rds"))
 cat("  Objetos de panel cargados OK\n")
 
 # A (CPTAC scatter) | B (TCGA scatter) | C (targets unificado)
-# wrap_elements() en p_targets evita que su patchwork interno propague sub-tags
-fig6 <- p_cptac + p_tcga + patchwork::wrap_elements(p_targets) +
+# Sin wrap_elements(): C se estira al alto completo de la figura.
+# tag_level='new' en el layout interno de p_targets (script 16) evita que las
+# sub-etiquetas se propaguen al patchwork externo.
+fig6 <- p_cptac + p_tcga + p_targets +
   plot_layout(widths = c(1, 1, 2.4)) +
   plot_annotation(tag_levels = "A") &
   theme(plot.tag = element_text(size = 14, face = "bold"))
 
-# 540mm ancho; altura 165mm — scatters y lollipop quedan al mismo nivel
-save_tiff(fig6, "Fig6_multipanel", width_mm = 540, height_mm = 140)
+# 540mm ancho; 175mm alto — el eje discreto de C rellena el espacio vertical
+save_tiff(fig6, "Fig6_multipanel", width_mm = 560, height_mm = 175)
 ggsave("results/figures/pub/main/Fig6_multipanel.png", fig6,
-       width = 540, height = 140, units = "mm", dpi = 300, limitsize = FALSE)
+       width = 560, height = 175, units = "mm", dpi = 300, limitsize = FALSE)
 cat("  PNG de revisión: Fig6_multipanel.png\n")
 
 cat("\nFig6_multipanel — OK\n")
