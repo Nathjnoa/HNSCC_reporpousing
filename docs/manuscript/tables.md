@@ -18,8 +18,8 @@
 Network-anchored prioritization of repurposing candidates, ordered by composite score
 (`composite = 0.60·TargetPriority + 0.40·DrugViability`). The table is organized in two blocks.
 The **EGFR control block** (top) lists the EGFR-axis agents that the unsupervised prioritization
-recovers, including drugs with established approval in HNSCC (cetuximab, composite 0.73, #1),
-serving as the method's internal positive control. The **prioritized candidates block** lists the
+recovers, including drugs already approved in HNSCC (cetuximab, composite 0.73, #1); this block is
+the method's internal positive control. The **prioritized candidates block** lists the
 leading non-EGFR candidates by tier: *hub-central* (anchor target is a network hub; e.g.,
 metformin → NDUFS2, oxidative phosphorylation, composite 0.591; proteasome) and
 *peripheral-differential* (target differentially abundant but not a hub; e.g., epigenetic
@@ -27,7 +27,7 @@ DNMT1/MAOA, antimetabolite IMPDH2). Columns: drug name, block/tier, functional m
 hub/target, primary target subclass (where applicable), maximum clinical phase, approved in HNSCC
 (yes/no), composite score, TargetPriority (TP), DrugViability (DV), number of supporting sources
 (of 4), LOD-stable (yes/no), and weight-configuration robustness (n/6 configurations retaining the
-candidate). Metformin's anchor (Complex I) is under-abundant in tumour; it is presented as a
+candidate). Metformin's anchor (Complex I) is under-abundant in tumor; it is presented as a
 metabolic-vulnerability / combination candidate, not as inhibition of an overexpressed target.
 *Assembled from `results/tables/pub/main/Tab4_EGFR_validation.tsv` and
 `Tab5_novel_candidates_by_module.tsv`.*
@@ -39,16 +39,16 @@ metabolic-vulnerability / combination candidate, not as inhibition of an overexp
 ## Table S1. Cohort and differential-abundance summary.
 
 Summary of the proteomic dataset and differential-abundance analysis (also summarized in-text).
-The DIA proteome (MaxQuant, 10 paired tumour/normal specimens) quantified 3,352 proteins, all
+The DIA proteome (MaxQuant, 10 paired tumor/normal specimens) quantified 3,352 proteins, all
 mapped to Entrez IDs (org.Hs.eg.db). Differential abundance was tested with a paired limma contrast
-(tumour-vs-normal); thresholds |log₂FC| > 1 and FDR < 0.05 (Benjamini–Hochberg). 666 proteins
+(tumor-vs-normal); thresholds |log₂FC| > 1 and FDR < 0.05 (Benjamini–Hochberg). 666 proteins
 (19.9%) were differentially abundant: 329 over-abundant (49.4%) and 337 under-abundant (50.6%) in
-tumour. HPV status: 6 HPV-positive patients (12 samples), 4 HPV-negative patients (8 samples).
+tumor. HPV status: 6 HPV-positive patients (12 samples), 4 HPV-negative patients (8 samples).
 Columns: parameter, value, note. *Source: `Tab1_resumen_DE.tsv`.*
 
 ## Table S2. Top differentially abundant proteins.
 
-Most extreme differentially abundant proteins in tumour versus adjacent-normal tissue, ranked by
+Most extreme differentially abundant proteins in tumor versus adjacent-normal tissue, ranked by
 |log₂FC|. Columns: gene symbol, UniProt ID, log₂ fold change, FDR (limma / Benjamini–Hochberg),
 direction (over-/under-abundant). *Source: `Tab2_top_proteinas.tsv`.*
 
@@ -74,3 +74,13 @@ prioritized block). Columns: drug name, tier, functional module, anchor hub/targ
 clinical phase, composite score, TargetPriority (TP), DrugViability (DV), number of sources,
 LOD-stable, weight-configuration robustness (n/6). *Source:
 `supp/TabS1_extended_candidates_by_module.tsv`.*
+
+## Table S6. Manual regulatory-class overrides.
+
+The seven drugs whose automated EFO-based indication match was manually corrected before scoring,
+with the rationale for each. Reassigned to class A (approved with HNSCC evidence, but missed by EFO
+matching): cetuximab, pembrolizumab, nivolumab. Reassigned from class C to class B (approved in
+another cancer): neratinib, lazertinib. Reassigned from class B to class C (cardiac glycosides with
+oncology trials but no oncological approval): digoxin, digitoxin. Columns: drug name, automated
+class, corrected class, rationale. *Source: analysis configuration
+(`config/analysis_params.yaml`).*

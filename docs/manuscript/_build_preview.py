@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
-"""Assemble a clean preview manuscript (Intro+Methods+Results) from the section drafts.
+"""Assemble a clean preview manuscript from the section drafts.
 
 Strips internal note blocks, ⚠️ flags, markdown emphasis (plain output per author),
-maps Introduction placeholder citekeys to real verified keys, and injects key method
-citations. Produces manuscript_PREVIEW.md for pandoc → docx. Partial preview: Discussion,
-Abstract, Title and full Methods/Results citations are pending (steps 5–8).
+maps Introduction placeholder citekeys to real verified keys, injects key method
+citations, and now embeds the main-body multipanel figures (Fig 1-6) with their
+legends and the prioritized-candidate main table (Table 1, assembled from the
+Tab4 + Tab5 TSVs). Supplementary items are NOT included. Produces
+manuscript_PREVIEW.md for pandoc -> docx.
+
+Citation handling: every injected token is a verified Better BibTeX key present in
+references.bib (checked against the bib before adding new anchors), so the markers
+docx scans cleanly in Zotero (REFERENCES_WORKFLOW.md, Path B).
 """
+import csv
 import re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+TAB_DIR = HERE / ".." / ".." / "results" / "tables" / "pub" / "main"
+FIG_DIR = "../../results/figures/pub/main"  # relative to this file; pandoc run from HERE
 
 
 def body_from(path):
@@ -57,12 +66,139 @@ METHOD_CITES = [
     ("Huang et al., 2021", "Huang et al., 2021 [@huang2021]"),
 ]
 
+# --- Figure legends: inject the one author citation that appears in captions -----
+FIGURE_CITES = [
+    ("Huang et al., 2021", "Huang et al., 2021 [@huang2021]"),
+]
+
+# Main-body multipanel figures: file stem -> figure number (legend pulled from figures.md)
+MAIN_FIGURES = [
+    ("Fig1_workflow", 1),
+    ("Fig2_multipanel", 2),
+    ("Fig3_multipanel", 3),
+    ("Fig4_multipanel", 4),
+    ("Fig5_multipanel", 5),
+    ("Fig6_multipanel", 6),
+]
+
 
 def inject_first(text, anchor, replacement):
-    """Replace only the first occurrence of anchor with replacement."""
     return text.replace(anchor, replacement, 1)
 
 
+# ---- Figure legends keyed by number, harvested from figures.md -----------------
+def figure_legends():
+    text = (HERE / "figures.md").read_text(encoding="utf-8")
+    # stop before the supplementary block
+    text = text.split("## Supplementary figures")[0]
+    legends = {}
+    blocks = re.split(r"\n## (Figure \d+\.)", text)
+    # blocks[0] is the header; then pairs (title, body)
+    for i in range(1, len(blocks), 2):
+        title = blocks[i].strip()
+        body = blocks[i + 1].strip()
+        num = int(re.search(r"Figure (\d+)\.", title).group(1))
+        legend = f"{title} {body}"
+        for anchor, repl in FIGURE_CITES:
+            legend = inject_first(legend, anchor, repl)
+        legends[num] = clean_common(legend)
+    return legends
+
+
+def figures_section():
+    legends = figure_legends()
+    out = ["# Figures\n"]
+    for stem, num in MAIN_FIGURES:
+        out.append(f"![]({FIG_DIR}/{stem}.png)\n")
+        out.append(legends[num] + "\n")
+    return "\n".join(out)
+
+
+# ---- Table 1: assemble from Tab4 (EGFR control) + Tab5 (tiers) ------------------
+PHASE_EN = {
+    "Aprobado (Fase IV)": "Approved (Phase IV)",
+    "Fase III": "Phase III",
+    "Fase II": "Phase II",
+    "Fase I": "Phase I",
+}
+SUBCLASS_EN = {
+    "Anticuerpo/ADC anti-EGFR": "Anti-EGFR antibody/ADC",
+    "Inhibidor multi-quinasa (EGFR+)": "Multikinase inhibitor (EGFR+)",
+    "TKI EGFR 1ª-2ª generación": "EGFR TKI (1st-2nd gen)",
+    "TKI EGFR 3ª generación": "EGFR TKI (3rd gen)",
+}
+# clean truncated GO module names from the TSV
+MODULE_EN = {
+    "Oxidative phosphorylation": "Oxidative phosphorylation",
+    "Ubiquitin-dependent protein ca": "Ubiquitin-dependent proteolysis",
+    "Defense response": "Defense response",
+    "Translation": "Translation",
+    "Small molecule metabolic proce": "Small-molecule metabolism",
+    "Chromatin remodeling": "Chromatin remodeling",
+    "Carbohydrate catabolic process": "Carbohydrate catabolism",
+    "Carboxylic acid metabolic proc": "Carboxylic-acid metabolism",
+    "Regulation of anatomical struc": "Anatomical-structure regulation",
+}
+
+
+def _read_tsv(name):
+    with open(TAB_DIR / name, encoding="utf-8") as fh:
+        return list(csv.DictReader(fh, delimiter="\t"))
+
+
+def table1_section():
+    egfr = _read_tsv("Tab4_EGFR_validation.tsv")
+    tiers = _read_tsv("Tab5_novel_candidates_by_module.tsv")
+
+    header = (
+        "| Drug | Block / tier | Module / subclass | Anchor target | Max clinical phase "
+        "| HNSCC-approved | Composite | TP | DV | Sources (/4) | LOD-stable | Robustness (n/6) |"
+    )
+    sep = "|" + "---|" * 12
+
+    rows = []
+
+    # EGFR control block: the 7 leaders (composite >= 0.689); collapse the long tail
+    leaders = [r for r in egfr if float(r["Composite score"]) >= 0.689]
+    leaders.sort(key=lambda r: -float(r["Composite score"]))
+    n_more = len(egfr) - len(leaders)
+    for r in leaders:
+        rows.append(
+            f"| {r['Fármaco']} | EGFR control | "
+            f"{SUBCLASS_EN.get(r['Subclase'], r['Subclase'])} | {r['Target primario']} "
+            f"| {PHASE_EN.get(r['Fase clínica máx.'], r['Fase clínica máx.'])} "
+            f"| {'Yes' if r['Aprobado HNSCC'] == 'Sí' else 'No'} | {r['Composite score']} "
+            f"| {r['TP']} | {r['DV']} | {r['N fuentes']} "
+            f"| {'Yes' if r['LOD-stable'] == 'Sí' else 'No'} | {r['Robustez pesos']} |"
+        )
+    rows.append(
+        f"| *plus {n_more} additional EGFR-axis agents* | EGFR control | EGFR signaling "
+        f"| EGFR | Approved-to-Phase I | mixed | 0.50-0.66 | 0.605 | varies | 2-3 "
+        f"| mixed | mixed |"
+    )
+
+    tier_label = {"Hub central de red": "Hub-central", "Periférico diferencial": "Peripheral-differential"}
+    for r in tiers:
+        rows.append(
+            f"| {r['Fármaco']} | {tier_label.get(r['Tier'], r['Tier'])} | "
+            f"{MODULE_EN.get(r['Módulo funcional'], r['Módulo funcional'])} | {r['Hub / diana']} "
+            f"| {PHASE_EN.get(r['Fase clínica máx.'], r['Fase clínica máx.'])} | No "
+            f"| {r['Composite score']} | {r['TP']} | {r['DV']} | {r['N fuentes']} "
+            f"| {'Yes' if r['LOD-stable'] == 'Sí' else 'No'} | {r['Robustez pesos']} |"
+        )
+
+    legend = clean_common(
+        body_from(HERE / "tables.md")
+        .split("## Supplementary tables")[0]
+        .split("## Table 1.")[1]
+        .strip()
+    )
+    legend = "Table 1. " + legend
+
+    return "\n".join(["# Tables\n", header, sep, *rows, "", legend])
+
+
+# ---- assemble ------------------------------------------------------------------
 intro = clean_common(body_from(HERE / "introduction.md"))
 for k, v in INTRO_CITES.items():
     intro = intro.replace(k, v)
@@ -75,12 +211,20 @@ results = clean_common(body_from(HERE / "results.md"))
 
 header = (
     "# Network-anchored proteomic drug repurposing in HNSCC (working draft, preview)\n\n"
-    "Partial preview for pipeline testing: Introduction, Methods and Results only. "
-    "Discussion, Abstract, Title and complete Methods/Results citations are pending "
-    "(WRITING_PLAN.md steps 5–8). Citations shown are PubMed-verified; the bibliography "
-    "is generated automatically by pandoc.\n\n"
+    "Partial preview for pipeline testing: Introduction, Methods, Results, main-body figures "
+    "(Fig 1-6) and the prioritized-candidate main table (Table 1). Discussion, Abstract, Title "
+    "and complete Methods/Results citations are pending (WRITING_PLAN.md steps 5-8). Citations "
+    "shown are PubMed-verified; the bibliography is generated by pandoc / scanned in Zotero.\n\n"
 )
 
-out = "\n\n".join([header.rstrip(), intro, methods, results, "# References\n"])
+out = "\n\n".join([
+    header.rstrip(),
+    intro,
+    methods,
+    results,
+    figures_section(),
+    table1_section(),
+    "# References\n",
+])
 (HERE / "manuscript_PREVIEW.md").write_text(out + "\n", encoding="utf-8")
 print("wrote manuscript_PREVIEW.md")
