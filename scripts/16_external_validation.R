@@ -5,7 +5,8 @@
 # Validación externa en dos cohortes independientes (Fig6, 3 paneles):
 #
 # Panel A — CPTAC-HNSCC concordancia: DIA proteomics log2FC vs TMT proteomics
-#           CPTAC-HNSC (Huang et al. 2021, Cancer Cell; limma pareado, n=66 pares).
+#           CPTAC-HNSC (Huang et al. 2021, Cancer Cell; limma pareado,
+#           116 tumor / 66 normal = 66 pares).
 #           Validación PROTEOMA-vs-PROTEOMA: mismo nivel ómico, cohorte distinta.
 #
 # Panel B — TCGA-HNSC concordancia: DIA proteomics log2FC vs RNA-seq log2FC
@@ -769,7 +770,8 @@ n_tcga_concord  <- sum(targets_tcga$concord_target, na.rm = TRUE)
 n_tcga_sig      <- sum(!is.na(targets_tcga$adjP_tcga_target) &
                           targets_tcga$adjP_tcga_target < 0.05)
 
-cat(sprintf("CPTAC proteomics (n=%d pares T/N):\n", de_cptac$n_tumor[1]))
+cat(sprintf("CPTAC proteomics (%d tumor / %d normal, %d pares):\n",
+            de_cptac$n_tumor[1], de_cptac$n_normal[1], de_cptac$n_normal[1]))
 cat(sprintf("  Genes solapantes:              %d\n", nrow(conc_cptac)))
 cat(sprintf("  Pearson r (prot. vs prot.):    %.3f (p = %.2e)\n",
             pearson_r_cptac, pearson_p_cptac))

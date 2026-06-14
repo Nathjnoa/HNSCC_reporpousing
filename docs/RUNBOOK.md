@@ -2,15 +2,19 @@
 
 Guía paso a paso para reproducir el análisis completo.
 
-Pipeline principal: 01–03, 04–10, 15, 16, 17–18
+Pipeline principal: 01–03, 04–10, 15, 16b+16c+16 (validación externa), 17–18
 Figuras de publicación: 17 + 17b (paneles), 17c (GSEA), 17d–17g (multipaneles Fig2–5),
-17h (FigS robustez), módulo de estilo `_fig_style.R`
-Scripts archivados (fuera del manuscrito): scripts/archive/{11,12,13}; supp/14
+17h (FigS robustez), 17i (Fig6), módulo de estilo `_fig_style.R`
+Scripts archivados (fuera del manuscrito): scripts/archive/{11,12,13}
+Auxiliar: supp/14_outputs_catalogue.R (regenera docs/OUTPUTS.md; METHODS.md se mantiene a mano)
 
-Última actualización: 2026-06-13 — Priorización hub-céntrica v3 (script 10: composite
-`TargetPriority × DrugViability`, anclaje por arista curada, tiers hub_central/peripheral);
-Fig5 (`17b`+`17g`) por módulo; robustez sin permutación → FigS (`17h`); Tab4/Tab5 por
-tier/módulo. Scripts 11/12/13 archivados; script 19 (metilación OE4) eliminado del paper.
+Última actualización: 2026-06-13 — Validación externa en **DOS cohortes** independientes
+(Fig6, 3 paneles): A = CPTAC-HNSCC proteoma TMT (`16b` fetch + `16c` limma DE), B = TCGA-HNSC
+RNA-seq (`16`), C = dianas-ancla del shortlist en ambas cohortes. Antes: priorización
+hub-céntrica v3 (script 10: composite `TargetPriority × DrugViability`, anclaje por arista
+curada, tiers hub_central/peripheral); Fig5 (`17b`+`17g`) por módulo; robustez sin
+permutación → FigS (`17h`); Tab4/Tab5 por tier/módulo. Scripts 11/12/13 archivados;
+script 19 (metilación OE4) eliminado del paper.
 
 ---
 
@@ -20,8 +24,8 @@ tier/módulo. Scripts 11/12/13 archivados; script 19 (metilación OE4) eliminado
 
 | Ambiente | Scripts | Propósito |
 | --- | --- | --- |
-| `omics-R` | 01, 02, 03, 08, 09, 10, 15, 16, 17, 17b, 17c, 17d, 17e, 17f, 17g, 17h, 18 | Análisis proteómica, enriquecimiento, red, priorización, robustez, validación TCGA, figuras (paneles + multipaneles + suplementaria), tablas |
-| `omics-py` | 04, 05, 06, 07 | Consultas a bases de datos de fármacos (DGIdb, ChEMBL, OpenTargets, L2S2) |
+| `omics-R` | 01, 02, 03, 08, 09, 10, 15, 16c, 16, 17, 17b, 17c, 17d, 17e, 17f, 17g, 17h, 17i, 18 | Análisis proteómica, enriquecimiento, red, priorización, robustez, DE CPTAC, validación TCGA, figuras (paneles + multipaneles + suplementaria), tablas |
+| `omics-py` | 04, 05, 06, 07, 16b | Consultas a bases de datos de fármacos (DGIdb, ChEMBL, OpenTargets, L2S2) + descarga proteómica CPTAC |
 
 ### Paquetes adicionales (instalar una sola vez)
 
@@ -36,7 +40,12 @@ install.packages(c("igraph", "ggraph", "tidygraph", "yaml", "httr2", "jsonlite",
 # En omics-py
 conda activate omics-py
 pip install requests pandas numpy
+pip install cptac==1.5.14   # solo para 16b (descarga proteómica CPTAC-HNSCC)
 ```
+
+> Validación externa (script 16) también requiere en `omics-R`:
+> `BiocManager::install(c("TCGAbiolinks","DESeq2","SummarizedExperiment"))` y
+> `install.packages(c("survival","survminer"))`.
 
 ### Datos requeridos
 
@@ -93,8 +102,9 @@ Rscript scripts/02_id_mapping.R
 conda activate omics-R
 
 # 03 - GSEA (Hallmarks + GO BP + KEGG + Reactome). Semilla fija (set.seed 42).
-#      03_{GO_BP,KEGG,Reactome}_GSEA.tsv -> leading-edge para s_pathway (script 10)
-#      03_Hallmarks_GSEA.tsv -> panel GSEA de Fig2 (script 17c)
+#      NOTA v3: s_pathway eliminado del scoring (script 10 ya no usa GSEA).
+#      GO/KEGG/Reactome quedan como contexto biológico; Fig4C usa enriquecimiento por módulo.
+#      03_Hallmarks_GSEA.tsv -> panel GSEA de Fig2C (script 17c)
 Rscript scripts/03_pathway_enrichment.R
 # Output: results/tables/pathway_enrichment/03_*.tsv
 #         results/figures/pathway_enrichment/03_*.pdf
@@ -174,41 +184,66 @@ Rscript scripts/15_sensitivity_analysis.R
 # scripts/archive/13_evidence_summary.R        — integración + reporte final
 ```
 
-### Fase 5: Validación externa TCGA (R)
+### Fase 5: Validación externa en dos cohortes (Python + R)
+
+Fig6 valida las predicciones en **dos cohortes independientes**: CPTAC-HNSCC
+(proteoma TMT, mismo nivel ómico que el descubrimiento) y TCGA-HNSC (RNA-seq,
+validación cruzada multi-ómica). Orden: 16b → 16c → 16 → 17i.
 
 ```bash
+# 16b - Descarga proteómica CPTAC-HNSCC (Huang et al. 2021) vía paquete `cptac`.
+#       Solo descarga: el DE se hace en R (16c) con el MISMO método (limma).
+conda activate omics-py
+python scripts/16b_cptac_fetch.py
+# Output: data/intermediate/cptac/{cptac_hnscc_proteomics.tsv, cptac_hnscc_samples.tsv}
+
 conda activate omics-R
 
-# 16 - Validación externa (paneles Fig6A + Fig6B + FigS supervivencia)
+# 16c - DE proteómico CPTAC (limma pareado, duplicateCorrelation por patient_id).
+#       Cohorte: 116 tumor / 66 normal (66 pares). Mismo método que el descubrimiento.
+Rscript scripts/16c_cptac_de.R
+# Output: data/intermediate/cptac/16c_cptac_hnscc_de.tsv
+
+# 16 - Validación externa: ensambla Fig6 (3 paneles) + FigS supervivencia.
+#      Lee el DE CPTAC (16c) y calcula/cachea el DE TCGA (DESeq2).
 #      PRIMERA EJECUCION: descarga ~800 MB desde GDC (cache en data/intermediate/tcga/)
 #      Dependencias: BiocManager::install(c("TCGAbiolinks","DESeq2","SummarizedExperiment"))
 #                    install.packages(c("survival","survminer"))
 #      Nota: S4Vectors enmascara dplyr::rename/count → script usa dplyr::select/count explícitos
 Rscript scripts/16_external_validation.R
-# Output (main):   results/figures/pub/main/Fig6A_concordance.{pdf,png}
-#                  results/figures/pub/main/Fig6B_targets_tcga.{pdf,png}
+# Output (main):   results/figures/pub/main/Fig6A_cptac_concordance.{pdf,png}
+#                  results/figures/pub/main/Fig6B_tcga_concordance.{pdf,png}
+#                  results/figures/pub/main/Fig6C_targets_unified.{pdf,png}
 # Output (supp):   results/figures/pub/supp/FigS_survival_targets.{pdf,png}
-# Output (tables): results/tables/pub/main/Tab6_concordance_summary.tsv
+# Output (tables): results/tables/pub/main/Tab6_concordance_summary.tsv (CPTAC + TCGA)
 #                  results/tables/pub/supp/TabS2_survival_genes.tsv
-# Checkpoint en log: N dianas shortlist concordantes/significativas en TCGA RNA-seq
+# Checkpoint en log: concordancia global + dianas-ancla con datos/concordantes/FDR<0.05
 
 # 17i - Ensamble Fig6 multipanel (lee .rds cacheados por 16; NO re-ejecuta análisis)
+#        Layout: A (CPTAC) + B (TCGA) arriba | C (dianas, ancho completo) abajo.
 #        Correr DESPUÉS de 16_external_validation.R
 Rscript scripts/17i_fig6_multipanel.R
 # Output: results/figures/pub/main/Fig6_multipanel.{tif,pdf,png}  (TIFF 600 DPI LZW)
 ```
 
-> **Panel A (Fig6A):** concordancia global proteoma DIA vs TCGA-HNSC RNA-seq (r=0.601,
-> n=663, 76.2% concordante). Valida el INPUT del pipeline.
+> **Panel A (Fig6A) — CPTAC proteoma vs proteoma:** concordancia del log2FC DIA vs
+> CPTAC-HNSCC TMT (limma pareado, 116 tumor / 66 normal). r=0.789, n=636 genes,
+> 86.3% concordancia direccional. Validación en el **mismo nivel ómico**, cohorte
+> distinta.
 >
-> **Panel B (Fig6B):** las 14 dianas-ancla del shortlist (Fig5) en TCGA RNA-seq: log2FC
-> + FDR + concordancia con el proteoma. **11/14 concordantes y FDR<0.05**. Cierra el
-> lazo Fig5 → validación externa: las predicciones se sostienen en cohorte independiente.
+> **Panel B (Fig6B) — TCGA proteoma vs RNA:** concordancia del log2FC DIA vs
+> TCGA-HNSC RNA-seq (DESeq2, 520 tumor / 44 normal). r=0.601, n=663 genes, 76.2%
+> concordancia direccional. Validación **cruzada multi-ómica**.
 >
-> **FigS supervivencia (suplementario):** KM OS para EGFR/PSMB10/DNMT1/NDUFS3, todos
-> p>0.05 (no-significativos). Análisis exploratorio/contextual: las dianas son
-> vulnerabilidades terapéuticas, **no biomarcadores pronósticos de OS**. Se reubicó a
-> suplementario (no es validación del método de repurposing).
+> **Panel C (Fig6C) — dianas-ancla en ambas cohortes:** las 14 anclas del shortlist
+> (Fig5) con log2FC + FDR en CPTAC (12/14 con datos: 11 concordantes, 10 FDR<0.05)
+> y TCGA (14/14: 11 concordantes, 11 FDR<0.05) + composite score. Cierra el lazo
+> Fig5 → validación: las predicciones se sostienen en dos cohortes independientes.
+>
+> **FigS supervivencia (suplementario):** KM OS para EGFR/PSMB10/DNMT1/NDUFS3 en
+> TCGA-HNSC (n=476 con datos OS), todos p>0.05 (p=0.098–0.422). Análisis
+> exploratorio/contextual: las dianas son vulnerabilidades terapéuticas, **no
+> biomarcadores pronósticos de OS**. Suplementario (no valida el método de repurposing).
 >
 > **Nota:** la antigua "Fase 5b" (metilación TCGA-HNSC, script 19 / OE4) fue
 > **eliminada y excluida del manuscrito**. El script `19_methylation_tcga.R` y sus
@@ -272,15 +307,21 @@ Rscript scripts/18_pub_tables.R
 01 → 02 → 03 (pathway enrichment; panel GSEA para 17c)
        ↓
       04, 05, 06, 07 (paralelos)
-               → 08 → 09 → 10 → 15 (robustez) → 16 (validacion TCGA, Fig6)
+               → 08 → 09 → 10 → 15 (robustez)
                           (10 anchor usa aristas curadas ChEMBL/OpenTargets de 08;
                            centralidad/módulos de 09)
+
+Validación externa (Fig6, dos cohortes):
+  16b (py: fetch CPTAC) → 16c (R: DE CPTAC limma) ─┐
+                                                   ├→ 16 (paneles Fig6A/B/C + FigS) → 17i (Fig6 multipanel)
+  09/10 (shortlist + DE TCGA DESeq2) ──────────────┘
 
 Figuras (todas sourcean scripts/_fig_style.R; sin títulos embebidos):
   17  (paneles Fig2/3/4 + cachea objetos)   17b (paneles Fig5, lee 10)
   17c (GSEA, sobrescribe Fig2C)
   17d→Fig2 · 17e→Fig3 · 17f→Fig4 · 17g→Fig5   (ensamblan desde cache)
   17h→FigS_robustness (suplementaria, lee tablas 15)
+  17i→Fig6 (ensambla A/B/C cacheados por 16)
   18  (tablas pub)
 
 Opcional (archivado, no bloquea el pipeline): scripts/archive/{11,12,13}
@@ -292,8 +333,9 @@ Opcional (archivado, no bloquea el pipeline): scripts/archive/{11,12,13}
 
 | Archivo | Descripción |
 | --- | --- |
-| `results/figures/pub/main/` | Figuras de publicación: paneles (PDF + PNG 300 DPI) + multipaneles `Fig{2,3,4,5}_multipanel.tif` (TIFF 600 DPI) |
+| `results/figures/pub/main/` | Figuras de publicación: paneles (PDF + PNG 300 DPI) + multipaneles `Fig{2,3,4,5,6}_multipanel.tif` (TIFF 600 DPI) |
 | `results/figures/pub/supp/FigS_robustness.{tif,pdf,png}` | Suplementaria: estabilidad ranking × 6 configs + LOD |
+| `results/figures/pub/supp/FigS_survival_targets.{pdf,png}` | Suplementaria: KM OS de las 4 dianas-pilar en TCGA-HNSC (no-significativo) |
 | `results/figures/pub/.objects/` | Caché de objetos de panel (`.rds`) — insumo de los `17d–17g`, regenerable, gitignored |
 | `results/tables/pub/main/` | Tablas de publicación Tab1–Tab6 (TSV); Tab4=eje EGFR, Tab5=candidatos por módulo |
 | `results/tables/pub/supp/TabS1_extended_candidates_by_module.tsv` | Lista extendida de hubs-ancla no-EGFR |
@@ -325,8 +367,8 @@ Opcional (archivado, no bloquea el pipeline): scripts/archive/{11,12,13}
 - [ ] Datos en `data/raw/` (3 archivos)
 - [ ] `config/analysis_params.yaml` revisado
 - [ ] Scripts 01–03, 04–10, 15 ejecutados en orden sin errores
-- [ ] Script 16 ejecutado (validación TCGA; requiere internet en primera ejecución)
+- [ ] Validación externa: 16b (py, CPTAC fetch) → 16c (R, CPTAC DE) → 16 (R, TCGA + Fig6 paneles); requiere internet en primera ejecución
 - [ ] Script 17i ejecutado después de 16 (ensambla Fig6_multipanel.tif)
-- [ ] Figuras: 17 + 17b (paneles) → 17c (GSEA) → 17d/17e/17f/17g (multipaneles Fig2–5) → 17h (FigS robustez) → 16+17i (Fig6) y 18 (tablas)
+- [ ] Figuras: 17 + 17b (paneles) → 17c (GSEA) → 17d/17e/17f/17g (multipaneles Fig2–5) → 17h (FigS robustez) → 16b/16c/16+17i (Fig6) y 18 (tablas)
 - [ ] Scripts 11, 12 ejecutados si se necesita evidencia clínica/COSMIC (suplementario)
 - [ ] Logs verificados en `logs/`

@@ -24,7 +24,7 @@ hnscc_drug_repurposing/
 │   │   └── results_proteomica.tsv
 │   ├── intermediate/id_mapping/
 │   └── processed/
-├── scripts/                 # Pipeline principal (01–03, 04–12, 15, 17–18) + supp/
+├── scripts/                 # Pipeline principal (01–03, 04–10, 15, 16b/16c/16, 17–18) + supp/ + archive/
 ├── config/
 │   └── analysis_params.yaml # Todos los parámetros centralizados
 ├── results/
@@ -47,20 +47,23 @@ hnscc_drug_repurposing/
 | --- | --- | --- | --- |
 | `01_parse_results_qc.R` | 1 | omics-R | Parsear limma TVsS, exportar tablas DE (666 sig.) |
 | `02_id_mapping.R` | 1 | omics-R | UniProt → Entrez/Symbol (org.Hs.eg.db) |
-| `03_pathway_enrichment.R` | 1b | omics-R | ORA + GSEA (GO/KEGG/Reactome/Hallmarks); produce s_pathway y FigD |
+| `03_pathway_enrichment.R` | 1b | omics-R | GSEA (GO/KEGG/Reactome/Hallmarks); Hallmarks → panel GSEA de Fig2C |
 | `04_query_dgidb.py` | 2 | omics-py | DGIdb GraphQL API v5 |
 | `05_query_chembl.py` | 2 | omics-py | ChEMBL REST API, fase ≥ 3 |
 | `06_query_opentargets.py` | 2 | omics-py | Open Targets GraphQL API v4 |
 | `07_l2s2_connectivity.py` | 2 | omics-py | L2S2 reversión transcriptómica (1 044 drugs FDA) |
 | `08_integrate_drug_targets.R` | 3 | omics-R | Unificar 4 fuentes · clasificar A/B/C/D |
 | `09_string_network.R` | 4 | omics-R | Red PPI STRING v12 · módulos Louvain · hubs |
-| `10_prioritization_scoring.R` | 4 | omics-R | Scoring multi-criterio 5D · pool top 35 |
-| `11_clinicaltrials_pubmed.py` | supp | omics-py | ClinicalTrials.gov + PubMed top 20 candidatos |
-| `12_cosmic_overlap.py` | supp | omics-py | Overlap drivers cancerígenos COSMIC/IntOGen/NCG |
-| `15_sensitivity_analysis.R` | 5 | omics-R | LOD + 6 configs pesos + permutation test |
-| `16_external_validation.R` | 5b | omics-R | Concordancia TCGA proteomics vs RNA-seq + KM supervivencia |
-| `17_pub_figures.R` | 6 | omics-R | Figuras de publicación (PDF + PNG 300 DPI) |
-| `18_pub_tables.R` | 6 | omics-R | Tablas de publicación (TSV) |
+| `10_prioritization_scoring.R` | 4 | omics-R | Priorización hub-céntrica v3: composite = 0.60·TargetPriority + 0.40·DrugViability · anclaje por arista curada · tiers |
+| `15_sensitivity_analysis.R` | 5 | omics-R | Robustez: LOD (leave-one-database) + 6 configs de pesos |
+| `16b_cptac_fetch.py` | 5 | omics-py | Descarga proteómica CPTAC-HNSCC (paquete `cptac`) |
+| `16c_cptac_de.R` | 5 | omics-R | DE proteómico CPTAC (limma pareado, mismo método que descubrimiento) |
+| `16_external_validation.R` | 5 | omics-R | Validación 2 cohortes: concordancia CPTAC (Fig6A) + TCGA RNA-seq (Fig6B) + dianas (Fig6C) + KM supervivencia (supp) |
+| `17 / 17b / 17c` | 6 | omics-R | Paneles Fig2/3/4 · Fig5 · GSEA Hallmarks (PDF + PNG 300 DPI, cache `.objects/`) |
+| `17d–17i` | 6 | omics-R | Ensamblado multipanel Fig2/3/4/5/6 (TIFF 600 DPI LZW) |
+| `17h_figS_robustness.R` | 6 | omics-R | Figura suplementaria de robustez (estabilidad × configs + LOD) |
+| `18_pub_tables.R` | 6 | omics-R | Tablas de publicación Tab1–Tab6 (TSV) |
+| `archive/{11,12,13}` | — | — | Evidencia clínica/COSMIC/reporte (archivado, fuera del manuscrito) |
 
 Cadena de dependencias y comandos de ejecución: ver `docs/RUNBOOK.md`.
 
@@ -68,40 +71,52 @@ Cadena de dependencias y comandos de ejecución: ver `docs/RUNBOOK.md`.
 
 ## Outputs de publicación
 
-**Figuras** (`results/figures/pub/main/`):
+**Figuras multipanel** (`results/figures/pub/main/`, TIFF 600 DPI + PDF + PNG):
 
 | Archivo | Contenido |
 | --- | --- |
-| `Sec0_FigB_volcano.png` | Volcano plot DE proteómica |
-| `Sec0_FigC_heatmap_topDE.png` | Heatmap top 40 proteínas DE |
-| `OE1_FigA_drug_sources_bar.png` | Candidatos por número de fuentes |
-| `OE1_FigB_drug_phase_dist.png` | Distribución de fases clínicas |
-| `OE2_FigA_ppi_network.png` | Red PPI con módulos y hubs |
-| `OE2_FigB_module_barplot.png` | Candidatos por módulo de red |
-| `OE2_FigC_class_distribution.png` | Distribución de clases A/B/C/D |
+| `Fig1_workflow.*` | Workflow / diseño del estudio |
+| `Fig2_multipanel.*` | (A) volcano · (B) Hallmarks GSEA · (C) heatmap top-40 DE |
+| `Fig3_multipanel.*` | (A) fase clínica · (B) clase regulatoria · (C) UpSet solapamiento de BD |
+| `Fig4_multipanel.*` | (A) red PPI por módulo Louvain · (B) enriquecimiento GO por módulo · (C) hubs druggables |
+| `Fig5_multipanel.*` | (A) shortlist priorizado por módulo (TP/DV, faceta por tier) · (B) espacio TargetPriority × DrugViability |
+| `Fig6_multipanel.*` | Validación 2 cohortes: (A) CPTAC proteoma · (B) TCGA RNA-seq · (C) dianas-ancla en ambas |
+
+**Figuras suplementarias** (`results/figures/pub/supp/`):
+
+| Archivo | Contenido |
+| --- | --- |
+| `FigS_robustness.*` | Estabilidad del ranking × 6 configs de peso + LOD |
+| `FigS_selection_funnel.*` | Funnel de selección (candidatos → panel LOD-estable) |
+| `FigS_survival_targets.*` | KM OS de 4 genes-pilar en TCGA-HNSC (no-significativo) |
 
 **Tablas** (`results/tables/pub/`):
 
 | Archivo | Contenido |
 | --- | --- |
-| `main/Sec0_Tab1_resumen_DE.tsv` | Resumen estadístico del análisis DE |
-| `main/Sec0_Tab2_top_proteinas.tsv` | Top 40 proteínas DE (20 up + 20 down) |
-| `main/OE1_Tab2_top_candidatos.tsv` | Top 30 candidatos por número de fuentes |
-| `main/OE2_Tab1_EGFR_LOD_stable.tsv` | Candidatos EGFR LOD-stable |
-| `main/OE2_Tab2_noEGFR_LOD_stable.tsv` | Candidatos no-EGFR LOD-stable |
-| `supp/OE2_TabS1_candidatos_extendidos_noEGFR.tsv` | Extendidos no-EGFR (robustos a pesos) |
+| `main/Tab1_resumen_DE.tsv` | Resumen estadístico del análisis DE |
+| `main/Tab2_top_proteinas.tsv` | Top proteínas DE (up + down) |
+| `main/Tab3_top_candidatos.tsv` | Top candidatos priorizados (composite) |
+| `main/Tab4_EGFR_validation.tsv` | Eje EGFR (validación interna) |
+| `main/Tab5_novel_candidates_by_module.tsv` | Candidatos novel por módulo |
+| `main/Tab6_concordance_summary.tsv` | Concordancia externa (CPTAC + TCGA) |
+| `supp/TabS1_extended_candidates_by_module.tsv` | Lista extendida de hubs-ancla por módulo |
+| `supp/TabS2_survival_genes.tsv` | Genes para análisis de supervivencia |
+| `supp/TabS3_candidatos_100_3fuentes.tsv` | Candidatos con ≥3 fuentes |
+| `supp/TableS_exclusions.tsv` | Criterios de exclusión |
 
 ---
 
-## Scoring multi-criterio (script 10)
+## Priorización hub-céntrica v3 (script 10)
 
 ```text
-composite = 0.325 × π-estadístico (logFC × -log10 adj.P)
-          + 0.200 × fase clínica
-          + 0.195 × centralidad en red (betweenness)
-          + 0.150 × relevancia de ruta
-          + 0.130 × L2S2 reversal score
+composite = 0.60 × TargetPriority + 0.40 × DrugViability
+
+TargetPriority = 0.55 × centralidad en red + 0.45 × π direccional
+DrugViability  = 0.40 × reversal L2S2 + 0.40 × clase regulatoria + 0.20 × breadth
 ```
 
-Pesos configurables en `config/analysis_params.yaml`.
-Panel final = candidatos con `lod_stable = TRUE` en `results/tables/15_lod_stability.tsv` (32 candidatos).
+Ancla = diana creíble (arista curada ChEMBL/OpenTargets) más central del módulo;
+tiers `hub_central` / `peripheral_diff`. Pesos configurables en
+`config/analysis_params.yaml` (sección `scoring_v3`).
+Panel robusto = candidatos con `lod_stable = TRUE` en `results/tables/15_lod_stability.tsv`.

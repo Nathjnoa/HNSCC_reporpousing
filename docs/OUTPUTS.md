@@ -1,6 +1,6 @@
 # Outputs Catalogue — HNSCC Drug Repurposing
 
-*Generated: 2026-06-11*
+*Generated: 2026-06-13*
 
 ---
 
@@ -33,37 +33,35 @@
 - `results/tables/drug_targets/08_multi_source_candidates.tsv` ( 59.4K)
 
 ### Network (script 09)
-- `results/tables/network/09_druggable_hubs.tsv` ( 19.2K)
-- `results/tables/network/09_modules.tsv` ( 39.6K)
-- `results/tables/network/09_network_edges.tsv` ( 48.2K)
+- `results/tables/network/09_druggable_hubs.tsv` ( 19.19K)
+- `results/tables/network/09_modules.tsv` ( 39.61K)
+- `results/tables/network/09_network_edges.tsv` ( 48.18K)
 - `results/tables/network/09_network_giant.graphml` (465.7K)
-- `results/tables/network/09_network_node_metrics.tsv` ( 89.6K)
+- `results/tables/network/09_network_node_metrics.tsv` ( 89.64K)
+- `results/tables/network/17_module_enrichment_top3.tsv` (  1.58K)
 
 ### Prioritization & Sensitivity (scripts 10, 15)
-- `results/tables/10_all_candidates_scored.tsv` ( 82.91K)
-- `results/tables/10_top20_candidates.tsv` (  7.95K)
-- `results/tables/15_lod_stability.tsv` (762)
-- `results/tables/15_permutation_test.tsv` (179)
-- `results/tables/15_sensitivity_ranks.tsv` (  1.76K)
+- `results/tables/10_all_candidates_scored.tsv` ( 94.55K)
+- `results/tables/10_module_hub_candidates.tsv` (  4.96K)
+- `results/tables/10_top20_candidates.tsv` ( 10.5K)
+- `results/tables/15_lod_stability.tsv` (797)
+- `results/tables/15_sensitivity_ranks.tsv` (  1.6K)
 
-### Publication Tables (script 18)
+### Publication Tables (scripts 18, 16)
 - `results/tables/pub/main/Tab1_resumen_DE.tsv` (674)
 - `results/tables/pub/main/Tab2_top_proteinas.tsv` (  1.65K)
 - `results/tables/pub/main/Tab3_top_candidatos.tsv` (  2.43K)
-- `results/tables/pub/main/Tab4_EGFR_LOD_stable.tsv` (  1.75K)
-- `results/tables/pub/main/Tab5_noEGFR_LOD_stable.tsv` (844)
-- `results/tables/pub/main/Tab6_concordance_summary.tsv` (162)
-- `results/tables/pub/supp/TabS1_candidatos_extendidos_noEGFR.tsv` (849)
-- `results/tables/pub/supp/TabS2_survival_genes.tsv` ( 51.54K)
-- `results/tables/pub/supp/TabS3_candidatos_100_3fuentes.tsv` (  6.75K)
-- `results/tables/pub/supp/TableS_exclusions.tsv` (  4.2K)
+- `results/tables/pub/main/Tab4_EGFR_validation.tsv` (  5.82K)
+- `results/tables/pub/main/Tab5_novel_candidates_by_module.tsv` (  1.46K)
+- `results/tables/pub/main/Tab6_concordance_summary.tsv` (291)
+- `results/tables/pub/supp/TabS1_extended_candidates_by_module.tsv` ( 3.75K)
+- `results/tables/pub/supp/TabS2_survival_genes.tsv` (51.54K)
+- `results/tables/pub/supp/TabS3_candidatos_100_3fuentes.tsv` ( 6.75K)
+- `results/tables/pub/supp/TableS_exclusions.tsv` ( 4.2K)
 
 ---
 
 ## Figures
-
-### QC Figures (script 01)
-
 
 ### Pathway Figures (script 03)
 - `results/figures/pathway_enrichment/03_GO_BP_GSEA_dotplot.pdf` ( 8.37K)
@@ -72,17 +70,11 @@
 - `results/figures/pathway_enrichment/03_KEGG_GSEA_dotplot.pdf` ( 8.35K)
 - `results/figures/pathway_enrichment/03_Reactome_GSEA_dotplot.pdf` ( 8.23K)
 
-### Drug Target Figures (script 08)
-
-
-### Network Figures (script 09)
-
-
-### Publication Figures (scripts 16-19)
+### Publication Figures — main (scripts 17, 17b-17i, 16)
 - `results/figures/pub/main/Fig1_workflow.pdf` (  5.81K)
 - `results/figures/pub/main/Fig1_workflow.png` (178.11K)
-- `results/figures/pub/main/Fig2A_volcano.pdf` (148.88K)
-- `results/figures/pub/main/Fig2A_volcano.png` (328.99K)
+- `results/figures/pub/main/Fig2A_volcano.pdf` (148.9K)
+- `results/figures/pub/main/Fig2A_volcano.png` (327.3K)
 - `results/figures/pub/main/Fig2B_heatmap_topDE.pdf` ( 13.8K)
 - `results/figures/pub/main/Fig2B_heatmap_topDE.png` (204.8K)
 - `results/figures/pub/main/Fig2C_hallmarks_gsea.pdf` ( 20.34K)
@@ -90,32 +82,69 @@
 - `results/figures/pub/main/Fig2_multipanel.pdf` (171.38K)
 - `results/figures/pub/main/Fig2_multipanel.png` (488.87K)
 - `results/figures/pub/main/Fig2_multipanel.tif` (  3.15M)
-- `results/figures/pub/main/Fig3A_funnel.pdf` ( 20.6K)
-- `results/figures/pub/main/Fig3A_funnel.png` ( 77.78K)
-- `results/figures/pub/main/Fig3B_drug_class.pdf` ( 11.6K)
-- `results/figures/pub/main/Fig3B_drug_class.png` ( 52.69K)
-- `results/figures/pub/main/Fig3C_upset_overlap.pdf` ( 11.78K)
-- `results/figures/pub/main/Fig3C_upset_overlap.png` ( 47.52K)
-- `results/figures/pub/main/Fig3_multipanel.pdf` ( 28.14K)
-- `results/figures/pub/main/Fig3_multipanel.png` (158.64K)
-- `results/figures/pub/main/Fig3_multipanel.tif` (470.88K)
-- `results/figures/pub/main/Fig4A_ppi_network.pdf` (971.18K)
-- `results/figures/pub/main/Fig4A_ppi_network.png` (  1.2M)
-- `results/figures/pub/main/Fig4B_module_barplot.pdf` ( 20.23K)
-- `results/figures/pub/main/Fig4B_module_barplot.png` ( 89.23K)
-- `results/figures/pub/main/Fig6A_tcga_concordance.pdf` ( 46.39K)
-- `results/figures/pub/main/Fig6A_tcga_concordance.png` (209.19K)
-- `results/figures/pub/main/Fig6B_survival.pdf` ( 20.11K)
-- `results/figures/pub/main/Fig6B_survival.png` (123.89K)
+- `results/figures/pub/main/Fig3A_phase.pdf` ( 10.44K)
+- `results/figures/pub/main/Fig3A_phase.png` ( 52.82K)
+- `results/figures/pub/main/Fig3B_drug_class.pdf` ( 11.61K)
+- `results/figures/pub/main/Fig3B_drug_class.png` ( 53.1K)
+- `results/figures/pub/main/Fig3C_upset_overlap.pdf` ( 11.81K)
+- `results/figures/pub/main/Fig3C_upset_overlap.png` ( 51.05K)
+- `results/figures/pub/main/Fig3_multipanel.pdf` ( 20.53K)
+- `results/figures/pub/main/Fig3_multipanel.png` (160.1K)
+- `results/figures/pub/main/Fig3_multipanel.tif` (455.89K)
+- `results/figures/pub/main/Fig4A_network_modules.pdf` (  1.23M)
+- `results/figures/pub/main/Fig4A_network_modules.png` (  1.34M)
+- `results/figures/pub/main/Fig4B_module_barplot.pdf` ( 12.61K)
+- `results/figures/pub/main/Fig4B_module_barplot.png` ( 85.53K)
+- `results/figures/pub/main/Fig4C_module_enrichment.pdf` ( 24.15K)
+- `results/figures/pub/main/Fig4C_module_enrichment.png` (197.39K)
+- `results/figures/pub/main/Fig4_multipanel.pdf` (  1.24M)
+- `results/figures/pub/main/Fig4_multipanel.png` (  1.46M)
+- `results/figures/pub/main/Fig4_multipanel.tif` (  3.7M)
+- `results/figures/pub/main/Fig5A_shortlist.pdf` ( 22.54K)
+- `results/figures/pub/main/Fig5A_shortlist.png` (166.37K)
+- `results/figures/pub/main/Fig5B_tpdv_space.pdf` ( 16.71K)
+- `results/figures/pub/main/Fig5B_tpdv_space.png` (159.59K)
+- `results/figures/pub/main/Fig5_multipanel.pdf` ( 28.61K)
+- `results/figures/pub/main/Fig5_multipanel.png` (329.93K)
+- `results/figures/pub/main/Fig5_multipanel.tif` (994.11K)
+- `results/figures/pub/main/Fig6A_concordance.pdf` ( 43.79K)
+- `results/figures/pub/main/Fig6A_concordance.png` (197.09K)
+- `results/figures/pub/main/Fig6A_cptac_concordance.pdf` ( 43.49K)
+- `results/figures/pub/main/Fig6A_cptac_concordance.png` (215.9K)
+- `results/figures/pub/main/Fig6B_targets_tcga.pdf` ( 24.52K)
+- `results/figures/pub/main/Fig6B_targets_tcga.png` (223.85K)
+- `results/figures/pub/main/Fig6B_tcga_concordance.pdf` ( 43.79K)
+- `results/figures/pub/main/Fig6B_tcga_concordance.png` (197.87K)
+- `results/figures/pub/main/Fig6C_targets_unified.pdf` ( 24.24K)
+- `results/figures/pub/main/Fig6C_targets_unified.png` (246.29K)
+- `results/figures/pub/main/Fig6_multipanel.pdf` ( 76.96K)
+- `results/figures/pub/main/Fig6_multipanel.png` (646.23K)
+- `results/figures/pub/main/Fig6_multipanel.tif` (  1.48M)
+
+### Publication Figures — supplementary (scripts 17h, 16)
+- `results/figures/pub/supp/01_PCA_muestras.pdf` (  6.39K)
+- `results/figures/pub/supp/01_boxplot_intensidades.pdf` ( 58.4K)
+- `results/figures/pub/supp/01_missingness_vs_direction.pdf` ( 28.02K)
+- `results/figures/pub/supp/01_resumen_DE.pdf` (  4.55K)
+- `results/figures/pub/supp/01_volcano_TVsS.pdf` (193.46K)
+- `results/figures/pub/supp/FigS_robustness.pdf` ( 22.56K)
+- `results/figures/pub/supp/FigS_robustness.png` (266.18K)
+- `results/figures/pub/supp/FigS_robustness.tif` (  1.24M)
+- `results/figures/pub/supp/FigS_selection_funnel.pdf` ( 20.6K)
+- `results/figures/pub/supp/FigS_selection_funnel.png` ( 77.78K)
+- `results/figures/pub/supp/FigS_survival_targets.pdf` ( 34.6K)
+- `results/figures/pub/supp/FigS_survival_targets.png` (148.65K)
 
 ---
 
 ## Key Output Files
 
 - `results/tables/10_top20_candidates.tsv` — Top 20 prioritized candidates with composite scores
-- `results/tables/15_lod_stability.tsv` — LOD-stability panel (sensitivity analysis)
-- `results/tables/pub/main/` — Publication tables (DE summary, top candidates, LOD-stable panels, TCGA concordance)
-- `results/figures/pub/main/` — Publication figures (volcano, GSEA, candidates, TCGA validation)
+- `results/tables/10_module_hub_candidates.tsv` — Module -> hub -> drug prioritization summary
+- `results/tables/15_lod_stability.tsv` — LOD-stability panel (leave-one-database robustness)
+- `results/tables/pub/main/` — Publication tables Tab1-Tab6 (DE summary, top proteins/candidates, EGFR axis, candidates by module, CPTAC+TCGA concordance)
+- `results/figures/pub/main/` — Publication figures: panels (PDF + PNG) + `Fig{2,3,4,5,6}_multipanel.tif` (600-dpi TIFF)
+- `results/figures/pub/supp/` — Supplementary figures (robustness heatmap, selection funnel, OS survival)
 
 ---
 

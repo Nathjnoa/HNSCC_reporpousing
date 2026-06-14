@@ -118,28 +118,42 @@ permutation p-value. The robustness heatmap is a supplementary figure (Script 17
 
 ---
 
-## Phase 6: External Validation (Scripts 16 + 17i)
+## Phase 6: External Validation in Two Cohorts (Scripts 16b, 16c, 16 + 17i)
 
-**Global concordance (Figure 6A).** Differential expression in TCGA-HNSC was
-computed with DESeq2 (v1.44) applied to STAR-Counts RNA-seq data retrieved via
-TCGAbiolinks (n=520 tumor / 44 normal samples from the TCGA-HNSC project).
-Gene-level log2FC (tumor vs normal) was correlated with the DIA proteomics
-log2FC using Pearson r across the 663 overlapping genes. Concordance was
-classified directionally: concordant-up (log2FC>0 in both), concordant-down
+Predictions were validated in two independent cohorts: the CPTAC-HNSCC TMT
+proteome (same omic level as discovery) and the TCGA-HNSC RNA-seq transcriptome
+(cross-omic validation).
+
+**Proteome-vs-proteome concordance (Figure 6A).** CPTAC-HNSCC quantitative
+proteomics (TMT log2-ratios; Huang et al. 2021, Cancer Cell) was retrieved with
+the `cptac` Python package (Script 16b). Differential expression was computed in
+R with the same method as the discovery cohort — paired limma with
+duplicateCorrelation blocking on patient_id (116 tumor / 66 normal samples, 66
+matched pairs; Script 16c) — ensuring methodological comparability. The CPTAC
+log2FC was correlated with the DIA proteomics log2FC using Pearson r across the
+636 overlapping genes (r = 0.789, p = 4.9e-136; 86.3% directional concordance).
+
+**Proteome-vs-transcriptome concordance (Figure 6B).** Differential expression
+in TCGA-HNSC was computed with DESeq2 (v1.44) applied to STAR-Counts RNA-seq
+data retrieved via TCGAbiolinks (n=520 tumor / 44 normal samples from the
+TCGA-HNSC project). Gene-level log2FC (tumor vs normal) was correlated with the
+DIA proteomics log2FC using Pearson r across the 663 overlapping genes (r =
+0.601, p = 2.7e-66; 76.2% directional concordance). In both panels concordance
+was classified directionally: concordant-up (log2FC>0 in both), concordant-down
 (log2FC<0 in both), or discordant. TCGA data were retrieved and cached on first
 run (~800 MB, GDC API); DESeq2 results are also cached to avoid re-computation.
 
-**Prioritized-target concordance (Figure 6B).** For the 14 anchor targets of
-the shortlist (one representative drug per anchor hub, top by composite score,
-tier ≠ off_network; same selection as Figure 5), TCGA RNA-seq log2FC and
-adjusted p-value were retrieved and compared with the DIA proteomics log2FC for
-the same gene. Concordance with the proteomics finding (same direction) and
-statistical significance (FDR < 0.05) in TCGA are annotated per drug-target
-pair. Results are displayed as a lollipop panel ordered by composite score with
-the composite score bar decomposed as in Figure 5A (Target priority vs Drug
-viability). 11 of 14 targets were concordant between proteomics and TCGA
-transcriptomics, and 11 of 14 were statistically significant in TCGA (FDR <
-0.05).
+**Prioritized-target concordance across cohorts (Figure 6C).** For the 14 anchor
+targets of the shortlist (one representative drug per anchor hub, top by
+composite score, tier ≠ off_network; same selection as Figure 5), log2FC and
+adjusted p-value were retrieved in both CPTAC and TCGA and compared with the DIA
+proteomics log2FC for the same gene. Concordance with the proteomics finding
+(same direction) and statistical significance (FDR < 0.05) are annotated per
+drug-target pair, alongside the composite score decomposed as in Figure 5A
+(Target priority vs Drug viability). In CPTAC, 12 of 14 targets had data (11
+concordant, 10 with FDR < 0.05); in TCGA, all 14 had data (11 concordant, 11
+with FDR < 0.05). This closes the loop from Figure 5 (prioritized targets) to
+external validation: the predictions hold across two independent cohorts.
 
 **Supplementary OS analysis.** Overall survival stratification by median
 expression of the four module-representative genes (EGFR, PSMB10, DNMT1, NDUFS3)
@@ -193,9 +207,12 @@ labels are kept horizontal (long categorical labels use horizontal bars rather t
 rotated text). Single-panel and supplementary figures (clinical-phase distribution,
 selection funnel, and the weight-sensitivity/LOD robustness heatmap — Script 17h) are
 exported likewise. Scripts 17d/17e/17f/17g assemble the Figure 2/3/4/5 composites.
-Figure 6 panels (global concordance scatter and prioritized-target lollipop) are
-produced by Script 16 and cached as .rds objects; Script 17i assembles the Figure 6
-composite (400 × 180 mm, 600-dpi TIFF). The four therapeutic-pillar colors
+Figure 6 panels (panel A CPTAC proteome-vs-proteome concordance scatter, panel B
+TCGA proteome-vs-transcriptome concordance scatter, panel C prioritized-target
+log2FC/FDR across both cohorts with the composite-score bar) are produced by
+Script 16 and cached as .rds objects; Script 17i assembles the Figure 6 composite
+(panels A and B on the top row, the full-width target panel C on the bottom row;
+600-dpi LZW TIFF). The four therapeutic-pillar colors
 (EGFR/#D55E00, Proteasome/#0072B2, Epigenetic/#009E73, OXPHOS/#CC79A7) are defined
 as the constant PILLAR_COLS in _fig_style.R and applied consistently across Figure 5
 and Figure 6 to link panel B targets to their network module.
