@@ -289,13 +289,21 @@ scored <- candidates %>%
   ) %>%
   rowwise() %>%
   mutate(
+    has_reversal = !is.na(cmap_score) & cmap_score < 0,
     s_reversal   = score_reversal_fn(cmap_score),
     s_regulatory = score_regulatory_fn(drug_class),
     s_breadth    = min(n_sources / 4, 1.0)
   ) %>%
   ungroup() %>%
   mutate(
-    DrugViability   = w_rev * s_reversal + w_reg * s_regulatory + w_brd * s_breadth,
+    # Si no hay firma L2S2 (p.ej. anticuerpos, que no se ensayan en lineas
+    # celulares), renormalizar DrugViability sobre reg+breadth en vez de imputar
+    # reversal=0 — esa imputacion penalizaba sistematicamente a los mAb aprobados.
+    DrugViability   = ifelse(
+      has_reversal,
+      w_rev * s_reversal + w_reg * s_regulatory + w_brd * s_breadth,
+      (w_reg * s_regulatory + w_brd * s_breadth) / (w_reg + w_brd)
+    ),
     composite_score = w_target * TargetPriority + w_drug * DrugViability,
     final_score     = composite_score   # alias backward-compat (scripts 15/18)
   ) %>%

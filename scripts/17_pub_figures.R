@@ -383,7 +383,7 @@ p_phase <- ggplot(phase_df,
   scale_y_continuous(expand = expansion(mult = c(0, 0.22))) +
   labs(
     title    = NULL,
-    x = NULL, y = "Number of drugs"
+    x = "Highest clinical phase (any indication)", y = "Number of drugs"
   ) +
   theme_pub() +
   theme(legend.position = "none")   # labels de eje horizontales (estándar uniforme)
@@ -709,8 +709,11 @@ enr_list <- lapply(KEY_MODULES, function(mid) {
     aa <- aa[grepl("amino acid", aa$Description, ignore.case = TRUE), ]
     if (nrow(aa) > 0) df <- aa
   }
-  # Top-1: el término más significativo = el que da NOMBRE al módulo (valida el label)
-  df <- df[seq_len(min(1, nrow(df))), ]
+  # Top-3 términos GO BP por módulo para la TABLA suplementaria (la figura usa
+  # solo top-1 por legibilidad). La circularidad nombre↔término se atiende en el
+  # texto: el enriquecimiento es anotación DESCRIPTIVA de módulos derivados por
+  # Louvain, no "validación" del nombre.
+  df <- df[seq_len(min(3, nrow(df))), ]
   df$module_label <- MODULE_NAMES[as.character(mid)]
   df$Count <- as.integer(df$Count)
   df$GeneRatio <- df$Count / length(genes)   # fracción del módulo en el término
@@ -726,10 +729,18 @@ enr_df <- bind_rows(enr_list) %>%
   mutate(term = factor(Description, levels = unique(Description)))
 
 write_tsv(enr_df, "results/tables/network/17_module_enrichment_top3.tsv")
-cat(sprintf("  %d terminos (top-1 x %d modulos) exportados\n",
+cat(sprintf("  %d terminos (top-3 x %d modulos) exportados a tabla suplementaria\n",
             nrow(enr_df), length(KEY_MODULES)))
 
-p_enr <- ggplot(enr_df, aes(x = GeneRatio, y = term,
+# Figura: solo el término más significativo por módulo (legibilidad)
+enr_plot <- enr_df %>%
+  group_by(module_label) %>%
+  slice_max(neglog10FDR, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(module_label, GeneRatio) %>%
+  mutate(term = factor(Description, levels = unique(Description)))
+
+p_enr <- ggplot(enr_plot, aes(x = GeneRatio, y = term,
                             color = module_label, size = Count)) +
   geom_point() +
   scale_color_manual(values = MODULE_COLS, name = "Module",

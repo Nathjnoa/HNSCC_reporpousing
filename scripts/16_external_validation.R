@@ -245,6 +245,7 @@ if (file.exists(cache_de)) {
                                  design    = ~ condition)
   dds <- dds[rowSums(counts(dds) >= 10) >= 5, ]
   cat("Genes tras filtro:", nrow(dds), "\n")
+  set.seed(2026)
   dds <- DESeq(dds, parallel = FALSE)
   res <- results(dds, contrast = c("condition", "Tumor", "Normal"), alpha = 0.05)
 

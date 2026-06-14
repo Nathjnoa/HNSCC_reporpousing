@@ -1,0 +1,49 @@
+===== RE-CHECK 1: COMPOSICIÓN TISULAR (eje down) =====
+DE significativas: 666 (up=329, down=337)
+Marcadores tisulares en DOWN: 43/337 (12.8%)  [músculo=38, airway=5]
+Marcadores tisulares en UP:   2/329 (0.6%)
+De los 20 down más extremos: 16 son marcadores tisulares (80%)
+De los 50 down más extremos: 25 son marcadores tisulares (50%)
+
+===== RE-CHECK 2: SENSIBILIDAD GSEA HALLMARKS =====
+ADIPOGENESIS: full SIG (NES=-1.85) -> clean SIG (NES=-1.94)
+E2F_TARGETS: full SIG (NES=1.98) -> clean SIG (NES=1.96)
+EPITHELIAL_MESENCHYMAL_TRANSITION: full SIG (NES=1.49) -> clean SIG (NES=1.53)
+FATTY_ACID_METABOLISM: full SIG (NES=-1.76) -> clean SIG (NES=-1.84)
+G2M_CHECKPOINT: full SIG (NES=1.92) -> clean SIG (NES=1.91)
+HEME_METABOLISM: full SIG (NES=-1.53) -> clean SIG (NES=-1.61)
+INTERFERON_GAMMA_RESPONSE: full SIG (NES=1.89) -> clean SIG (NES=1.86)
+MYOGENESIS: full SIG (NES=-2.00) -> clean SIG (NES=-1.56)
+OXIDATIVE_PHOSPHORYLATION: full SIG (NES=-2.21) -> clean SIG (NES=-2.32)
+
+===== RE-CHECK 3: SENSIBILIDAD DE RED (Louvain + centralidad) =====
+Red original: 498 nodos, 2714 aristas; contaminantes en red: 38
+Red limpia:   445 nodos, 2452 aristas
+PSMA2: hub_full=TRUE (deg=16) -> hub_clean=TRUE (deg=16)
+NDUFS3: hub_full=TRUE (deg=52) -> hub_clean=TRUE (deg=52)
+NDUFA9: hub_full=TRUE (deg=43) -> hub_clean=TRUE (deg=43)
+RPS11: hub_full=TRUE (deg=22) -> hub_clean=TRUE (deg=22)
+EGFR: hub_full=TRUE (deg=24) -> hub_clean=TRUE (deg=23)
+PSMB10: hub_full=FALSE (deg=14) -> hub_clean=FALSE (deg=14)
+DNMT1: hub_full=FALSE (deg=8) -> hub_clean=FALSE (deg=8)
+NDUFS2: hub_full=TRUE (deg=51) -> hub_clean=TRUE (deg=51)
+
+===== RE-CHECK 5: VALIDACIÓN POR GEN (Fig6C) =====
+CPTAC: con datos 12/14, concordantes 11, FDR<0.05 10, discordantes: PDE6D
+TCGA:  con datos 14/14, concordantes 11, FDR<0.05 11, discordantes: CA2,CDA,RPS11
+
+===== RE-CHECK 6: ABLACIÓN BASELINE =====
+Spearman composite vs centrality-only: 0.781
+Spearman composite vs pi-only:         0.776
+Spearman composite vs TargetPriority:  0.811
+Solapamiento top14 composite vs centrality-only: 21/14
+Solapamiento top14 composite vs pi-only:         20/14
+
+===== RE-CHECK 7: NA-HANDLING L2S2 (anticuerpos) =====
+Drogas con cmap NA (sin firma L2S2): 149; de ellas anticuerpos mostrados arriba
+CETUXIMAB: composite 0.583 (rank 9) -> NA-excluido 0.730 (rank 1)
+NIMOTUZUMAB: composite 0.583 (rank 9) -> NA-excluido 0.730 (rank 1)
+PANITUMUMAB: composite 0.583 (rank 9) -> NA-excluido 0.730 (rank 1)
+CETUXIMAB SAROTALOCAN: composite 0.523 (rank 22) -> NA-excluido 0.630 (rank 19)
+NIVOLUMAB: composite 0.180 (rank 212) -> NA-excluido 0.300 (rank 139)
+PEMBROLIZUMAB: composite 0.180 (rank 212) -> NA-excluido 0.300 (rank 139)

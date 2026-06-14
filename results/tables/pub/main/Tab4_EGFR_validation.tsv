@@ -1,68 +1,68 @@
 Fármaco	Subclase	Target primario	Fase clínica máx.	Aprobado HNSCC	Composite score	TP	DV	N fuentes	LOD-stable	Robustez pesos
-Cetuximab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	Sí	0.583	0.605	0.55	3	Sí	6/6
-Nimotuzumab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.583	0.605	0.55	3	Sí	6/6
-Panitumumab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.583	0.605	0.55	3	Sí	6/6
-Amivantamab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Necitumumab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Cetuximab Sarotalocan	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.523	0.605	0.4	2	Sí	6/6
-Depatuxizumab Mafodotin	Anticuerpo/ADC anti-EGFR	EGFR	Fase III	No	0.463	0.605	0.25	3	Sí	5/6
+Cetuximab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	Sí	0.73	0.605	0.917	3	Sí	6/6
+Nimotuzumab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.73	0.605	0.917	3	Sí	6/6
+Panitumumab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.73	0.605	0.917	3	Sí	6/6
+Amivantamab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
+Necitumumab	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
+Cetuximab Sarotalocan	Anticuerpo/ADC anti-EGFR	EGFR	Aprobado (Fase IV)	No	0.63	0.605	0.667	2	Sí	6/6
+Depatuxizumab Mafodotin	Anticuerpo/ADC anti-EGFR	EGFR	Fase III	No	0.53	0.605	0.417	3	Sí	5/6
+Brigatinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
 Vandetanib	Inhibidor multi-quinasa (EGFR+)	EGFR	Aprobado (Fase IV)	No	0.62	0.605	0.641	3	Sí	6/6
-Brigatinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Futuximab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.463	0.605	0.25	3	Sí	5/6
-Naquotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.463	0.605	0.25	3	Sí	4/6
-Pyrotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.463	0.605	0.25	3	Sí	4/6
-Rindopepimut	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.463	0.605	0.25	3	Sí	3/6
-Ruserontinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.463	0.605	0.25	3	Sí	3/6
-Simotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.463	0.605	0.25	3	No	3/6
-Tesevatinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.463	0.605	0.25	3	No	3/6
-Zalutumumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.463	0.605	0.25	3	No	2/6
-Aee-788	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	1/6
-Allitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Av-412	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Azd-3759	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Azd-4769	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Bms-690514	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Cln-081	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.443	0.605	0.2	2	No	0/6
-Cudc-101	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Depatuxizumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Duligotuzumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Epitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Falnidamol	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Gc1118	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Imgatuzumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Jnj-26483327	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Kbp5209	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Mab-425	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Matuzumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Mavelertinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Mdx-447	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Modotuximab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.443	0.605	0.2	2	No	0/6
-Nazartinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.443	0.605	0.2	2	No	0/6
-Pelitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Pf-06459988	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Pimurutamab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Poziotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.443	0.605	0.2	2	No	0/6
-S-222611	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Sapitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Tak-285	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Tarloxotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
-Theliatinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Tomuzotuximab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Tuxobertinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.443	0.605	0.2	2	No	0/6
-Varlitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.443	0.605	0.2	2	No	0/6
+Futuximab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.53	0.605	0.417	3	Sí	5/6
+Naquotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.53	0.605	0.417	3	Sí	4/6
+Pyrotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.53	0.605	0.417	3	Sí	4/6
+Rindopepimut	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.53	0.605	0.417	3	Sí	3/6
+Ruserontinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.53	0.605	0.417	3	Sí	3/6
+Simotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.53	0.605	0.417	3	No	3/6
+Tesevatinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.53	0.605	0.417	3	No	3/6
+Zalutumumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.53	0.605	0.417	3	No	2/6
+Aee-788	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	1/6
+Allitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Av-412	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Azd-3759	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Azd-4769	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Bms-690514	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Cln-081	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.497	0.605	0.333	2	No	0/6
+Cudc-101	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Depatuxizumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Duligotuzumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Epitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Falnidamol	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Gc1118	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Imgatuzumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Jnj-26483327	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Kbp5209	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Mab-425	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Matuzumab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Mavelertinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Mdx-447	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Modotuximab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.497	0.605	0.333	2	No	0/6
+Nazartinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.497	0.605	0.333	2	No	0/6
+Pelitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Pf-06459988	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Pimurutamab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Poziotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase III	No	0.497	0.605	0.333	2	No	0/6
+S-222611	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Sapitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Tak-285	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Tarloxotinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
+Theliatinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Tomuzotuximab	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Tuxobertinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase I	No	0.497	0.605	0.333	2	No	0/6
+Varlitinib	Inhibidor multi-quinasa (EGFR+)	EGFR	Fase II	No	0.497	0.605	0.333	2	No	0/6
 Gefitinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.717	0.605	0.884	4	Sí	6/6
 Lapatinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.698	0.605	0.836	4	Sí	6/6
 Afatinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	Sí	0.695	0.605	0.829	4	Sí	6/6
 Erlotinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.689	0.605	0.813	3	Sí	6/6
+Icotinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
 Neratinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.639	0.605	0.688	4	Sí	6/6
 Dacomitinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.596	0.605	0.582	3	Sí	6/6
-Icotinib	TKI EGFR 1ª-2ª generación	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Canertinib Dihydrochloride	TKI EGFR 1ª-2ª generación	EGFR	Fase III	No	0.463	0.605	0.25	3	Sí	5/6
-Aumolertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Lazertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Mobocertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Olmutinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Osimertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Rociletinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.543	0.605	0.45	3	Sí	6/6
-Abivertinib	TKI EGFR 3ª generación	EGFR	Fase III	No	0.463	0.605	0.25	3	Sí	5/6
-Firmonertinib	TKI EGFR 3ª generación	EGFR	Fase III	No	0.463	0.605	0.25	3	Sí	5/6
+Canertinib Dihydrochloride	TKI EGFR 1ª-2ª generación	EGFR	Fase III	No	0.53	0.605	0.417	3	Sí	5/6
+Aumolertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
+Lazertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
+Mobocertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
+Olmutinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
+Osimertinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
+Rociletinib	TKI EGFR 3ª generación	EGFR	Aprobado (Fase IV)	No	0.663	0.605	0.75	3	Sí	6/6
+Abivertinib	TKI EGFR 3ª generación	EGFR	Fase III	No	0.53	0.605	0.417	3	Sí	5/6
+Firmonertinib	TKI EGFR 3ª generación	EGFR	Fase III	No	0.53	0.605	0.417	3	Sí	5/6

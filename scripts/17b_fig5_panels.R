@@ -117,6 +117,10 @@ p_space <- ggplot(cand, aes(TargetPriority, DrugViability)) +
                   size = 2.3, max.overlaps = 20, min.segment.length = 0,
                   box.padding = 0.3, show.legend = FALSE) +
   scale_color_manual(values = TIER_COLS, name = NULL) +
+  scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25),
+                     expand = expansion(mult = c(0.01, 0.03))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25),
+                     expand = expansion(mult = c(0.01, 0.03))) +
   labs(title = NULL, x = "Target priority", y = "Drug viability") +
   theme_pub() +
   theme(legend.position = "top")
