@@ -34,12 +34,11 @@ La priorización (script 10 v3) ancla cada fármaco en la estructura de la red P
 |--------|---------|--------|
 | Fig1 | Workflow / study design | Borrador (diagrama en español, pendiente EN) |
 | Fig2 | (A) volcano · (B) Hallmarks GSEA · (C) top-40 DE heatmap | ✅ Finalizada — multipanel TIFF 600 DPI |
-| Fig3 | (A) distribución de fase clínica · (B) clase regulatoria · (C) UpSet solapamiento de BD | ✅ Finalizada — multipanel TIFF 600 DPI; funnel completo → suppl. |
+| Fig3 | (A) distribución de fase clínica · (B) clase regulatoria · (C) UpSet solapamiento de BD | ✅ Finalizada — multipanel TIFF 600 DPI |
 | Fig4 | (A) red coloreada por módulo Louvain (tier de drogabilidad) · (B) enriquecimiento GO por módulo · (C) hubs druggables por módulo | ✅ Finalizada — multipanel TIFF 600 DPI |
 | Fig5 | (A) shortlist priorizado por módulo + descomposición composite (TP/DV), faceta por tier · (B) espacio bifactor TargetPriority × DrugViability | ✅ Finalizada — multipanel TIFF 600 DPI (`17b`+`17g`) |
 | Fig6 | Validación externa en **dos cohortes** · **(A)** CPTAC-HNSCC proteoma TMT vs DIA (r=0.789, n=636, 86.3%) · **(B)** TCGA-HNSC RNA-seq vs DIA (r=0.601, n=663, 76.2%) · **(C)** 14 dianas-ancla del shortlist en CPTAC (12/14 con datos, 11 concord.) y TCGA (14/14, 11 concord.) + composite | ✅ `16b`+`16c`+`16`+`17i` — multipanel TIFF 600 DPI (A+B arriba / C ancho completo abajo) |
-| FigS | Robustez: heatmap estabilidad de ranking × 6 configs de peso + LOD | ✅ `17h_figS_robustness` |
-| FigS surviv. | KM OS para 4 genes-pilar (EGFR/PSMB10/DNMT1/NDUFS3); todos p>0.05 — dianas = vulnerabilidades terapéuticas, no biomarcadores pronósticos | ✅ `16` → `supp/FigS_survival_targets` |
+| Fig S1 | Robustez: heatmap estabilidad de ranking × 6 configs de peso + LOD | ✅ `17h_figS_robustness` (única figura suplementaria) |
 
 **Nota Fig2 (para figure legend):** los gene sets del panel B (GSEA) se ordenan por
 el π-statistic = sign(log2FC) × |log2FC| × −log₁₀(FDR); incluir esta definición en
@@ -51,10 +50,11 @@ soporte en ≥2 bases de datos **O** ya aprobados (clase A/B, conservados aun co
 sola fuente), menos una lista de exclusión curada (`config`); definir así en la
 leyenda (no solo "≥2 BD"). Los 3 paneles describen el mismo set de 458. Layout: A
 (fase clínica) arriba-izq · B (clase) arriba-der · C (UpSet, ancho completo) abajo.
-El **funnel completo** (3513→458→35→32) se movió a suplementario
-(`FigS_selection_funnel`): con un solo filtro hasta multi-source no amerita embudo, y
-las etapas top-ranked/LOD-stable pertenecen a la priorización (Fig5). Esto respeta la
-dependencia analítica (la centralidad de red de Fig4 es un insumo del composite score).
+El **funnel de selección fue eliminado** (antes `FigS_selection_funnel`, 3513→458→35→31):
+con un solo filtro real hasta multi-source no amerita embudo, y las etapas
+top-ranked/LOD-stable inducían a leer una selección secuencial a un "panel final" que el
+texto no afirma (los 458 se puntúan completos; LOD-stable es anotación de robustez, Fig S1).
+El PNG `supp/FigS_selection_funnel` queda sin usar.
 
 **Nota Fig4 (para figure legend):** los módulos se colorean por **tier de drogabilidad
 data-driven** (no por selección manual): *approved* = ≥1 fármaco aprobado dirigido a

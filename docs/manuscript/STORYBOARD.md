@@ -64,9 +64,10 @@ among several, framed as a metabolic vulnerability and combination-therapy optio
 Complex I, is *under*-abundant), not as inhibition of an overexpressed target.
 
 ### What this paper is NOT
-Not an efficacy claim for any drug; not a metformin paper; not a prognostic-biomarker study —
-the pillar genes (EGFR/PSMB10/DNMT1/NDUFS3) are non-prognostic by Kaplan–Meier, by design: they
-are therapeutic vulnerabilities, not survival markers.
+Not an efficacy claim for any drug; not a metformin paper; not a prognostic-biomarker study. The
+prioritized targets are framed as therapeutic vulnerabilities, not survival markers. (The earlier
+Kaplan–Meier survival analysis of the pillar genes was dropped from the manuscript: a non-
+significant null that added little to the narrative.)
 
 ---
 
@@ -80,8 +81,7 @@ are therapeutic vulnerabilities, not survival markers.
 | **Fig4** | Network structure organizes targets into modules with druggable hubs — the scaffold for prioritization. | Louvain modules; drugability tiers (approved / hubs-only / below-threshold); 99 druggable hubs |
 | **Fig5** | The two-factor composite ranks candidates and decomposes *why* each ranks where it does. | composite = 0.60·TargetPriority + 0.40·DrugViability; tier = hub_central vs peripheral_diff; cetuximab 0.73 #1 |
 | **Fig6** | Prioritized-target directionality replicates across an independent proteome and transcriptome. | CPTAC r=0.789/n=636/86.3%; TCGA r=0.601/n=663/76.2%; 14 anchors (CPTAC 11/12, TCGA 11/14 concordant) |
-| **FigS-robust** | The ranking is stable across 6 weight configs + LOD. | lod_stable panel |
-| **FigS-survival** | Pillar genes are therapeutic vulnerabilities, not prognostic biomarkers. | EGFR/PSMB10/DNMT1/NDUFS3 KM all p>0.05 |
+| **Fig S1** (robust) | The ranking is stable across 6 weight configs + LOD. | lod_stable panel |
 
 ## 3. Table → message map
 

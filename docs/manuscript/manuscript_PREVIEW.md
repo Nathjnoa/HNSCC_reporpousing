@@ -6,7 +6,7 @@ Partial preview for pipeline testing: Introduction, Methods, Results, main-body 
 
 Head and neck squamous cell carcinoma (HNSCC) is among the leading causes of cancer morbidity and
 mortality worldwide, and overall survival remains limited, particularly in locally advanced and
-recurrent disease. [@johnson2020; @sung2021] Despite advances across surgery,
+recurrent disease. [@johnson2020; @bray2024] Despite advances across surgery,
 radiotherapy, chemotherapy, and immunotherapy, outcomes are still poor, a reflection of how
 biologically complex the disease is. [@johnson2020]
 
@@ -32,7 +32,7 @@ energy metabolism, and the tumor microenvironment in HNSCC. [@huang2021]
 Drug repurposing, the reuse of approved drugs whose safety is already known, is an efficient way
 to speed up the search for new treatment options, and combining a tumor's molecular signature
 with pharmacological-connectivity resources can point to drugs predicted to reverse the disease
-state. [@pushpakom2019; @napolitano2013] Connectivity-based approaches typically prioritize
+state. [@pushpakom2019; @tanoli2025] Connectivity-based approaches typically prioritize
 candidates by how strongly a drug reverses the transcriptomic signature [@lamb2006; @subramanian2017; @evangelista2025], while target-centric selection often relies on the size of
 the protein or expression change. Ranking by signature reversal or effect size alone, however,
 does not capture where a target sits in the tumor's molecular network, a property that network
@@ -63,7 +63,7 @@ adjacent-normal specimens from patients with head and neck squamous cell carcino
 samples; six HPV-positive and four HPV-negative pairs). Spectra were processed with MaxQuant, and
 differential abundance was assessed with proteoDA [@ritchie2015], a limma wrapper, for the primary tumor-versus-
 adjacent-normal contrast (averaging over HPV status). Proteins were considered differentially
-abundant at |log₂FC| > 1 and Benjamini–Hochberg-adjusted P < 0.05. UniProt accessions were mapped
+abundant at |log₂FC| > 1 and Benjamini–Hochberg-adjusted p < 0.05. UniProt accessions were mapped
 to Entrez gene identifiers and HGNC symbols with `org.Hs.eg.db` (clusterProfiler [@wu2021] `bitr`). To check
 that differential abundance was not driven by the muscle- and mucosa-rich composition of the
 adjacent-normal tongue and larynx specimens, the enrichment and network analyses were repeated
@@ -74,17 +74,17 @@ unchanged (Table S2).
 ### Functional enrichment
 
 Gene-set enrichment analysis (GSEA) [@subramanian2005] was performed with clusterProfiler (v4.14.6), ranking proteins
-by a π-statistic [sign(log₂FC) × |log₂FC| × −log₁₀(adjusted P)] against the MSigDB Hallmark, Gene
+by a π-statistic [sign(log₂FC) × |log₂FC| × −log₁₀(adjusted p)] against the MSigDB Hallmark, Gene
 Ontology Biological Process, KEGG, and Reactome collections (minGSSize = 10, maxGSSize = 500,
-adjusted P < 0.05; fixed seed for reproducible permutations).
+adjusted p < 0.05; fixed seed for reproducible permutations).
 
 ### Drug–target mapping and integration
 
-Differentially abundant genes were queried against four pharmacological resources: DGIdb [@freshour2021] (GraphQL
+Differentially abundant genes were queried against four pharmacological resources: DGIdb [@cannon2024] (GraphQL
 API v5), ChEMBL [@mendez2019] (REST API v33, clinical phase ≥ 3), Open Targets [@ochoa2021] (GraphQL API; HNSCC association
 EFO_0000181 and known drugs), and L2S2 [@evangelista2025] (LINCS L1000 Signature Search; bidirectional enrichment of
 the top-150 up-regulated proteins against drug down-signatures and vice versa, FDA-approved filter,
-P < 0.001; reversal score normalized to [−1, 0]). Sources were unified and each drug assigned an
+p < 0.001; reversal score normalized to [−1, 0]). Sources were unified and each drug assigned an
 ordinal regulatory class encoding regulatory maturity (not pharmacological equivalence): A =
 approved with HNSCC evidence, B = approved in another cancer, C = approved
 non-oncological, D = experimental (ordinal scores 1.00/0.75/0.50/0.25). Automated indication
@@ -115,9 +115,7 @@ TargetPriority (target-level) = 0.55 · network centrality (mean of min–max-no
 betweenness, eigenvector) + 0.45 · directional differential abundance (π = sign(log₂FC)·|log₂FC|·
 −log₁₀FDR, direction-aware min–max). This π term is signed and rewards inhibition of over-abundant
 targets; as a result, under-abundant targets (including potential loss-of-function/tumor-
-suppressor nodes) are down-weighted by this term, and metabolic targets such as Complex I subunits
-are prioritized through direction-independent centrality and external evidence rather than
-through π. DrugViability (drug-level; breaks ties among drugs sharing a target) =
+suppressor nodes) are down-weighted by this term. DrugViability (drug-level; breaks ties among drugs sharing a target) =
 0.40 · L2S2 transcriptomic reversal + 0.40 · regulatory class + 0.20 · evidence breadth (databases
 / 4). Each drug was assigned to its most central credible target, where a drug→target edge is
 credible only if curated by ChEMBL or Open Targets (DGIdb-only edges were excluded as attribution
@@ -135,7 +133,7 @@ target/drug balance and the sub-weights) and by leave-one-database (LOD) stabili
 null was used: for an evidence-aggregation prioritization score (rather than a de novo discovery
 statistic), its validity comes from recovering positive controls (approved EGFR-axis agents), from
 robustness to the weighting and database choices, and from external corroboration, not from a
-permutation P-value.
+permutation p-value.
 
 ### External corroboration in two independent cohorts
 
@@ -146,10 +144,8 @@ blocking on patient; 116 tumor / 66 normal, 66 pairs). The TCGA-HNSC transcripto
 via TCGAbiolinks; 520 tumor / 44 normal) was analyzed with DESeq2 (v1.44). For each cohort, the
 per-gene log₂FC was correlated with the DIA log₂FC over the set of shared genes (Pearson
 correlation and directional-concordance fraction), and, for the shortlist anchor targets, per-gene
-log₂FC and adjusted P were compared against the DIA proteome (directional concordance and FDR < 0.05
-annotated per target). As a supplementary analysis, overall survival was stratified by median
-expression of four module-representative genes (EGFR, PSMB10, DNMT1, NDUFS3) in TCGA-HNSC (476
-patients with survival data) and compared by the log-rank test.
+log₂FC and adjusted p were compared against the DIA proteome (directional concordance and FDR < 0.05
+annotated per target).
 
 ### Software and reproducibility
 
@@ -175,7 +171,7 @@ myogenesis (NES = −1.99) and adipogenesis (NES = −1.83).
 The most extreme under-abundant proteins were dominated by skeletal/cardiac muscle (e.g., MYH2,
 MYL1/2/3, CASQ1, TCAP, ATP2A1) and airway/secretory markers (BPIFA1, BPIFB1). These
 tissue-composition markers accounted for 12.8% of down-regulated proteins overall but 80% of the
-20 most extreme. In a sensitivity analysis excluding these markers (Methods; Table S2), the hub
+20 most extreme. In a sensitivity analysis excluding these markers (Table S2), the hub
 status of all prioritized targets was unchanged (e.g., NDUFS2 degree 51→51; EGFR 24→23), the
 oxidative-phosphorylation signature was retained and even slightly stronger (NES −2.21→−2.32), and
 only the myogenesis hallmark weakened appreciably (NES −2.00→−1.56), confirming that our
@@ -188,8 +184,7 @@ Open Targets, L2S2) yielded 458 multi-source candidate drugs: agents supported b
 databases, or already approved (regulatory class A/B, retained even with a single source), after
 a curated exclusion list (Fig 3). The candidate set spanned the full clinical-development
 spectrum, with a substantial fraction of approved agents (Fig 3A–B), and the cross-source UpSet
-plot confirmed that the candidates were not an artifact of any single database (Fig 3C). The
-complete selection funnel is shown in Fig S1.
+plot confirmed that the candidates were not an artifact of any single database (Fig 3C).
 
 ### Protein–protein interaction network and module structure
 
@@ -197,12 +192,13 @@ To prioritize by biological position rather than fold-change magnitude alone, we
 candidate targets in a high-confidence tumor protein–protein interaction network (STRING). Of the
 differentially abundant proteins, 521 formed the network's largest connected component (2,714
 interactions), which Louvain community detection partitioned into 13 functional modules (Fig 4A)
-carrying 99 druggable hubs (Methods). Module-level Gene Ontology
+carrying 99 druggable hubs. Module-level Gene Ontology
 enrichment assigned a coherent functional identity to each module (Fig 4B), and the per-module
 hub counts (Fig 4C) defined the candidate anchors carried forward to prioritization. Modules were
 classified by a data-driven drugability tier (containing an approved-drug target, druggable hubs
-only, or below threshold); the most prominent axes corresponded to EGFR signaling, oxidative
-phosphorylation, the proteasome, and epigenetic regulation.
+only, or below threshold). The most prominent druggable axes were anchored by their key hubs:
+EGFR (module M2), proteasome subunits (M4, ubiquitin-dependent catabolism), Complex I of
+oxidative phosphorylation (M8), and epigenetic regulators (M17, chromatin remodeling).
 
 ### Network-anchored two-factor prioritization
 
@@ -211,7 +207,7 @@ with how ready the drug is for clinical use (`composite = 0.60·TargetPriority +
 with every drug anchored to its most credible central target through a curated ChEMBL/Open Targets
 edge (Fig 5; Table 1). TargetPriority combines network centrality with directional differential
 abundance, and DrugViability combines transcriptomic reversal (L2S2), regulatory class, and how
-many sources support the drug (Methods).
+many sources support the drug.
 
 Without any disease-specific tuning, the prioritization elevated the EGFR axis (module M2) to the
 top of the ranking: cetuximab ranked first (composite 0.73), accompanied by other approved
@@ -249,15 +245,12 @@ efficacy or of the candidate rank order.
 ### Robustness of the ranking
 
 Finally, the candidate ranking was stable across six independent weight configurations and a
-limit-of-detection filter (Fig S2). Consistent with the network-anchored design, the composite
+limit-of-detection filter (Fig S1). Consistent with the network-anchored design, the composite
 ranking was strongly correlated with target network centrality alone (Spearman ρ = 0.78),
 confirming that network topology, rather than the drug-level tie-breakers, was the dominant driver
 of prioritization. Candidates flagged as LOD-stable, including the EGFR-axis
 agents and the leading hub-central candidates, retained their positions across configurations
-(Table 1, robustness columns), defining a robust core panel. In line with their role as
-therapeutic vulnerabilities rather than prognostic markers, none of the four pillar genes (EGFR,
-PSMB10, DNMT1, NDUFS3) was significantly associated with overall survival in TCGA-HNSC (all
-p > 0.05; Fig S3).
+(Table 1, robustness columns), defining a robust core panel.
 
 # Figures
 
@@ -304,8 +297,7 @@ curated exclusion list. All three panels describe this same set. (A) Distributio
 clinical phase. (B) Distribution of ordinal regulatory class (A = approved with HNSCC
 evidence; B = approved in another cancer; C = approved non-oncological; D = experimental). (C)
 UpSet plot of candidate overlap across the four sources (DGIdb, ChEMBL, Open Targets, L2S2),
-showing the intersection structure that defines multi-source support. The full selection funnel
-(3,513 → 458 → top-ranked → LOD-stable) is shown as Figure S1.
+showing the intersection structure that defines multi-source support.
 
 ![](../../results/figures/pub/main/Fig4_multipanel.png)
 
@@ -370,7 +362,7 @@ order of candidates.
 | Lapatinib | EGFR control | EGFR TKI (1st-2nd gen) | EGFR | Approved (Phase IV) | No | 0.698 | 0.605 | 0.836 | 4 | Yes | 6/6 |
 | Afatinib | EGFR control | EGFR TKI (1st-2nd gen) | EGFR | Approved (Phase IV) | Yes | 0.695 | 0.605 | 0.829 | 4 | Yes | 6/6 |
 | Erlotinib | EGFR control | EGFR TKI (1st-2nd gen) | EGFR | Approved (Phase IV) | No | 0.689 | 0.605 | 0.813 | 3 | Yes | 6/6 |
-| *plus 60 additional EGFR-axis agents* | EGFR control | EGFR signaling | EGFR | Approved-to-Phase I | mixed | 0.50-0.66 | 0.605 | varies | 2-3 | mixed | mixed |
+| *plus 60 additional EGFR-axis agents* | EGFR control | EGFR axis (M2) | EGFR | Approved-to-Phase I | mixed | 0.50-0.66 | 0.605 | varies | 2-3 | mixed | mixed |
 | Metformin | Hub-central | Oxidative phosphorylation | NDUFS2 | Approved (Phase IV) | No | 0.591 | 0.502 | 0.725 | 3 | Yes | 6/6 |
 | Bortezomib D-Mannitol | Hub-central | Ubiquitin-dependent proteolysis | PSMA2 | Approved (Phase IV) | No | 0.5 | 0.389 | 0.667 | 2 | No | 0/6 |
 | Andecaliximab | Hub-central | Defense response | MMP9 | Phase III | No | 0.425 | 0.431 | 0.417 | 3 | No | 0/6 |

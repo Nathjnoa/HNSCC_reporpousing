@@ -44,8 +44,7 @@ curated exclusion list. All three panels describe this same set. (**A**) Distrib
 clinical phase. (**B**) Distribution of ordinal regulatory class (A = approved with HNSCC
 evidence; B = approved in another cancer; C = approved non-oncological; D = experimental). (**C**)
 UpSet plot of candidate overlap across the four sources (DGIdb, ChEMBL, Open Targets, L2S2),
-showing the intersection structure that defines multi-source support. The full selection funnel
-(3,513 → 458 → top-ranked → LOD-stable) is shown as Figure S1.
+showing the intersection structure that defines multi-source support.
 
 ## Figure 4. Network modules organize targets into druggable mechanistic axes.
 
@@ -94,19 +93,9 @@ order of candidates.
 
 ## Supplementary figures
 
-## Figure S1. Candidate selection funnel.
-
-Stepwise reduction from all drug–gene associations (3,513) to multi-source candidates (458) to the
-top-ranked and LOD-stable sets, to complement Figure 3.
-
-## Figure S2. Ranking robustness.
+## Figure S1. Ranking robustness.
 
 Heatmap of candidate ranking stability across six weight configurations plus the limit-of-detection
 (LOD) filter. Candidates flagged `lod_stable` retain their position across configurations,
 defining the robust panel.
 
-## Figure S3. Prioritized targets are therapeutic vulnerabilities, not prognostic biomarkers.
-
-Kaplan–Meier overall-survival curves for four pillar genes (EGFR, PSMB10, DNMT1, NDUFS3) in
-TCGA-HNSC; all comparisons p > 0.05. The targets are nominated as therapeutic vulnerabilities, not
-as survival biomarkers.

@@ -90,6 +90,12 @@ clásico). Metformina = **uno de varios candidatos**, enmarcada como vulnerabili
 - Callouts de figura = leyendas; pilares (EGFR/Proteasome/Epigenetic/OXPHOS) consistentes.
 - Cada sección aprobada por el autor antes de avanzar.
 
+### Pase final de estilo (post-aprobación)
+
+- **Cursiva del p-value**: el manuscrito usa `p` minúscula consistente (plano en el
+  preview). En la versión final, poner la *p* en cursiva (`*p*`) según la house style
+  de la revista elegida. Ver memoria `feedback_pvalue_lowercase`.
+
 ## Estado de progreso (actualizar al avanzar)
 
 - [x] 0. STORYBOARD ✅ (`STORYBOARD.md` — claim central en 5 movimientos, encuadre clínico/traslacional, brechas hedged; aprobado 2026-06-14)

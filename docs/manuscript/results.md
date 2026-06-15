@@ -3,7 +3,7 @@
 > Full-prose English draft for author review. Numbers verified against
 > `results/tables/pub/*`, `results/tables/network/*`, `results/tables/pathway_enrichment/*`
 > and `results/audit/*` (post-audit, commit `938d133`). Figure/table callouts follow the
-> display-item scheme (Fig 1–6, Fig S1–S3; Table 1 main; Tables S1–S5). Word count ≈ 1,450.
+> display-item scheme (Fig 1–6, Fig S1; Table 1 main; Tables S1–S6). Word count ≈ 1,450.
 > Language: "corroboration / replication of target directionality", not "validation" (M4);
 > let the ranking speak (confirmation-bias guard).
 
@@ -25,7 +25,7 @@ myogenesis (NES = −1.99) and adipogenesis (NES = −1.83).
 The most extreme under-abundant proteins were dominated by skeletal/cardiac muscle (e.g., MYH2,
 MYL1/2/3, CASQ1, TCAP, ATP2A1) and airway/secretory markers (BPIFA1, BPIFB1). These
 tissue-composition markers accounted for 12.8% of down-regulated proteins overall but 80% of the
-20 most extreme. In a sensitivity analysis excluding these markers (Methods; Table S2), the hub
+20 most extreme. In a sensitivity analysis excluding these markers (Table S2), the hub
 status of all prioritized targets was unchanged (e.g., NDUFS2 degree 51→51; EGFR 24→23), the
 oxidative-phosphorylation signature was retained and even slightly stronger (NES −2.21→−2.32), and
 only the myogenesis hallmark weakened appreciably (NES −2.00→−1.56), confirming that our
@@ -38,8 +38,7 @@ Open Targets, L2S2) yielded 458 multi-source candidate drugs: agents supported b
 databases, or already approved (regulatory class A/B, retained even with a single source), after
 a curated exclusion list (Fig 3). The candidate set spanned the full clinical-development
 spectrum, with a substantial fraction of approved agents (Fig 3A–B), and the cross-source UpSet
-plot confirmed that the candidates were not an artifact of any single database (Fig 3C). The
-complete selection funnel is shown in Fig S1.
+plot confirmed that the candidates were not an artifact of any single database (Fig 3C).
 
 ### Protein–protein interaction network and module structure
 
@@ -47,12 +46,13 @@ To prioritize by biological position rather than fold-change magnitude alone, we
 candidate targets in a high-confidence tumor protein–protein interaction network (STRING). Of the
 differentially abundant proteins, 521 formed the network's largest connected component (2,714
 interactions), which Louvain community detection partitioned into 13 functional modules (Fig 4A)
-carrying 99 druggable hubs (Methods). Module-level Gene Ontology
+carrying 99 druggable hubs. Module-level Gene Ontology
 enrichment assigned a coherent functional identity to each module (Fig 4B), and the per-module
 hub counts (Fig 4C) defined the candidate anchors carried forward to prioritization. Modules were
 classified by a data-driven drugability tier (containing an approved-drug target, druggable hubs
-only, or below threshold); the most prominent axes corresponded to EGFR signaling, oxidative
-phosphorylation, the proteasome, and epigenetic regulation.
+only, or below threshold). The most prominent druggable axes were anchored by their key hubs:
+EGFR (module M2), proteasome subunits (M4, ubiquitin-dependent catabolism), Complex I of
+oxidative phosphorylation (M8), and epigenetic regulators (M17, chromatin remodeling).
 
 ### Network-anchored two-factor prioritization
 
@@ -61,7 +61,7 @@ with how ready the drug is for clinical use (`composite = 0.60·TargetPriority +
 with every drug anchored to its most credible central target through a curated ChEMBL/Open Targets
 edge (Fig 5; Table 1). TargetPriority combines network centrality with directional differential
 abundance, and DrugViability combines transcriptomic reversal (L2S2), regulatory class, and how
-many sources support the drug (Methods).
+many sources support the drug.
 
 Without any disease-specific tuning, the prioritization elevated the EGFR axis (module M2) to the
 top of the ranking: cetuximab ranked first (composite 0.73), accompanied by other approved
@@ -99,12 +99,9 @@ efficacy or of the candidate rank order.
 ### Robustness of the ranking
 
 Finally, the candidate ranking was stable across six independent weight configurations and a
-limit-of-detection filter (Fig S2). Consistent with the network-anchored design, the composite
+limit-of-detection filter (Fig S1). Consistent with the network-anchored design, the composite
 ranking was strongly correlated with target network centrality alone (Spearman ρ = 0.78),
 confirming that network topology, rather than the drug-level tie-breakers, was the dominant driver
 of prioritization. Candidates flagged as LOD-stable, including the EGFR-axis
 agents and the leading hub-central candidates, retained their positions across configurations
-(Table 1, robustness columns), defining a robust core panel. In line with their role as
-therapeutic vulnerabilities rather than prognostic markers, none of the four pillar genes (EGFR,
-PSMB10, DNMT1, NDUFS3) was significantly associated with overall survival in TCGA-HNSC (all
-p > 0.05; Fig S3).
+(Table 1, robustness columns), defining a robust core panel.

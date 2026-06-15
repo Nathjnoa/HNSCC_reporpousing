@@ -42,14 +42,14 @@ def clean_common(text):
 
 # --- Introduction: map placeholder keys -> verified citekeys -------------------
 INTRO_CITES = {
-    "[@hnscc_epidemiology]": "[@johnson2020; @sung2021]",
+    "[@hnscc_epidemiology]": "[@johnson2020; @bray2024]",
     "[@hnscc_outcomes]": "[@johnson2020]",
     "[@keynote048]": "[@burtness2019]",
     "[@keynote689]": "[@uppaluri2025]",
     "[@hpv_subtypes]": "[@ang2010]",
     "[@proteomics_phenotype]": "[@aebersold2016]",
     "[@hnscc_proteomics]": "[@huang2021]",
-    "[@repurposing_rationale]": "[@pushpakom2019; @napolitano2013]",
+    "[@repurposing_rationale]": "[@pushpakom2019; @tanoli2025]",
 }
 
 # --- Methods: inject method/tool citations at first single-token anchor ---------
@@ -57,7 +57,7 @@ METHOD_CITES = [
     ("proteoDA", "proteoDA [@ritchie2015]"),
     ("(GSEA)", "(GSEA) [@subramanian2005]"),
     ("clusterProfiler", "clusterProfiler [@wu2021]"),
-    ("DGIdb", "DGIdb [@freshour2021]"),
+    ("DGIdb", "DGIdb [@cannon2024]"),
     ("ChEMBL", "ChEMBL [@mendez2019]"),
     ("Open Targets", "Open Targets [@ochoa2021]"),
     ("L2S2", "L2S2 [@evangelista2025]"),
@@ -172,7 +172,7 @@ def table1_section():
             f"| {'Yes' if r['LOD-stable'] == 'Sí' else 'No'} | {r['Robustez pesos']} |"
         )
     rows.append(
-        f"| *plus {n_more} additional EGFR-axis agents* | EGFR control | EGFR signaling "
+        f"| *plus {n_more} additional EGFR-axis agents* | EGFR control | EGFR axis (M2) "
         f"| EGFR | Approved-to-Phase I | mixed | 0.50-0.66 | 0.605 | varies | 2-3 "
         f"| mixed | mixed |"
     )
