@@ -75,7 +75,7 @@ Cadena de dependencias y comandos de ejecución: ver `docs/RUNBOOK.md`.
 
 | Archivo | Contenido |
 | --- | --- |
-| `Fig1_workflow.*` | Workflow / diseño del estudio |
+| `Fig1_workflow.*` | Workflow / diseño del estudio (esquema horizontal de 5 carriles; embudo 3,352→666→458) |
 | `Fig2_multipanel.*` | (A) volcano · (B) Hallmarks GSEA · (C) heatmap top-40 DE |
 | `Fig3_multipanel.*` | (A) fase clínica · (B) clase regulatoria · (C) UpSet solapamiento de BD |
 | `Fig4_multipanel.*` | (A) red PPI por módulo Louvain · (B) enriquecimiento GO por módulo · (C) hubs druggables |

@@ -32,7 +32,7 @@ La priorización (script 10 v3) ancla cada fármaco en la estructura de la red P
 
 | Figure | Content | Status |
 |--------|---------|--------|
-| Fig1 | Workflow / study design | Borrador (diagrama en español, pendiente EN) |
+| Fig1 | Workflow / study design (diagrama horizontal de 5 carriles, EN; conteos del embudo 3,352→666→458) | ✅ Finalizada — `scripts/fig1_workflow.R` → TIFF 600 DPI + PDF + PNG |
 | Fig2 | (A) volcano · (B) Hallmarks GSEA · (C) top-40 DE heatmap | ✅ Finalizada — multipanel TIFF 600 DPI |
 | Fig3 | (A) distribución de fase clínica · (B) clase regulatoria · (C) UpSet solapamiento de BD | ✅ Finalizada — multipanel TIFF 600 DPI |
 | Fig4 | (A) red coloreada por módulo Louvain (tier de drogabilidad) · (B) enriquecimiento GO por módulo · (C) hubs druggables por módulo | ✅ Finalizada — multipanel TIFF 600 DPI |

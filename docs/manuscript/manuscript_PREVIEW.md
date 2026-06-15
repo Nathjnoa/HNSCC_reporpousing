@@ -262,17 +262,18 @@ agents and the leading hub-central candidates, retained their positions across c
 
 Figure 1. Study design and analytical workflow.
 
-Overview of the drug-repurposing pipeline for head and neck squamous cell carcinoma (HNSCC).
-Ten paired tumor / adjacent-normal specimens were profiled by data-independent acquisition
-(DIA) mass spectrometry (MaxQuant), yielding 3,352 quantified proteins. Differential abundance
-(limma, paired contrast; |log₂FC| > 1, FDR < 0.05) defined the tumor proteomic signature, which
-was mapped to candidate drugs across four resources (DGIdb, ChEMBL, Open Targets, L2S2). Targets
-were placed in a tumor protein–protein interaction (PPI) network (STRING), partitioned into
-Louvain modules, and each candidate was scored by a two-factor composite
-(`0.60·TargetPriority + 0.40·DrugViability`) anchoring every drug to its most credible central
+Overview of the drug-repurposing pipeline for head and neck squamous cell carcinoma (HNSCC),
+color-coded by stage. Ten paired tumor / adjacent-normal specimens were profiled by
+data-independent acquisition (DIA) mass spectrometry (MaxQuant), yielding 3,352 quantified
+proteins. Differential abundance (limma, paired contrast; |log₂FC| > 1, FDR < 0.05) defined the
+tumor proteomic signature (666 differentially abundant proteins; 329 increased, 337 decreased in
+tumor), which was mapped to 458 multi-source candidate drugs across four resources (DGIdb, ChEMBL,
+Open Targets, L2S2). Targets were placed in a tumor protein–protein interaction (PPI) network
+(STRING), partitioned into Louvain modules, and each candidate was scored by a two-factor composite
+(0.60·TargetPriority + 0.40·DrugViability) that anchors every drug to its most credible central
 target. Robustness was assessed across weight configurations and a limit-of-detection (LOD)
-filter, and the directionality of prioritized targets was corroborated in two independent
-cohorts (CPTAC-HNSCC proteome; TCGA-HNSC transcriptome).
+filter, and the directionality of prioritized targets was corroborated in two independent cohorts
+(CPTAC-HNSCC proteome; TCGA-HNSC transcriptome).
 
 ![](../../results/figures/pub/main/Fig2_multipanel.png)
 

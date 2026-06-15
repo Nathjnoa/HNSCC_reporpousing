@@ -3,8 +3,9 @@
 Guía paso a paso para reproducir el análisis completo.
 
 Pipeline principal: 01–03, 04–10, 15, 16b+16c+16 (validación externa), 17–18
-Figuras de publicación: 17 + 17b (paneles), 17c (GSEA), 17d–17g (multipaneles Fig2–5),
-17h (FigS robustez), 17i (Fig6), módulo de estilo `_fig_style.R`
+Figuras de publicación: fig1_workflow (Fig1, esquema standalone), 17 + 17b (paneles),
+17c (GSEA), 17d–17g (multipaneles Fig2–5), 17h (FigS robustez), 17i (Fig6),
+módulo de estilo `_fig_style.R`
 Scripts archivados (fuera del manuscrito): scripts/archive/{11,12,13}
 Auxiliar: supp/14_outputs_catalogue.R (regenera docs/OUTPUTS.md; METHODS.md se mantiene a mano)
 
@@ -263,6 +264,11 @@ Rscript scripts/17i_fig6_multipanel.R
 
 ```bash
 conda activate omics-R
+
+# fig1_workflow - Figura 1 (esquema de diseño/flujo, standalone). Independiente del
+#   resto: solo dibuja cajas/etiquetas con números del manuscrito (no lee resultados).
+Rscript scripts/fig1_workflow.R
+# Output: results/figures/pub/main/Fig1_workflow.{tif,pdf,png}  (TIFF 600 DPI LZW)
 
 # 17 - Paneles Fig2/3/4 (PDF + PNG 300 DPI). Cachea objetos en results/figures/pub/.objects/
 Rscript scripts/17_pub_figures.R
