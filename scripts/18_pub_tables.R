@@ -196,7 +196,8 @@ save_tsv(oe1_tab2, "Tab3_top_candidatos", out_main)
 # pesos se reportan como COLUMNAS de anotación.
 cat("\n--- OE2: Tablas priorización hub-céntrica ---\n")
 
-N_TAB5 <- 12  # nº de hubs-ancla no-EGFR en la tabla principal (top por composite)
+N_TAB5 <- 13  # nº de hubs-ancla no-EGFR en la tabla principal (top por composite);
+              # 13 alinea Tab5 con el shortlist de Fig5 (incluye Doxycycline/MMP8, composite 0.418)
 
 scored     <- read_tsv("results/tables/10_all_candidates_scored.tsv", show_col_types = FALSE)
 lod        <- read_tsv("results/tables/15_lod_stability.tsv",         show_col_types = FALSE)

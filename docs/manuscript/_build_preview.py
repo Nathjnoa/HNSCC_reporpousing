@@ -153,22 +153,7 @@ def _read_tsv(name):
 
 def table1_section():
     egfr = _read_tsv("Tab4_EGFR_validation.tsv")
-    tiers = _read_tsv("Tab5_novel_candidates_by_module.tsv")
-
-    # Reconciliation: Fig 5 shows the per-module peripheral representative Doxycycline
-    # (MMP8, module 5) but Tab5 trimmed it just below its composite cutoff (0.418 vs the
-    # 0.421 Tab5 floor). Re-added here so Table 1 matches Fig 5. Values read from
-    # 10_all_candidates_scored.tsv (composite/TP/DV/sources/phase), 15_sensitivity_ranks.tsv
-    # (n_configs_topN = 2 -> 2/6) and 15_lod_stability.tsv (absent -> not LOD-stable).
-    # Proper fix on next rebuild: align the cutoff in scripts/18_pub_tables.R.
-    if not any(r["Hub / diana"] == "MMP8" for r in tiers):
-        tiers.append({
-            "Fármaco": "Doxycycline", "Tier": "Periférico diferencial",
-            "Módulo funcional": "Defense response", "Hub / diana": "MMP8",
-            "Fase clínica máx.": "Aprobado (Fase IV)", "Composite score": "0.418",
-            "TP": "0.338", "DV": "0.537", "N fuentes": "3",
-            "LOD-stable": "No", "Robustez pesos": "2/6",
-        })
+    tiers = _read_tsv("Tab5_novel_candidates_by_module.tsv")  # includes Doxycycline (N_TAB5=13)
 
     header = (
         "| Drug | Block / tier | Module / subclass | Anchor target | Max clinical phase "
