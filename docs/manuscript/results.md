@@ -50,9 +50,14 @@ carrying 99 druggable hubs. Module-level Gene Ontology
 enrichment assigned a coherent functional identity to each module (Fig 4B), and the per-module
 hub counts (Fig 4C) defined the candidate anchors carried forward to prioritization. Modules were
 classified by a data-driven drugability tier (containing an approved-drug target, druggable hubs
-only, or below threshold). The most prominent druggable axes were anchored by their key hubs:
-EGFR (module M2), proteasome subunits (M4, ubiquitin-dependent catabolism), Complex I of
-oxidative phosphorylation (M8), and epigenetic regulators (M17, chromatin remodeling).
+only, or below threshold). The leading druggable hubs included EGFR, the principal approved HNSCC
+target, a high-centrality hub in the cell-adhesion/membrane module, together with hubs in the
+oxidative-phosphorylation (OXPHOS), proteasome, and chromatin-remodeling (epigenetic) modules
+(Fig 4). For clarity we refer to these four druggable axes as the EGFR, OXPHOS, proteasome, and
+epigenetic therapeutic pillars throughout. Two pillars are named by their key hub or function
+rather than by the module's enrichment label: the EGFR pillar is anchored by the EGFR hub within
+the cell-adhesion/membrane module, and the epigenetic pillar corresponds to the chromatin-remodeling
+module; the OXPHOS and proteasome pillars share the names of their modules.
 
 ### Network-anchored two-factor prioritization
 
@@ -63,10 +68,9 @@ edge (Fig 5; Table 1). TargetPriority combines network centrality with direction
 abundance, and DrugViability combines transcriptomic reversal (L2S2), regulatory class, and how
 many sources support the drug.
 
-Without any disease-specific tuning, the prioritization elevated the EGFR axis (module M2) to the
-top of the ranking: cetuximab ranked first (composite 0.73), accompanied by other approved
-EGFR-directed agents (nimotuzumab, panitumumab, gefitinib, afatinib) (Table 1, EGFR control
-block). Recovering these clinically validated EGFR-directed agents without supervision served as
+Without any disease-specific tuning, the prioritization elevated EGFR and its approved directed
+agents to the top of the ranking: cetuximab ranked first (composite 0.73), accompanied by
+nimotuzumab, panitumumab, gefitinib, and afatinib (Table 1, EGFR control block). Recovering these clinically validated EGFR-directed agents without supervision served as
 an internal positive control for the method.
 
 Beyond this control, the shortlist split into two interpretable tiers (Table 1; Fig 5A). The

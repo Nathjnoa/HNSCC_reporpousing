@@ -53,13 +53,13 @@ edges, colored by Louvain module and **data-driven drugability tier**: *approved
 approved drug targeting a module node; 11 modules, individual colors), *hubs-only* modules (0
 approved but ≥ 2 druggable hubs; slate), and *below-threshold* modules (gray). Gray modules still
 contain druggable hubs (36/99 of the total) and prioritized targets (e.g., DNMT1 → decitabine in
-M17); color marks the mechanistic axes, not exclusivity of targets. (**B**) Representative enriched
+the chromatin-remodeling module); color marks the mechanistic axes, not exclusivity of targets. (**B**) Representative enriched
 Gene Ontology term per module (one term/module). (**C**) Count of druggable hubs per module. Node
 centrality in this network is an input to the composite score (Fig. 5).
 
 ## Figure 5. Two-factor prioritization ranks candidates and decomposes the score.
 
-(**A**) Prioritized shortlist by module, faceted by tier, with each candidate's composite score
+(**A**) Prioritized shortlist faceted by tier, with each candidate's composite score
 decomposed into its TargetPriority (TP) and DrugViability (DV) contributions. *Composite* =
 0.60·TP + 0.40·DV. *TargetPriority* = 0.55·network centrality (degree/betweenness/eigenvector,
 min–max) + 0.45·directional differential abundance (π = sign(log₂FC)·|log₂FC|·−log₁₀FDR,

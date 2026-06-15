@@ -21,7 +21,7 @@ The **EGFR control block** (top) lists the EGFR-axis agents that the unsupervise
 recovers, including drugs already approved in HNSCC (cetuximab, composite 0.73, #1); this block is
 the method's internal positive control. The **prioritized candidates block** lists the
 leading non-EGFR candidates by tier: *hub-central* (anchor target is a network hub; e.g.,
-metformin → NDUFS2, oxidative phosphorylation, composite 0.591; proteasome) and
+metformin → NDUFS2, OXPHOS module, composite 0.591; proteasome) and
 *peripheral-differential* (target differentially abundant but not a hub; e.g., epigenetic
 DNMT1/MAOA, antimetabolite IMPDH2). Columns: drug name, block/tier, functional module, anchor
 hub/target, primary target subclass (where applicable), maximum clinical phase, approved in HNSCC

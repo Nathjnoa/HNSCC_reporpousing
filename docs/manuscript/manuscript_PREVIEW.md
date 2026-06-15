@@ -196,9 +196,14 @@ carrying 99 druggable hubs. Module-level Gene Ontology
 enrichment assigned a coherent functional identity to each module (Fig 4B), and the per-module
 hub counts (Fig 4C) defined the candidate anchors carried forward to prioritization. Modules were
 classified by a data-driven drugability tier (containing an approved-drug target, druggable hubs
-only, or below threshold). The most prominent druggable axes were anchored by their key hubs:
-EGFR (module M2), proteasome subunits (M4, ubiquitin-dependent catabolism), Complex I of
-oxidative phosphorylation (M8), and epigenetic regulators (M17, chromatin remodeling).
+only, or below threshold). The leading druggable hubs included EGFR, the principal approved HNSCC
+target, a high-centrality hub in the cell-adhesion/membrane module, together with hubs in the
+oxidative-phosphorylation (OXPHOS), proteasome, and chromatin-remodeling (epigenetic) modules
+(Fig 4). For clarity we refer to these four druggable axes as the EGFR, OXPHOS, proteasome, and
+epigenetic therapeutic pillars throughout. Two pillars are named by their key hub or function
+rather than by the module's enrichment label: the EGFR pillar is anchored by the EGFR hub within
+the cell-adhesion/membrane module, and the epigenetic pillar corresponds to the chromatin-remodeling
+module; the OXPHOS and proteasome pillars share the names of their modules.
 
 ### Network-anchored two-factor prioritization
 
@@ -209,10 +214,9 @@ edge (Fig 5; Table 1). TargetPriority combines network centrality with direction
 abundance, and DrugViability combines transcriptomic reversal (L2S2), regulatory class, and how
 many sources support the drug.
 
-Without any disease-specific tuning, the prioritization elevated the EGFR axis (module M2) to the
-top of the ranking: cetuximab ranked first (composite 0.73), accompanied by other approved
-EGFR-directed agents (nimotuzumab, panitumumab, gefitinib, afatinib) (Table 1, EGFR control
-block). Recovering these clinically validated EGFR-directed agents without supervision served as
+Without any disease-specific tuning, the prioritization elevated EGFR and its approved directed
+agents to the top of the ranking: cetuximab ranked first (composite 0.73), accompanied by
+nimotuzumab, panitumumab, gefitinib, and afatinib (Table 1, EGFR control block). Recovering these clinically validated EGFR-directed agents without supervision served as
 an internal positive control for the method.
 
 Beyond this control, the shortlist split into two interpretable tiers (Table 1; Fig 5A). The
@@ -308,7 +312,7 @@ edges, colored by Louvain module and data-driven drugability tier: approved modu
 approved drug targeting a module node; 11 modules, individual colors), hubs-only modules (0
 approved but ≥ 2 druggable hubs; slate), and below-threshold modules (gray). Gray modules still
 contain druggable hubs (36/99 of the total) and prioritized targets (e.g., DNMT1 → decitabine in
-M17); color marks the mechanistic axes, not exclusivity of targets. (B) Representative enriched
+the chromatin-remodeling module); color marks the mechanistic axes, not exclusivity of targets. (B) Representative enriched
 Gene Ontology term per module (one term/module). (C) Count of druggable hubs per module. Node
 centrality in this network is an input to the composite score (Fig. 5).
 
@@ -316,7 +320,7 @@ centrality in this network is an input to the composite score (Fig. 5).
 
 Figure 5. Two-factor prioritization ranks candidates and decomposes the score.
 
-(A) Prioritized shortlist by module, faceted by tier, with each candidate's composite score
+(A) Prioritized shortlist faceted by tier, with each candidate's composite score
 decomposed into its TargetPriority (TP) and DrugViability (DV) contributions. Composite =
 0.60·TP + 0.40·DV. TargetPriority = 0.55·network centrality (degree/betweenness/eigenvector,
 min–max) + 0.45·directional differential abundance (π = sign(log₂FC)·|log₂FC|·−log₁₀FDR,
@@ -362,19 +366,20 @@ order of candidates.
 | Lapatinib | EGFR control | EGFR TKI (1st-2nd gen) | EGFR | Approved (Phase IV) | No | 0.698 | 0.605 | 0.836 | 4 | Yes | 6/6 |
 | Afatinib | EGFR control | EGFR TKI (1st-2nd gen) | EGFR | Approved (Phase IV) | Yes | 0.695 | 0.605 | 0.829 | 4 | Yes | 6/6 |
 | Erlotinib | EGFR control | EGFR TKI (1st-2nd gen) | EGFR | Approved (Phase IV) | No | 0.689 | 0.605 | 0.813 | 3 | Yes | 6/6 |
-| *plus 60 additional EGFR-axis agents* | EGFR control | EGFR axis (M2) | EGFR | Approved-to-Phase I | mixed | 0.50-0.66 | 0.605 | varies | 2-3 | mixed | mixed |
-| Metformin | Hub-central | Oxidative phosphorylation | NDUFS2 | Approved (Phase IV) | No | 0.591 | 0.502 | 0.725 | 3 | Yes | 6/6 |
-| Bortezomib D-Mannitol | Hub-central | Ubiquitin-dependent proteolysis | PSMA2 | Approved (Phase IV) | No | 0.5 | 0.389 | 0.667 | 2 | No | 0/6 |
-| Andecaliximab | Hub-central | Defense response | MMP9 | Phase III | No | 0.425 | 0.431 | 0.417 | 3 | No | 0/6 |
+| *plus 60 additional anti-EGFR agents* | EGFR control | anti-EGFR (mixed) | EGFR | Approved-to-Phase I | mixed | 0.50-0.66 | 0.605 | varies | 2-3 | mixed | mixed |
+| Metformin | Hub-central | OXPHOS | NDUFS2 | Approved (Phase IV) | No | 0.591 | 0.502 | 0.725 | 3 | Yes | 6/6 |
+| Bortezomib D-Mannitol | Hub-central | Proteasome | PSMA2 | Approved (Phase IV) | No | 0.5 | 0.389 | 0.667 | 2 | No | 0/6 |
+| Andecaliximab | Hub-central | Immune response | MMP9 | Phase III | No | 0.425 | 0.431 | 0.417 | 3 | No | 0/6 |
 | Mt-3724 | Hub-central | Translation | RPS11 | Phase II | No | 0.421 | 0.48 | 0.333 | 2 | No | 0/6 |
-| Cedazuridine | Peripheral-differential | Small-molecule metabolism | CDA | Approved (Phase IV) | No | 0.5 | 0.333 | 0.75 | 3 | No | 0/6 |
+| Cedazuridine | Peripheral-differential | Amino acid metabolism | CDA | Approved (Phase IV) | No | 0.5 | 0.333 | 0.75 | 3 | No | 0/6 |
 | Azacitidine | Peripheral-differential | Chromatin remodeling | DNMT1 | Approved (Phase IV) | No | 0.494 | 0.359 | 0.695 | 4 | No | 4/6 |
-| Pentoxifylline | Peripheral-differential | Small-molecule metabolism | PDE6D | Approved (Phase IV) | No | 0.454 | 0.316 | 0.661 | 3 | No | 3/6 |
+| Pentoxifylline | Peripheral-differential | Amino acid metabolism | PDE6D | Approved (Phase IV) | No | 0.454 | 0.316 | 0.661 | 3 | No | 3/6 |
 | Mitapivat | Peripheral-differential | Carbohydrate catabolism | PKLR | Approved (Phase IV) | No | 0.445 | 0.353 | 0.583 | 3 | No | 0/6 |
-| Valproic Acid | Peripheral-differential | Carboxylic-acid metabolism | ALDH5A1 | Approved (Phase IV) | No | 0.438 | 0.244 | 0.73 | 4 | No | 2/6 |
-| Mycophenolate Mofetil | Peripheral-differential | Small-molecule metabolism | IMPDH2 | Approved (Phase IV) | No | 0.431 | 0.274 | 0.667 | 2 | No | 0/6 |
-| Acetazolamide | Peripheral-differential | Anatomical-structure regulation | CA2 | Approved (Phase IV) | No | 0.422 | 0.249 | 0.682 | 4 | No | 2/6 |
-| Tranylcypromine | Peripheral-differential | Small-molecule metabolism | MAOA | Approved (Phase IV) | No | 0.421 | 0.258 | 0.667 | 3 | No | 2/6 |
+| Valproic Acid | Peripheral-differential | Carboxylic acid metabolism | ALDH5A1 | Approved (Phase IV) | No | 0.438 | 0.244 | 0.73 | 4 | No | 2/6 |
+| Mycophenolate Mofetil | Peripheral-differential | Amino acid metabolism | IMPDH2 | Approved (Phase IV) | No | 0.431 | 0.274 | 0.667 | 2 | No | 0/6 |
+| Acetazolamide | Peripheral-differential | Cell adhesion / membrane | CA2 | Approved (Phase IV) | No | 0.422 | 0.249 | 0.682 | 4 | No | 2/6 |
+| Tranylcypromine | Peripheral-differential | Amino acid metabolism | MAOA | Approved (Phase IV) | No | 0.421 | 0.258 | 0.667 | 3 | No | 2/6 |
+| Doxycycline | Peripheral-differential | Immune response | MMP8 | Approved (Phase IV) | No | 0.418 | 0.338 | 0.537 | 3 | No | 2/6 |
 
 Table 1. Prioritized repurposing candidates for HNSCC.
 
@@ -384,7 +389,7 @@ The EGFR control block (top) lists the EGFR-axis agents that the unsupervised pr
 recovers, including drugs already approved in HNSCC (cetuximab, composite 0.73, #1); this block is
 the method's internal positive control. The prioritized candidates block lists the
 leading non-EGFR candidates by tier: hub-central (anchor target is a network hub; e.g.,
-metformin → NDUFS2, oxidative phosphorylation, composite 0.591; proteasome) and
+metformin → NDUFS2, OXPHOS module, composite 0.591; proteasome) and
 peripheral-differential (target differentially abundant but not a hub; e.g., epigenetic
 DNMT1/MAOA, antimetabolite IMPDH2). Columns: drug name, block/tier, functional module, anchor
 hub/target, primary target subclass (where applicable), maximum clinical phase, approved in HNSCC

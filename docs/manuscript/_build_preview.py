@@ -127,17 +127,22 @@ SUBCLASS_EN = {
     "TKI EGFR 1ª-2ª generación": "EGFR TKI (1st-2nd gen)",
     "TKI EGFR 3ª generación": "EGFR TKI (3rd gen)",
 }
-# clean truncated GO module names from the TSV
-MODULE_EN = {
-    "Oxidative phosphorylation": "Oxidative phosphorylation",
-    "Ubiquitin-dependent protein ca": "Ubiquitin-dependent proteolysis",
-    "Defense response": "Defense response",
-    "Translation": "Translation",
-    "Small molecule metabolic proce": "Small-molecule metabolism",
-    "Chromatin remodeling": "Chromatin remodeling",
-    "Carbohydrate catabolic process": "Carbohydrate catabolism",
-    "Carboxylic acid metabolic proc": "Carboxylic-acid metabolism",
-    "Regulation of anatomical struc": "Anatomical-structure regulation",
+# Module label per anchor hub, matching the Fig 4 curated labels exactly
+# (MODULE_NAMES in scripts/17_pub_figures.R; keyed by hub to avoid GO-name ambiguity).
+HUB_MODULE_LABEL = {
+    "NDUFS2": "OXPHOS",
+    "PSMA2": "Proteasome",
+    "MMP9": "Immune response",
+    "RPS11": "Translation",
+    "CDA": "Amino acid metabolism",
+    "DNMT1": "Chromatin remodeling",
+    "PDE6D": "Amino acid metabolism",
+    "PKLR": "Carbohydrate catabolism",
+    "ALDH5A1": "Carboxylic acid metabolism",
+    "IMPDH2": "Amino acid metabolism",
+    "CA2": "Cell adhesion / membrane",
+    "MAOA": "Amino acid metabolism",
+    "MMP8": "Immune response",
 }
 
 
@@ -149,6 +154,21 @@ def _read_tsv(name):
 def table1_section():
     egfr = _read_tsv("Tab4_EGFR_validation.tsv")
     tiers = _read_tsv("Tab5_novel_candidates_by_module.tsv")
+
+    # Reconciliation: Fig 5 shows the per-module peripheral representative Doxycycline
+    # (MMP8, module 5) but Tab5 trimmed it just below its composite cutoff (0.418 vs the
+    # 0.421 Tab5 floor). Re-added here so Table 1 matches Fig 5. Values read from
+    # 10_all_candidates_scored.tsv (composite/TP/DV/sources/phase), 15_sensitivity_ranks.tsv
+    # (n_configs_topN = 2 -> 2/6) and 15_lod_stability.tsv (absent -> not LOD-stable).
+    # Proper fix on next rebuild: align the cutoff in scripts/18_pub_tables.R.
+    if not any(r["Hub / diana"] == "MMP8" for r in tiers):
+        tiers.append({
+            "Fármaco": "Doxycycline", "Tier": "Periférico diferencial",
+            "Módulo funcional": "Defense response", "Hub / diana": "MMP8",
+            "Fase clínica máx.": "Aprobado (Fase IV)", "Composite score": "0.418",
+            "TP": "0.338", "DV": "0.537", "N fuentes": "3",
+            "LOD-stable": "No", "Robustez pesos": "2/6",
+        })
 
     header = (
         "| Drug | Block / tier | Module / subclass | Anchor target | Max clinical phase "
@@ -172,7 +192,7 @@ def table1_section():
             f"| {'Yes' if r['LOD-stable'] == 'Sí' else 'No'} | {r['Robustez pesos']} |"
         )
     rows.append(
-        f"| *plus {n_more} additional EGFR-axis agents* | EGFR control | EGFR axis (M2) "
+        f"| *plus {n_more} additional anti-EGFR agents* | EGFR control | anti-EGFR (mixed) "
         f"| EGFR | Approved-to-Phase I | mixed | 0.50-0.66 | 0.605 | varies | 2-3 "
         f"| mixed | mixed |"
     )
@@ -181,7 +201,7 @@ def table1_section():
     for r in tiers:
         rows.append(
             f"| {r['Fármaco']} | {tier_label.get(r['Tier'], r['Tier'])} | "
-            f"{MODULE_EN.get(r['Módulo funcional'], r['Módulo funcional'])} | {r['Hub / diana']} "
+            f"{HUB_MODULE_LABEL.get(r['Hub / diana'], r['Módulo funcional'])} | {r['Hub / diana']} "
             f"| {PHASE_EN.get(r['Fase clínica máx.'], r['Fase clínica máx.'])} | No "
             f"| {r['Composite score']} | {r['TP']} | {r['DV']} | {r['N fuentes']} "
             f"| {'Yes' if r['LOD-stable'] == 'Sí' else 'No'} | {r['Robustez pesos']} |"
