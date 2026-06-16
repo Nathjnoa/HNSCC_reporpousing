@@ -261,20 +261,24 @@ agents and the leading hub-central candidates, retained their positions across c
 Effective systemic options for HNSCC remain limited, and developing new agents de novo is slow and
 costly; drug repurposing offers a faster, lower-risk route to deployable therapy
 [@pushpakom2019; @tanoli2025]. Starting from the proteomes of paired HNSCC tumors, this study
-proposes a credible, mechanistically organized shortlist of repurposing candidates that resolves
-into interpretable therapeutic axes (EGFR, epigenetic, proteasome, and metabolic), each with a
-biological rationale a translational reader can evaluate. Two observations argue for taking the
-shortlist seriously. First, without disease-specific tuning, the analysis re-discovered the EGFR
-axis, the molecular target with established approved therapy in HNSCC [@burtness2019; @carosi2026].
-Second, the direction of change in the prioritized targets was reproduced across two independent
-cohorts. The prioritization procedure itself, which weighs where a target sits in the tumor protein
-network alongside how deployable its drug is rather than fold-change magnitude alone, is the means
-to this end rather than the focus of the work.
+delivers a mechanistically organized shortlist of repurposing candidates that resolves into four
+interpretable therapeutic axes: EGFR (cetuximab and other anti-EGFR agents), epigenetic
+(decitabine, azacitidine, tranylcypromine), proteasome (carfilzomib), and metabolic (metformin).
+Two observations argue for taking the shortlist seriously. First, without disease-specific tuning,
+the analysis re-discovered the EGFR axis, the only molecular target with established approved
+therapy in HNSCC [@burtness2019; @carosi2026]. Second, the direction of change in the prioritized
+targets was reproduced across two independent cohorts. The prioritization that produced this
+shortlist weighs where a target sits in the tumor protein network together with how deployable its
+drug is, rather than fold-change magnitude alone; it is the means by which the candidates are
+ranked, not the claim of the work.
 
 The unsupervised recovery of cetuximab at the top of the ranking (composite 0.73), accompanied by
 other approved EGFR-directed agents, served as an internal positive control: a method that
 independently elevates the established standard target is more credible when it also nominates less
-obvious ones. Beyond this control, the result invites viewing EGFR not as an isolated receptor but
+obvious ones. The recovery is consistent with independent HNSCC analyses that converge on EGFR by
+different routes, including single-cell nominations of anti-EGFR agents [@li2024] and proteogenomic
+stratification in which EGFR-high tumors respond to cetuximab in patient-derived xenografts
+[@wu2025]. Beyond this control, the result invites viewing EGFR not as an isolated receptor but
 as a central hub within a broader signaling network. EGFR is frequently overexpressed in HNSCC, yet
 single-agent anti-EGFR benefit is limited, a limitation that has been attributed to intrinsic and
 acquired resistance, including compensatory receptor tyrosine kinase activation, downstream pathway
@@ -284,9 +288,9 @@ EGFR blockade, pan-HER inhibitors, or EGFR inhibition plus immunomodulation) cur
 explored to overcome resistance [@carosi2026; @bhatia2023]. The same network logic that recovers
 EGFR also organizes the remaining candidates into interpretable mechanistic axes.
 
-Two non-canonical axes are, in our reading, the most novel. The epigenetic axis, anchored by DNMT1
-(decitabine, azacitidine) and MAOA (tranylcypromine), suggests that chromatin and DNA-methylation
-regulators may be an integral part of the HNSCC tumor state rather than only a secondary
+Two non-canonical axes are the most novel nominations. The epigenetic axis, anchored by DNMT1
+(decitabine, azacitidine) and MAOA (tranylcypromine), implicates chromatin and DNA-methylation
+regulators as an integral part of the HNSCC tumor state rather than only a secondary
 epiphenomenon. This axis carries a plausible translational rationale: DNA methyltransferase
 inhibition can increase tumor immunogenicity and remodel the immune microenvironment, which
 provides a mechanistic basis for combining hypomethylating agents with immune-checkpoint inhibitors
@@ -310,7 +314,7 @@ The metabolic axis requires the most careful framing. Unlike EGFR, which is over
 addressed by direct inhibition, Complex I subunits were robustly under-abundant in tumors
 (NDUFS2 log2FC = -3.05), a direction reproduced in both the CPTAC proteome and the TCGA
 transcriptome and consistent with a glycolytic, Warburg-like shift. Metformin rose to the top of
-the metabolic module (composite 0.591) through the high network centrality of its anchor, NDUFS2,
+the metabolic module (composite 0.59) through the high network centrality of its anchor, NDUFS2,
 independent of fold-change direction. Its nomination therefore rests on a metabolic-vulnerability
 rationale rather than on target overexpression: residual oxidative-phosphorylation dependence may
 remain a targetable feature of cancer cells, and Complex I inhibition has been reported to exert
@@ -323,21 +327,30 @@ tolerability in combination with chemoradiation [@kemnade2023], we position metf
 combination candidate (with chemoradiation or immunotherapy) rather than as a single-agent
 inhibitor of an over-expressed target.
 
-More broadly, weighting network position together with drug deployability and cross-cohort support
-is intended to yield a list that is actionable, not merely ranked. By design the composite is
-dominated by network centrality (Spearman rho approximately 0.78 with centrality alone), with the
-drug-level DrugViability term acting mainly as a clinical and pharmacological tie-breaker among
-agents that share a target; we therefore present the score as a transparent aggregation of evidence
-rather than as a method whose superiority over fold-change or database-count ranking is
-established, a comparison that would require dedicated benchmarking [@pushpakom2019; @tanoli2025].
-This network-centric view, in which therapeutic effect may depend on modulating functional modules
-rather than single proteins, is consistent with network-medicine principles [@barabasi2011].
-Several prioritized agents are approved for non-oncologic indications (valproate, acetazolamide,
-disulfiram) and could in principle offer short-horizon, accessible repurposing options. The
-relevance of such combination candidates may be heightened by the field's shift toward
-perioperative, immunotherapy-based regimens in resectable HNSCC [@uppaluri2025], a setting in which
-agents that prime or sensitize the tumor microenvironment could complement checkpoint blockade,
-although our data speak to target biology rather than to patient selection.
+More broadly, this study sits within, but is distinct from, prior repurposing efforts in HNSCC.
+Experimental high-throughput screens nominate candidates directly from drug response but depend on
+dedicated cell or patient-derived-cell resources [@gu2022], whereas existing in silico efforts have
+typically operated on transcriptomic or genomic data from public repositories and converged on a
+single hub target and a single drug [@kumar2025], or have applied network-medicine frameworks to
+pan-cancer interactome modules rather than to a disease-specific proteome [@cheng2019; @barabasi2011].
+Our contribution is the combination of three features: a paired tumor/normal DIA proteome as the
+substrate, closer to the functional effector layer than mRNA; a network-centrality and
+drug-deployability composite that resolves into several mechanistic axes rather than one target; and
+directional corroboration across two external cohorts. By design the composite is dominated by
+network centrality (Spearman rho approximately 0.78 with centrality alone): centrality carries the
+biological signal, while the drug-level DrugViability term determines which agent to advance among
+compounds that share a prioritized target. We therefore present the score as a transparent
+aggregation of evidence rather than as a method whose superiority over fold-change or database-count
+ranking is established, a comparison that would require dedicated benchmarking
+[@pushpakom2019; @tanoli2025; @flanary2023]. Several prioritized agents are approved for
+non-oncologic indications (valproate, acetazolamide, disulfiram) and could in principle offer
+short-horizon, accessible repurposing options. Because single-agent repurposing has frequently
+failed in HNSCC, as in a randomized trial of pantoprazole added to systemic therapy [@noronha2023],
+and because the field is shifting toward perioperative, immunotherapy-based regimens in resectable
+disease [@uppaluri2025], the prioritized agents are best positioned as combination candidates:
+those that prime or sensitize the tumor microenvironment could complement checkpoint blockade, as
+illustrated by repurposed fenofibrate in HPV+ models [@oneill2022], although our data speak to
+target biology rather than to patient selection.
 
 Several limitations bound these conclusions. The discovery cohort is small (10 paired specimens);
 cross-cohort corroboration mitigates but does not replace adequately powered confirmation. Tumor
@@ -354,11 +367,19 @@ nodes are structurally down-weighted and reach prioritization mainly through cen
 metabolic axis. Crucially, the external cohorts corroborate the direction of change in the
 prioritized targets; they do not test drug efficacy or the candidate rank order, and four anchors
 (PDE6D, CA2, CDA, RPS11) were weakly concordant or discordant and should be treated as
-lower-confidence nominations. Finally, this is an in silico prioritization: the candidates are
-hypotheses, and functional preclinical validation will be required, particularly for the
-under-explored epigenetic and proteasome axes. Within these bounds, the study offers a credible,
-mechanism-organized set of repurposing candidates and a prioritized agenda for preclinical and
-combination-trial follow-up in HNSCC.
+lower-confidence nominations.
+
+This is an in silico prioritization, so the candidates are hypotheses that require functional
+validation, and the axes suggest concrete next experiments. The epigenetic axis is most directly
+testable through a prime-then-checkpoint sequence, decitabine or azacitidine followed by PD-1
+blockade, in immunocompetent HNSCC models with readouts of tumor-infiltrating lymphocytes and PD-L1
+[@bear2025]. The proteasome axis warrants dose-response testing of carfilzomib in HNSCC cell lines
+and patient-derived xenografts with an unfolded-protein-response readout, the under-explored axis
+with the least precedent in solid tumors [@zang2012]. The metabolic axis is the closest to the
+clinic and is best advanced as metformin combined with chemoradiation or checkpoint blockade rather
+than as monotherapy, building on early-phase tolerability data [@kemnade2023]. Within these bounds,
+the study offers a credible, mechanism-organized set of repurposing candidates and a prioritized
+agenda for preclinical and combination-trial follow-up in HNSCC.
 
 # Figures
 
