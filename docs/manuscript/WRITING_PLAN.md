@@ -103,7 +103,7 @@ clásico). Metformina = **uno de varios candidatos**, enmarcada como vulnerabili
 - [x] 2. Results (`results.md`, R1–R6 ~1.4k palabras; R3 detalle básico-riguroso, números finos a Methods) ✅ aprobado 2026-06-14
 - [~] 3. Methods (`methods.md`, ~1.0k palabras; números finos de red, M1/m4/M6, "corroboration") — redactado, en revisión del autor
 - [~] 4. Introduction (`introduction.md`, ~720 palabras; brecha hedged, citas placeholder ⚠️ TO-VERIFY) — redactado, en revisión del autor
-- [ ] 5. Discussion
+- [~] 5. Discussion (`discussion.md`, ~1.2k palabras; spine 5 movimientos, ejes EGFR/epigenético/proteasoma/OXPHOS, B2/M1/M4/M6, scope solo inmunoterapia-combinación + 1 frase perioperatoria KEYNOTE-689; 8 citas nuevas verificadas vía PubMed → references.bib + CLINICAL_CRITERIA.md) — redactado, en revisión del autor
 - [ ] 6. Abstract
 - [ ] 7. Title + keywords
 - [ ] 8. references.bib
