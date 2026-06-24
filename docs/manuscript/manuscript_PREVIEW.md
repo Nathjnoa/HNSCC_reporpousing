@@ -6,34 +6,36 @@ Partial preview for pipeline testing: Introduction, Methods, Results, Discussion
 
 Head and neck squamous cell carcinoma (HNSCC) is among the leading causes of cancer morbidity and
 mortality worldwide, and overall survival remains limited, particularly in locally advanced and
-recurrent disease. [@johnson2020; @bray2024] Despite advances across surgery,
+recurrent disease [@bray2024]. Despite advances across surgery,
 radiotherapy, chemotherapy, and immunotherapy, outcomes are still poor, a reflection of how
-biologically complex the disease is. [@johnson2020]
+biologically complex the disease is [@johnson2020].
 
 Over the past decade, management has shifted with the introduction of immune-checkpoint
 inhibitors. The phase 3 KEYNOTE-048 trial established pembrolizumab (as monotherapy in
 PD-L1-positive patients or combined with platinum/5-fluorouracil) as the first-line standard for
 recurrent or metastatic disease, with patient selection guided by the combined positive score
-(CPS). [@burtness2019] More recently, KEYNOTE-689 reported that perioperative
+(CPS) [@burtness2019]. More recently, KEYNOTE-689 reported that perioperative
 pembrolizumab added to standard of care significantly improves event-free survival in
-locally advanced, resectable disease, a setting where progress had been comparatively slow.
-[@uppaluri2025] These advances highlight the need to find new molecular signatures
+locally advanced, resectable disease, a setting where progress had been comparatively slow
+[@uppaluri2025]. These advances highlight the need to find new molecular signatures
 and therapeutic targets to improve systemic and perioperative treatment.
 
 A central challenge in HNSCC is its molecular heterogeneity. The distinction between
 human-papillomavirus (HPV)-associated tumors and those linked to tobacco and alcohol has defined
 subgroups with substantial prognostic and biological differences, yet this stratification remains
-insufficient to capture the functional complexity of the tumor. [@ang2010]
+insufficient to capture the functional complexity of the tumor [@ang2010].
 Proteomics helps here because it gives a direct picture of the tumor's functional state:
 unlike genomic or transcriptomic profiles, the proteome reflects what cells are actually doing,
-capturing both post-transcriptional and post-translational regulation. [@aebersold2016] Proteomic studies have repeatedly found changes in EGFR signaling,
-energy metabolism, and the tumor microenvironment in HNSCC. [@huang2021]
+capturing both post-transcriptional and post-translational regulation [@aebersold2016].
+Proteomic studies have repeatedly found changes in EGFR signaling,
+energy metabolism, and the tumor microenvironment in HNSCC [@huang2021].
 
 Drug repurposing, the reuse of approved drugs whose safety is already known, is an efficient way
 to speed up the search for new treatment options, and combining a tumor's molecular signature
 with pharmacological-connectivity resources can point to drugs predicted to reverse the disease
-state. [@pushpakom2019; @tanoli2025] Connectivity-based approaches typically prioritize
-candidates by how strongly a drug reverses the transcriptomic signature [@lamb2006; @subramanian2017; @evangelista2025], while target-centric selection often relies on the size of
+state [@pushpakom2019]. Connectivity-based approaches typically prioritize
+candidates by how strongly a drug reverses the transcriptomic signature
+[@lamb2006; @subramanian2017; @evangelista2025], while target-centric selection often relies on the size of
 the protein or expression change. Ranking by signature reversal or effect size alone, however,
 does not capture where a target sits in the tumor's molecular network, a property that network
 medicine links to biological importance [@barabasi2011], and it leaves aside
@@ -294,10 +296,12 @@ regulators as an integral part of the HNSCC tumor state rather than only a secon
 epiphenomenon. This axis carries a plausible translational rationale: DNA methyltransferase
 inhibition can increase tumor immunogenicity and remodel the immune microenvironment, which
 provides a mechanistic basis for combining hypomethylating agents with immune-checkpoint inhibitors
-[@bear2025]. A recent phase 2 window trial reported that decitabine followed by pembrolizumab
-increased tumor-infiltrating lymphocytes and PD-L1 expression and reduced myeloid-derived
-suppressor cells before standard therapy [@bear2025], illustrating the prime-then-checkpoint
-strategy that our epigenetic nominations would support, an approach now being explored clinically.
+[@qin2025]. A recent phase 1b trial in immune-checkpoint-refractory HNSCC reported that, in a subset of patients, adding
+low-dose 5-azacytidine to checkpoint blockade increased the intratumoral IFN-γ signature and PD-L1
+expression, raised CD8+ T-cell infiltration while lowering regulatory T cells, and that these
+changes correlated with prolonged survival on checkpoint rechallenge [@qin2025], illustrating the
+prime-then-checkpoint strategy that our epigenetic nominations would support, an approach now being
+explored clinically in this disease.
 The proteasome axis, anchored by the 20S subunits PSMA2 and PSMB3 (carfilzomib), points to a
 possible dependence on protein homeostasis: a high biosynthetic burden and accumulation of
 misfolded proteins could render HNSCC cells reliant on proteasomal clearance, a vulnerability that
@@ -373,7 +377,7 @@ This is an in silico prioritization, so the candidates are hypotheses that requi
 validation, and the axes suggest concrete next experiments. The epigenetic axis is most directly
 testable through a prime-then-checkpoint sequence, decitabine or azacitidine followed by PD-1
 blockade, in immunocompetent HNSCC models with readouts of tumor-infiltrating lymphocytes and PD-L1
-[@bear2025]. The proteasome axis warrants dose-response testing of carfilzomib in HNSCC cell lines
+[@qin2025]. The proteasome axis warrants dose-response testing of carfilzomib in HNSCC cell lines
 and patient-derived xenografts with an unfolded-protein-response readout, the under-explored axis
 with the least precedent in solid tumors [@zang2012]. The metabolic axis is the closest to the
 clinic and is best advanced as metformin combined with chemoradiation or checkpoint blockade rather
