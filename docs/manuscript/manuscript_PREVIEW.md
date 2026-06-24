@@ -281,7 +281,12 @@ obvious ones. The recovery is consistent with independent HNSCC analyses that co
 different routes, including single-cell nominations of anti-EGFR agents [@li2024] and proteogenomic
 stratification in which EGFR-high tumors respond to cetuximab in patient-derived xenografts
 [@wu2025]. Beyond this control, the result invites viewing EGFR not as an isolated receptor but
-as a central hub within a broader signaling network. EGFR is frequently overexpressed in HNSCC, yet
+as a central hub within a broader signaling network. Consistent with this, proteogenomic analysis of
+the CPTAC HPV-negative cohort found that EGFR pathway activity is set by the abundance of EGFR
+ligands rather than by receptor amplification or overexpression, with ligand abundance, not the
+receptor, predicting cetuximab response in patient-derived xenografts [@huang2021]; the
+over-abundant receptor we prioritize is thus best read as one marker of a ligand-driven hub rather
+than the rate-limiting factor itself. EGFR is frequently overexpressed in HNSCC, yet
 single-agent anti-EGFR benefit is limited, a limitation that has been attributed to intrinsic and
 acquired resistance, including compensatory receptor tyrosine kinase activation, downstream pathway
 alterations, and epithelial-mesenchymal transition [@carosi2026]. Viewing EGFR as a network node
@@ -293,7 +298,12 @@ EGFR also organizes the remaining candidates into interpretable mechanistic axes
 Two non-canonical axes are the most novel nominations. The epigenetic axis, anchored by DNMT1
 (decitabine, azacitidine) and MAOA (tranylcypromine), implicates chromatin and DNA-methylation
 regulators as an integral part of the HNSCC tumor state rather than only a secondary
-epiphenomenon. This axis carries a plausible translational rationale: DNA methyltransferase
+epiphenomenon. This interpretation aligns with the CPTAC HPV-negative cohort, in which the
+chromosomal-instability (CIN) molecular subtype, the subgroup with the worst prognosis, showed
+elevated levels of multiple epigenetic regulators at the protein but not the mRNA level
+[@huang2021]; the concordance is notable because a protein-level signal of this kind would be
+largely invisible to transcriptome-based analyses. This axis carries a plausible translational
+rationale: DNA methyltransferase
 inhibition can increase tumor immunogenicity and remodel the immune microenvironment, which
 provides a mechanistic basis for combining hypomethylating agents with immune-checkpoint inhibitors
 [@qin2025]. A recent phase 1b trial in immune-checkpoint-refractory HNSCC reported that, in a subset of patients, adding
@@ -320,16 +330,26 @@ addressed by direct inhibition, Complex I subunits were robustly under-abundant 
 transcriptome and consistent with a glycolytic, Warburg-like shift. Metformin rose to the top of
 the metabolic module (composite 0.59) through the high network centrality of its anchor, NDUFS2,
 independent of fold-change direction. Its nomination therefore rests on a metabolic-vulnerability
-rationale rather than on target overexpression: residual oxidative-phosphorylation dependence may
-remain a targetable feature of cancer cells, and Complex I inhibition has been reported to exert
-immunometabolic effects on the tumor microenvironment [@pujaltemartin2024]. In HNSCC specifically,
+rationale rather than on target overexpression. Although HNSCC is predominantly glycolytic at the
+bulk level, tumor metabolism is plastic and heterogeneous: subpopulations, including certain
+cancer-stem-cell states, can shift toward oxidative phosphorylation depending on microenvironmental
+context, and this plasticity has been linked to therapy resistance [@papadaki2022; @shen2020]. A
+residual or subpopulation-level dependence on oxidative phosphorylation could therefore remain a
+targetable feature even in a globally glycolytic tumor, and Complex I inhibition has been reported
+to exert immunometabolic effects on the tumor microenvironment [@pujaltemartin2024]. In HNSCC specifically,
 metformin use has been associated with improved outcomes and may act in part through immune
 mechanisms, including increased CD8+ infiltration and enhanced natural-killer-cell cytotoxicity
-[@curry2018; @crist2022]. Because single-agent metformin trials have been less effective than
-observational data suggested [@pujaltemartin2024], and early-phase HNSCC studies indicate
-tolerability in combination with chemoradiation [@kemnade2023], we position metformin as a
-combination candidate (with chemoradiation or immunotherapy) rather than as a single-agent
-inhibitor of an over-expressed target.
+[@curry2018; @crist2022]. Notably, this activity appears to depend on HPV status: metformin induced
+significantly greater tumor-cell apoptosis in HPV-negative than in HPV-positive HNSCC, consistent
+with the stronger glycolytic phenotype of HPV-negative disease [@curry2018]. A pharmacokinetic
+consideration further shapes this interpretation: metformin inhibits Complex I only at millimolar
+concentrations, well above the micromolar levels reached in patient plasma [@pujaltemartin2024], so
+its clinical value may derive less from direct metabolic inhibition of tumor cells than from
+reprogramming of the immune microenvironment. Consistent with this, single-agent metformin trials
+have been less effective than observational data suggested [@pujaltemartin2024], and early-phase
+HNSCC studies indicate tolerability in combination with chemoradiation [@kemnade2023]; we therefore
+position metformin as a combination candidate (with chemoradiation or immunotherapy) rather than as
+a single-agent inhibitor of an over-expressed target.
 
 More broadly, this study sits within, but is distinct from, prior repurposing efforts in HNSCC.
 Experimental high-throughput screens nominate candidates directly from drug response but depend on
@@ -357,7 +377,13 @@ illustrated by repurposed fenofibrate in HPV+ models [@oneill2022], although our
 target biology rather than to patient selection.
 
 Several limitations bound these conclusions. The discovery cohort is small (10 paired specimens);
-cross-cohort corroboration mitigates but does not replace adequately powered confirmation. Tumor
+cross-cohort corroboration mitigates but does not replace adequately powered confirmation. The
+cohort is also mixed by HPV status (six HPV-positive, four HPV-negative) and the
+differential-abundance analysis averaged over it, whereas one corroborating cohort (CPTAC) is
+exclusively HPV-negative; because HPV-positive and HPV-negative HNSCC differ substantially in
+metabolism and immune context [@curry2018], some axis-level interpretations, in particular the
+metabolic axis, may apply preferentially to the more glycolytic HPV-negative subgroup rather than
+uniformly across HNSCC. Tumor
 and adjacent-normal specimens differ in cellular composition, and muscle and respiratory-mucosa
 signals in the down-regulated proteome likely reflect tissue context rather than tumor-intrinsic
 biology; hallmark terms such as Myogenesis and Adipogenesis should be read accordingly, although
