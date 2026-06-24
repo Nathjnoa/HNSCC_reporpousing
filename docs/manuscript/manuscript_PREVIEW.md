@@ -318,7 +318,11 @@ possible dependence on protein homeostasis: a high biosynthetic burden and accum
 misfolded proteins could render HNSCC cells reliant on proteasomal clearance, a vulnerability that
 next-generation proteasome inhibitors such as carfilzomib and oprozomib have been reported to
 exploit in HNSCC preclinical models, in part through induction of the unfolded protein response
-[@zang2012]. Proteostasis targeting is clinically established in hematologic malignancies but
+[@zang2012]. The hub is shared by several approved or investigational proteasome inhibitors;
+bortezomib (as its D-mannitol formulation) and ixazomib rank highest by composite, whereas
+carfilzomib, although marginally lower, is the agent we highlight for experimental follow-up because
+it uniquely couples connectivity-based signature reversal with the HNSCC preclinical evidence cited
+above. Proteostasis targeting is clinically established in hematologic malignancies but
 comparatively under-explored in solid tumors such as HNSCC [@zang2012], which positions this axis
 as a hypothesis worth dedicated preclinical testing rather than an established therapy. A feature
 that distinguishes both axes from EGFR is that their anchors are differentially abundant nodes whose
