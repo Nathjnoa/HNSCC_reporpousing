@@ -3,6 +3,30 @@
 > Author decision (2026-06-14): live Zotero fields in Word, via Zotero **RTF/ODF Scan**.
 > This file fixes the mechanism so it is not re-litigated. Related: `WRITING_PLAN.md` step 8.
 
+## Build sequence (source of truth → preview → docx)
+
+Edit the **section files**, never the generated artifacts. Pipeline:
+
+1. **Edit the section drafts** — `introduction.md`, `methods.md`, `results.md`, `discussion.md`,
+   `figures.md`, `tables.md`. These are the source of truth.
+2. **Build the preview `.md`** — `python3 _build_preview.py` assembles the sections into
+   `manuscript_PREVIEW.md` (strips note blocks / ⚠️ flags / markdown emphasis, maps the
+   Introduction placeholder citekeys, injects method and figure citations, embeds Fig 1-6 and
+   Table 1). **Never hand-edit `manuscript_PREVIEW.md`** — it is generated and a rebuild overwrites it.
+3. **Build the two `.docx`** (run from this directory so the figure paths resolve):
+   - **With markers** — input to the Zotero scan; keeps `[@key]` literal (no citeproc):
+     `pandoc manuscript_PREVIEW.md -f markdown-citations --reference-doc=reference.docx -o manuscript_PREVIEW_pandoc_markers.docx`
+   - **Without markers** — clean reading copy; formatted citations + bibliography via citeproc:
+     `pandoc manuscript_PREVIEW.md --citeproc --bibliography=references.bib --reference-doc=reference.docx -o manuscript_PREVIEW.docx`
+4. **Live Zotero fields (manual, in Word)** — scan `manuscript_PREVIEW_pandoc_markers.docx` with the
+   ODF/DOCX Scan add-on (Path B below).
+
+**Consistency checks after any change:**
+`python3 _build_preview.py && git diff --quiet manuscript_PREVIEW.md` (empty = preview matches the
+sections). Every `[@key]` in the preview must have (a) an entry in `references.bib` for the clean
+docx, and (b) a pinned Citation Key in Zotero for the markers scan. Keys, `references.bib`, and the
+Zotero items must all agree (same paper per citekey).
+
 ## Chosen path: Zotero scan markers → live fields
 
 Drafting carries readable `[@key]` placeholders flagged `⚠️ TO-VERIFY`. At assembly these become
