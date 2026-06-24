@@ -283,10 +283,11 @@ stratification in which EGFR-high tumors respond to cetuximab in patient-derived
 [@wu2025]. Beyond this control, the result invites viewing EGFR not as an isolated receptor but
 as a central hub within a broader signaling network. Consistent with this, proteogenomic analysis of
 the CPTAC HPV-negative cohort found that EGFR pathway activity is set by the abundance of EGFR
-ligands rather than by receptor amplification or overexpression, with ligand abundance, not the
-receptor, predicting cetuximab response in patient-derived xenografts [@huang2021]; the
-over-abundant receptor we prioritize is thus best read as one marker of a ligand-driven hub rather
-than the rate-limiting factor itself. EGFR is frequently overexpressed in HNSCC, yet
+ligands, in particular AREG and TGFA, rather than by receptor amplification or overexpression, and
+that ligand abundance, not receptor level, is the superior predictor of cetuximab response in
+patient-derived xenografts and the proposed basis for selecting patients for anti-EGFR antibodies
+[@huang2021]; the over-abundant receptor we prioritize is thus best read as one marker of a
+ligand-driven hub rather than the rate-limiting factor itself. EGFR is frequently overexpressed in HNSCC, yet
 single-agent anti-EGFR benefit is limited, a limitation that has been attributed to intrinsic and
 acquired resistance, including compensatory receptor tyrosine kinase activation, downstream pathway
 alterations, and epithelial-mesenchymal transition [@carosi2026]. Viewing EGFR as a network node
@@ -298,10 +299,10 @@ EGFR also organizes the remaining candidates into interpretable mechanistic axes
 Two non-canonical axes are the most novel nominations. The epigenetic axis, anchored by DNMT1
 (decitabine, azacitidine) and MAOA (tranylcypromine), implicates chromatin and DNA-methylation
 regulators as an integral part of the HNSCC tumor state rather than only a secondary
-epiphenomenon. This interpretation aligns with the CPTAC HPV-negative cohort, in which the
-chromosomal-instability (CIN) molecular subtype, the subgroup with the worst prognosis, showed
-elevated levels of multiple epigenetic regulators at the protein but not the mRNA level
-[@huang2021]; the concordance is notable because a protein-level signal of this kind would be
+epiphenomenon. This places our prioritized epigenetic anchors (DNMT1, MAOA) within an externally
+validated context: in the CPTAC HPV-negative cohort, the chromosomal-instability (CIN) molecular
+subtype, the subgroup with the worst prognosis, showed elevated levels of multiple epigenetic
+regulators at the protein but not the mRNA level [@huang2021]; the concordance is notable because a protein-level signal of this kind would be
 largely invisible to transcriptome-based analyses. This axis carries a plausible translational
 rationale: DNA methyltransferase
 inhibition can increase tumor immunogenicity and remodel the immune microenvironment, which
@@ -383,7 +384,10 @@ differential-abundance analysis averaged over it, whereas one corroborating coho
 exclusively HPV-negative; because HPV-positive and HPV-negative HNSCC differ substantially in
 metabolism and immune context [@curry2018], some axis-level interpretations, in particular the
 metabolic axis, may apply preferentially to the more glycolytic HPV-negative subgroup rather than
-uniformly across HNSCC. Tumor
+uniformly across HNSCC. If anything, this concentrates the relevance of the prioritized candidates
+on HPV-negative disease, the subgroup that carries the worst prognosis and the greatest unmet
+therapeutic need [@ang2010; @johnson2020], since the corroborating CPTAC proteome is itself
+HPV-negative. Tumor
 and adjacent-normal specimens differ in cellular composition, and muscle and respiratory-mucosa
 signals in the down-regulated proteome likely reflect tissue context rather than tumor-intrinsic
 biology; hallmark terms such as Myogenesis and Adipogenesis should be read accordingly, although
